@@ -3101,6 +3101,11 @@ void swp30_device::mixer_step(const std::array<s32, 0x40> &samples_per_chan)
 	m_rec_bus = mixer_out[0x10];   // S-MU2000: 録音はミキサの出力 8 の左（sample_step）
 	std::copy(mixer_out.begin() + 0x00, mixer_out.begin() + 0x10, m_melo.begin());
 	std::copy(mixer_out.begin() + 0x10, mixer_out.begin() + 0x20, m_meg->m_m.begin() + 0x20);
+	// S-MU2000: 外から来た音を MEG の入口に足す（軽量モードの横取りより前。どちらの道でもエフェクトに入る）
+	if(m_ext_on)
+		for(int i = 0; i != 16; i++)
+			if(m_ext_bus[i])
+				m_meg->m_m[0x20 + i] = s32(std::clamp<s64>(s64(m_meg->m_m[0x20 + i]) + m_ext_bus[i], -0x7fffffffLL, 0x7fffffffLL));
 	// S-MU2000: 軽量モードでは、エフェクトへの送りを横取りして MEG には渡さない。
 	// MEG 側は無音を受けるので、出てくるのはこちらの C++ のエフェクトだけになる
 	if(m_native) {
@@ -4642,6 +4647,11 @@ void swp30_device::sample_step()
 
 	std::array<s32, 0x40> samples_per_chan;
 	awm2_step(samples_per_chan);
+	// S-MU2000: ミュートした声は、画面にもミックスにも出さない
+	if(const u64 mute = m_voice_mute.load(std::memory_order_relaxed))
+		for(int i = 0; i < 0x40; i++)
+			if((mute >> i) & 1)
+				samples_per_chan[i] = 0;
 	// S-MU2000: 声ごとの出力を画面へ（パートの音のスペクトラム）
 	if(m_voice_tap)
 		m_voice_tap(m_voice_tap_ctx, samples_per_chan.data());
