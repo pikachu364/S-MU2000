@@ -163,8 +163,22 @@ s32 trigger_level(int trigger_db)
 
 } // namespace
 
+void sampling_editor::hidden(bridge &br)
+{
+	if (m_hidden_stopped)
+		return;
+	m_hidden_stopped = true;
+	preset_restore(br);
+	m_rw_playing = m_rw_start = m_rw_play_wanted = false;
+	br.post([](mu2000 &mu) {
+		mu.preview_stop();
+		return std::string();
+	});
+}
+
 void sampling_editor::draw(xg::model &m, const xg_snapshot &ram, bridge &br)
 {
+	m_hidden_stopped = false;
 	(void)m;
 	(void)ram;
 	br.get_sampling(m_view);
@@ -212,6 +226,10 @@ void sampling_editor::draw(xg::model &m, const xg_snapshot &ram, bridge &br)
 	ImGui::EndChild();
 	ImGui::SameLine();
 	if (ImGui::BeginChild("right", ImVec2(0, 0))) {
+		const int go = m_goto_tab;
+		m_rw_drawn = false;
+		m_pv_drawn = false;
+		m_goto_tab = 0;
 		if (ImGui::BeginTabBar("right_tabs")) {
 			if (ImGui::BeginTabItem(UI_TEXT(smp_tab_prepare, "Get a sound"))) {
 				if (ImGui::BeginTabBar("prepare_tabs")) {
@@ -250,7 +268,7 @@ void sampling_editor::draw(xg::model &m, const xg_snapshot &ram, bridge &br)
 				}
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem(UI_TEXT(smp_tab_process, "Shape the sound"))) {
+			if (ImGui::BeginTabItem(UI_TEXT(smp_tab_process, "Shape the sound"), nullptr, go == 1 ? ImGuiTabItemFlags_SetSelected : 0)) {
 				if (ImGui::BeginTabBar("process_tabs")) {
 					if (ImGui::BeginTabItem(UI_TEXT(smp_tab_edit, "Sample"))) {
 						if (ImGui::BeginChild("wave", ImVec2(0, 0), ImGuiChildFlags_Borders))
@@ -258,7 +276,7 @@ void sampling_editor::draw(xg::model &m, const xg_snapshot &ram, bridge &br)
 						ImGui::EndChild();
 						ImGui::EndTabItem();
 					}
-					if (ImGui::BeginTabItem(UI_TEXT(smp_tab_voice, "Voice"))) {
+					if (ImGui::BeginTabItem(UI_TEXT(smp_tab_voice, "Voice"), nullptr, go == 1 ? ImGuiTabItemFlags_SetSelected : 0)) {
 						if (ImGui::BeginChild("assign", ImVec2(0, 0), ImGuiChildFlags_Borders))
 							assign_pane(br);
 						ImGui::EndChild();
@@ -268,7 +286,33 @@ void sampling_editor::draw(xg::model &m, const xg_snapshot &ram, bridge &br)
 				}
 				ImGui::EndTabItem();
 			}
+			// 内蔵ウェーブ: 内蔵の波形を 1 つずつ聞いて・見て、何の音色が使っているかを調べる
+			if (ImGui::BeginTabItem(UI_TEXT(smp_tab_romwave, "Built-in waves"), nullptr, go == 2 ? ImGuiTabItemFlags_SetSelected : 0)) {
+				if (ImGui::BeginChild("romwave", ImVec2(0, 0), ImGuiChildFlags_Borders))
+					romwave_pane(br);
+				ImGui::EndChild();
+				ImGui::EndTabItem();
+			}
+			// 内蔵音色: 内蔵の音色がどの波形をどう重ねているかを見て、要素を選んで鳴らす
+			if (ImGui::BeginTabItem(UI_TEXT(smp_tab_presets, "Built-in voices"), nullptr, go == 3 ? ImGuiTabItemFlags_SetSelected : 0)) {
+				if (ImGui::BeginChild("presets", ImVec2(0, 0), ImGuiChildFlags_Borders))
+					preset_pane(br);
+				ImGui::EndChild();
+				ImGui::EndTabItem();
+			}
 			ImGui::EndTabBar();
+		}
+		// 内蔵音色のタブから離れたら、試聴に借りたサンプル音色の枠を元に戻す
+		if (!m_pv_drawn)
+			preset_restore(br);
+		// 内蔵ウェーブのタブから離れたら、そこで鳴らしていた波形を止める（ループする波形が鳴りっぱなしにならないように）
+		if (!m_rw_drawn && (m_rw_playing || m_rw_start || m_rw_play_wanted)) {
+			if (m_rw_playing)
+				br.post([](mu2000 &mu) {
+					mu.preview_stop();
+					return std::string();
+				});
+			m_rw_playing = m_rw_start = m_rw_play_wanted = false;
 		}
 	}
 	ImGui::EndChild();
@@ -1330,7 +1374,7 @@ void sampling_editor::assign_pane(bridge &br)
 	ImGui::AlignTextToFramePadding();
 	ImGui::TextUnformatted(UI_TEXT(smp_sample, "Sample"));
 	ImGui::SameLine(lab);
-	ImGui::SetNextItemWidth(-1);
+	ImGui::SetNextItemWidth(-ImGui::GetFontSize() * 5.5f);
 	char label[32];
 	const char *none = UI_TEXT(smp_sample_none, "(none)");
 	std::string shown = none;
@@ -1343,20 +1387,15 @@ void sampling_editor::assign_pane(bridge &br)
 		std::snprintf(label, sizeof(label), "%03d ?", m_sample);
 		shown = label;
 	}
-	// 内蔵の波形の組の名前代わり（その組を使っている XG の音色）。ROM を読めたら 1 度だけ作る
-	if (m_wave_labels.empty())
-		if (const xg::voice_rom *vr = xgui::voices()) {
-			const auto users = vr->wave_users();
-			m_wave_labels.resize(users.size());
-			for (size_t i = 0; i < users.size(); i++) {
-				std::string s = "W" + std::to_string(i);
-				for (size_t k = 0; k < users[i].size() && k < 4; k++)
-					s += (k ? ", " : "  ") + users[i][k];
-				if (users[i].size() > 4)
-					s += ", ...";
-				m_wave_labels[i] = s;
-			}
+	// 内蔵の波形の組の名前代わり（その組を使っている音色。無ければドラムの打）。ROM を読めたら 1 度だけ作る
+	if (m_wave_labels.empty()) {
+		romwave_build();
+		if (m_rw_built) {
+			m_wave_labels.resize(m_rw_cat.size());
+			for (size_t i = 0; i < m_rw_cat.size(); i++)
+				m_wave_labels[i] = romwave_label(int(i));
 		}
+	}
 	auto wave_label = [&](int w) {
 		return w >= 0 && w < int(m_wave_labels.size()) ? m_wave_labels[size_t(w)] : "W" + std::to_string(w);
 	};
@@ -1404,6 +1443,17 @@ void sampling_editor::assign_pane(bridge &br)
 	}
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("%s", UI_TEXT(smp_rom_wave_tip, "A sample from the sampling RAM, or one of the built-in waves the MU2000's own voices play (named after the voices that use it). A built-in wave is played the same way as a sample: pitch, level and envelope below apply."));
+	ImGui::SameLine();
+	if (ImGui::Button(UI_TEXT(smp_rom_wave_browse, "Browse..."), ImVec2(-1, 0))) {
+		if (m_rom_wave >= 0) {
+			m_rw_sel = m_rom_wave;
+			m_rw_zone = 0;
+			m_rw_scroll = true;
+		}
+		m_goto_tab = 2;
+	}
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("%s", UI_TEXT(smp_rom_wave_browse_tip, "Opens the Built-in waves tab: listen to each wave, see its shape and which voices use it, then pick one for this element."));
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::TextUnformatted(UI_TEXT(smp_level, "Level"));

@@ -356,6 +356,13 @@ public:
 	// サンプル音色（slot 0-255。Bank# 0 の PGM001 が 0）
 	bool sampling_voice(int slot, smu2000::sampling::voice &out) const;
 	bool sampling_set_voice(int slot, const smu2000::sampling::voice &v, std::string &err);
+	// 音色の記録（350 バイト）をそのまま読む・書き戻す（下の sampling_copy_preset で借りた枠を元に戻すとき）
+	bool sampling_voice_raw(int slot, std::vector<u8> &out) const;
+	bool sampling_set_voice_raw(int slot, const std::vector<u8> &rec);
+	// **内蔵の音色をサンプル音色の枠に写す**。rom_rec は ROM の音色の記録の番地（xg::voice_rom::lookup）。
+	// ROM の音色の要素とサンプル音色の要素は同じ 84 バイトの並びなので、そのまま写せば同じ音が鳴る。
+	// mask は鳴らす要素（bit0 = 要素 1）。負なら記録のまま（全部）。要素を 1 つずつ聞くのに使う
+	bool sampling_copy_preset(int slot, u32 rom_rec, int mask, std::string &err);
 	// 録音。A/D INPUT（set_audio_input に入る値）を、選んだ入力から 16bit で集める。
 	// trigger は 0 なら押してすぐ、ほかはその大きさ（16bit の絶対値）を超えたら録り始める
 	void rec_start(smu2000::sampling::source src, int trigger, u32 max_frames);
@@ -373,6 +380,11 @@ public:
 	// 44.1kHz・16bit・モノラルで渡す。鳴らしている間 preview_number() は -1
 	void preview_pcm(std::vector<s16> pcm, u32 loop_at = ~0u, bool keep_pos = false);
 	void preview_stop() { m_prev_on = false; }
+	// 内蔵の波形（波形の記録の 3 つの値。xg/wave_catalog.h の wave_zone）を、鳴る順の 16bit で取り出す
+	std::vector<s16> rom_wave_pcm(u32 start, u32 loop, u32 address, size_t max = 1500000)
+	{
+		return m_swpm.decode_wave(start, loop, address, max);
+	}
 	int preview_number() const { return m_prev_on ? m_prev_number : 0; }
 	u32 preview_pos() const { return m_prev_pos; }
 	// A/D INPUT のピーク（16bit の絶対値。ゆっくり下がる）。レベルメーター用

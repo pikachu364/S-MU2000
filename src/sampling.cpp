@@ -854,6 +854,60 @@ bool mu2000::sampling_voice(int slot, sp::voice &out) const
 	return true;
 }
 
+bool mu2000::sampling_voice_raw(int slot, std::vector<u8> &out) const
+{
+	if (slot < 0 || slot >= sp::MAX_VOICES)
+		return false;
+	const u32 o = voice_rec(slot);
+	out.assign(m_dram.begin() + o, m_dram.begin() + o + sp::VOICE_SIZE);
+	return true;
+}
+
+bool mu2000::sampling_set_voice_raw(int slot, const std::vector<u8> &rec)
+{
+	if (slot < 0 || slot >= sp::MAX_VOICES || rec.size() != sp::VOICE_SIZE)
+		return false;
+	std::copy(rec.begin(), rec.end(), m_dram.begin() + voice_rec(slot));
+	return true;
+}
+
+bool mu2000::sampling_copy_preset(int slot, u32 rom_rec, int mask, std::string &err)
+{
+	if (slot < 0 || slot >= sp::MAX_VOICES) {
+		err = "no such voice";
+		return false;
+	}
+	// ROM の記録: [0] 要素の印（1/3/7/15）、[2..11] 名前 10 文字、[12..] 要素 84 バイト × 数、後ろに 2 バイト
+	const std::vector<u8> &rom = *m_prog;
+	if (!m_prog || rom_rec < 0x200000 || size_t(rom_rec) + sp::VOICE_SIZE > rom.size() || !(rom[rom_rec] & 15)) {
+		err = "no such preset";
+		return false;
+	}
+	int n = 0;
+	for (int i = 0; i < 4; i++)
+		n += (rom[rom_rec] >> i) & 1;
+	const u32 o = voice_rec(slot);
+	const u8 all = u8((1 << n) - 1);
+	m_dram[o] = mask < 0 ? all : u8(mask) & all;
+	m_dram[o + 1] = rom[rom_rec + 1];
+	// 名前はサンプル音色では 8 文字（+10・+11 は別の欄）
+	std::copy(rom.begin() + rom_rec + 2, rom.begin() + rom_rec + 10, m_dram.begin() + o + 2);
+	m_dram[o + 10] = m_dram[o + 11] = 0;
+	for (int e = 0; e < sp::VOICE_ELEMENTS; e++) {
+		const u32 b = o + 12 + 84 * u32(e);
+		if (e < n) {
+			std::copy(rom.begin() + rom_rec + 12 + 84 * u32(e), rom.begin() + rom_rec + 12 + 84 * u32(e + 1), m_dram.begin() + b);
+			m_dram[b] = 0x00;            // サンプルを割り当てたときだけ 01 になる欄
+		} else {
+			m_dram[b] = 0x00;
+			m_dram[b + 2] = 0x3f;        // 波形なし
+			m_dram[b + 3] = 0x7f;
+		}
+	}
+	std::copy(rom.begin() + rom_rec + 12 + 84 * u32(n), rom.begin() + rom_rec + 14 + 84 * u32(n), m_dram.begin() + o + 12 + 84 * 4);
+	return true;
+}
+
 bool mu2000::sampling_set_voice(int slot, const sp::voice &v, std::string &err)
 {
 	if (slot < 0 || slot >= sp::MAX_VOICES) {
@@ -869,7 +923,10 @@ bool mu2000::sampling_set_voice(int slot, const sp::voice &v, std::string &err)
 	// 名前は 8 文字で、余りは空白（0 で埋めると LCD が CGRAM の 0 番の字を出す）。+10・+11 は別の欄
 	if (!v.name.empty())
 		put_text(m_dram, o + 2, 8, v.name, ' ');
-	// 使う要素の印（ビットごと）。使わない要素の中身は触らない
+	// 使う要素の印（ビットごと）。鳴らすかどうかはこの印だけで決まる。**鳴らさない要素も中身は書く**:
+	// 窓で「この要素を鳴らす」を外したまま選んだサンプルや値が、書いたとたんに消えないように
+	// （前は触らなかったので、試聴のあとに読み直すと選んだものが消えていた）。
+	// 鳴らさない要素に、もう無いサンプルが入っていたら「無し」にする
 	u8 mask = 0;
 	for (int e = 0; e < sp::VOICE_ELEMENTS; e++)
 		if (v.el[size_t(e)].on)
@@ -877,27 +934,27 @@ bool mu2000::sampling_set_voice(int slot, const sp::voice &v, std::string &err)
 	m_dram[o] = mask;
 	for (int e = 0; e < sp::VOICE_ELEMENTS; e++) {
 		const sp::element &x = v.el[size_t(e)];
-		if (!x.on)
-			continue;
 		const u32 b = o + 12 + 84 * u32(e);
-		if (x.assigned) {
+		const bool has_sample = x.assigned && x.sample >= 1 && x.sample <= sp::MAX_SAMPLES &&
+		                        (m_dram[sample_rec(x.sample) + 2] & 0x40);
+		if (has_sample) {
 			m_dram[b] = 0x01;
-			m_dram[b + 1] = 0x7f;
 			const u16 sv = u16(0x4000 | (x.sample - 1));
 			m_dram[b + 2] = u8(sv >> 8);
 			m_dram[b + 3] = u8(sv);
-		} else if (x.rom_wave >= 0 && x.rom_wave < sp::ROM_WAVE_SETS) {
+		} else if (!x.assigned && x.rom_wave >= 0 && x.rom_wave < sp::ROM_WAVE_SETS) {
 			// 内蔵の波形の組。[0] は firmware がサンプルのときだけ 01 にする欄で、鳴るかどうかは変えない
 			m_dram[b] = 0x00;
-			m_dram[b + 1] = 0x7f;
 			m_dram[b + 2] = u8(x.rom_wave >> 7);
 			m_dram[b + 3] = u8(x.rom_wave & 0x7f);
 		} else {
 			m_dram[b] = 0x00;
-			m_dram[b + 1] = 0x7f;
 			m_dram[b + 2] = 0x3f;
 			m_dram[b + 3] = 0x7f;
 		}
+		// [1] は、鳴らす要素だけ 7f にする（鳴らさない要素は firmware の入れた値のまま。SysEx でも送らない欄）
+		if (x.on)
+			m_dram[b + 1] = 0x7f;
 		const int klo = std::clamp(x.key_lo, 0, 127), khi = std::clamp(x.key_hi, 0, 127);
 		const int vlo = std::clamp(x.vel_lo, 1, 127), vhi = std::clamp(x.vel_hi, 1, 127);
 		m_dram[b + 4] = u8(std::min(klo, khi));

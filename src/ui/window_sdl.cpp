@@ -241,10 +241,11 @@ int run_window(linux_app &gui, const char *title, int w, int h)
 				gui.key(sdl_key_to_shared(ev.key.key), false);
 				break;
 			case SDL_EVENT_DROP_FILE:
-				if (ev.drop.data) {
+				// SDL3 owns the event's memory: the name must not be freed here
+				// (README-migration: "you should not free the data in
+				// SDL_EVENT_DROP_FILE"). Freeing it crashed on the drop (issue #124)
+				if (ev.drop.data)
 					play_dropped_file(ev.drop.data);
-					SDL_free(const_cast<char *>(ev.drop.data));
-				}
 				break;
 			default:
 				break;
@@ -263,12 +264,14 @@ int run_window(linux_app &gui, const char *title, int w, int h)
 	// resources down here: SDL_Quit below would strand them. (The shared
 	// shutdown runs afterwards; on closed windows its calls do nothing.)
 	pc_shutdown_all(gui.list, gui.pc, gui.fx, gui.shapes, gui.master, gui.sampling, gui.br);
+	gui.player_win.shutdown(gui.br);
 	gui.list.close();
 	gui.pc.close();
 	gui.fx.close();
 	gui.shapes.close();
 	gui.master.close();
 	gui.sampling.close();
+	gui.player_win.close();
 	g_linux = nullptr;
 
 	// sdl_stop() drops the panel's textures and takes the ImGui context down.
