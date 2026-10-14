@@ -261,6 +261,39 @@ static void check_rcp_header()
 	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG", track_ok ? "合" : "NG", short_track_ok ? "合" : "NG", null_track_ok ? "合" : "NG");
 }
 
+// RCP2 の 4 byte シーケンスレコードを合成データで検証する。
+// ここではコマンド展開やタイミング解釈をせず、生レコードと終端だけを確認する。
+static void check_rcp_sequence()
+{
+	const std::vector<u8> sequence = {
+		60, 12, 100, 90,       // note-like record
+		0xfd, 0, 0, 0,         // measure end command
+		0xfe, 0, 0, 0,         // track end command
+		0x90, 1, 2, 3           // data after FE must not be consumed
+	};
+	std::vector<rcp::sequence_event> events;
+	size_t consumed = 0;
+	std::string err;
+	const bool ok = rcp::parse_sequence(sequence.data(), sequence.size(), events, consumed, err);
+	const bool fields_ok = ok && events.size() == 3 && consumed == 12 &&
+		events[0].code == 60 && events[0].p0 == 12 &&
+		events[0].p1 == 100 && events[0].p2 == 90 &&
+		events[1].code == 0xfd && events[2].code == 0xfe;
+
+	const u8 no_end[] = { 60, 0, 90, 80 };
+	const bool missing_end_ok = !rcp::parse_sequence(no_end, sizeof(no_end), events, consumed, err) &&
+		events.empty() && consumed == 0;
+	const u8 partial[] = { 60, 0, 90 };
+	const bool partial_ok = !rcp::parse_sequence(partial, sizeof(partial), events, consumed, err) &&
+		events.empty() && consumed == 0;
+	const bool null_ok = !rcp::parse_sequence(nullptr, 4, events, consumed, err) &&
+		events.empty() && consumed == 0;
+
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s\n",
+		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
+		partial_ok ? "合" : "NG", null_ok ? "合" : "NG");
+}
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -299,6 +332,7 @@ int main()
 	check_bend_thinner();
 	check_smf_player();
 	check_rcp_header();
+	check_rcp_sequence();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
