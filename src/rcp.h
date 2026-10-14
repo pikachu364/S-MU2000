@@ -76,6 +76,16 @@ bool parse_sequence(const u8 *data, size_t size,
                     std::vector<sequence_event> &out,
                     size_t &bytes_consumed, std::string &err);
 
+// Experimental F6 comment-data collector based on ValleyBell/MidiConverters' RCP2
+// handler, not an official-format guarantee. Starting at start_index (which must
+// name F6), concatenate p1/p2 from F6 and immediately following F7 records.
+// Stop before any other record, including FE; records_consumed counts only F6/F7.
+// Requires a Track End (FE) somewhere at or after start_index. Failure clears out
+// and sets records_consumed to zero.
+bool extract_comment_data(const std::vector<sequence_event> &sequence,
+                          size_t start_index, std::vector<u8> &out,
+                          size_t &records_consumed, std::string &err);
+
 // Parsed RCP2 track. raw_length includes the 2-byte length field and the full
 // 0x2c-byte track header; sequence contains records through FE.
 struct track {
