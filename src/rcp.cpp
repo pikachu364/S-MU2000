@@ -6,6 +6,7 @@
 #include "rcp.h"
 
 #include <cstring>
+#include <vector>
 
 namespace rcp {
 namespace {
@@ -109,6 +110,44 @@ bool parse_track_header(const u8 *data, size_t size, track_header &out, std::str
 	out.mute = data[7];
 	out.name = fixed_string(data + 8, 0x24);
 	return true;
+}
+
+bool parse_sequence(const u8 *data, size_t size,
+                    std::vector<sequence_event> &out,
+                    size_t &bytes_consumed, std::string &err)
+{
+	out.clear();
+	bytes_consumed = 0;
+	err.clear();
+
+	if (data == nullptr) {
+		err = "RCP シーケンスデータが null です";
+		return false;
+	}
+
+	// Reserve only complete records. Avoid arithmetic that can overflow.
+	const size_t record_count = size / 4;
+	for (size_t i = 0; i < record_count; ++i) {
+		const size_t offset = i * 4;
+		sequence_event event;
+		event.code = data[offset];
+		event.p0 = data[offset + 1];
+		event.p1 = data[offset + 2];
+		event.p2 = data[offset + 3];
+		out.push_back(event);
+		bytes_consumed = offset + 4;
+
+		if (event.code == 0xfe)
+			return true;
+	}
+
+	out.clear();
+	bytes_consumed = 0;
+	if (size % 4 != 0)
+		err = "RCP シーケンスの末尾が 4 byte レコード境界に一致しません";
+	else
+		err = "RCP シーケンスに Track End (FE) がありません";
+	return false;
 }
 
 } // namespace rcp
