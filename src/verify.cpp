@@ -201,25 +201,46 @@ static void check_font_parses()
 }
 
 
-// RCP2 の形式識別だけを検証する。トラック／イベントの解析は未実装。
+// RCP2 の固定ヘッダーを合成バイト列で検証する。曲データは含めない。
 static void check_rcp_header()
 {
 	const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
-	std::vector<u8> data(0x20, 0);
+	std::vector<u8> data(0x586, 0);
 	std::memcpy(data.data(), signature, sizeof(signature) - 1);
+	data[30] = 0;
+	data[31] = 0;
+	std::memcpy(data.data() + 0x020, "Synthetic test", 14);
+	std::memcpy(data.data() + 0x060, "Generated header", 16);
+	data[0x1c0] = 96;  // low byte of ticks per quarter
+	data[0x1e7] = 1;   // high byte -> 352 ticks per quarter
+	data[0x1c1] = 120;
+	data[0x1c2] = 4;
+	data[0x1c3] = 4;
+	data[0x1c4] = 3;
+	data[0x1c5] = 0;
+	data[0x1e6] = 0x24;
 
 	rcp::header_info info;
 	std::string err;
-	const bool valid = rcp::inspect_header(data.data(), data.size(), info, err);
-	const bool type_ok = valid && info.type == rcp::format::rcp2 && info.minimum_header_size == 0x20;
+	const bool identify_ok = rcp::inspect_header(data.data(), data.size(), info, err) &&
+	                         info.type == rcp::format::rcp2;
+	rcp::document_header header;
+	const bool parse_ok = rcp::parse_header(data.data(), data.size(), header, err);
+	const bool fields_ok = parse_ok && header.title == "Synthetic test" &&
+	                       header.comment == "Generated header" &&
+	                       header.ticks_per_quarter == 352 && header.tempo_bpm == 120 &&
+	                       header.beat_numerator == 4 && header.beat_denominator == 4 &&
+	                       header.track_count == 0x24;
+	const bool short_prefix_ok = !rcp::inspect_header(data.data(), 0x1f, info, err);
+	const bool short_header_ok = !rcp::parse_header(data.data(), 0x585, header, err);
+	std::vector<u8> junk(0x586, 0x55);
+	const bool junk_ok = !rcp::parse_header(junk.data(), junk.size(), header, err);
+	const bool null_ok = !rcp::parse_header(nullptr, data.size(), header, err);
 
-	const bool short_ok = !rcp::inspect_header(data.data(), 0x1f, info, err);
-	std::vector<u8> junk(0x20, 0x55);
-	const bool junk_ok = !rcp::inspect_header(junk.data(), junk.size(), info, err);
-	const bool null_ok = !rcp::inspect_header(nullptr, data.size(), info, err);
-
-	std::printf("RCP2 ヘッダー識別: 正常 %s・短い入力の拒否 %s・不一致の拒否 %s・null の拒否 %s（イベント解析は未実装）\\n",
-	            type_ok ? "合" : "NG", short_ok ? "合" : "NG", junk_ok ? "合" : "NG", null_ok ? "合" : "NG");
+	std::printf("RCP2 固定ヘッダー: 識別 %s・項目 %s・短い入力 %s/%s・不一致 %s・null %s（トラック解析は未実装）\n",
+	            identify_ok ? "合" : "NG", fields_ok ? "合" : "NG",
+	            short_prefix_ok ? "合" : "NG", short_header_ok ? "合" : "NG",
+	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG");
 }
 
 int main()
