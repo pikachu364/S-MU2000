@@ -303,6 +303,8 @@ static void check_rcp_tracks()
     const size_t track_length = track_header_size + 8;
     std::vector<u8> data(header_size + track_length, 0);
     std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[30] = 0;
+    data[31] = 0;
     data[0x1e6] = 1; // one track
     const size_t at = header_size;
     data[at] = u8(track_length);
