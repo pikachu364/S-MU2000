@@ -305,10 +305,26 @@ static void check_rcp_sequence()
 		events[2].code == 0xf7 && events[2].p1 == 'E' && events[2].p2 == 'F' &&
 		events[3].code == 0xfe;
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s\n",
+	// 生レコード解析は F6/F7 の意味を消費せず、途中の別レコードも順序どおり保持する。
+	const u8 interrupted_continuation[] = {
+		0xf6, 0, 'A', 'B',
+		0xf7, 0, 'C', 'D',
+		60, 1, 2, 3,
+		0xf7, 0, 'E', 'F',
+		0xfe, 0, 0, 0
+	};
+	const bool interruption_preserved =
+		rcp::parse_sequence(interrupted_continuation, sizeof(interrupted_continuation),
+			events, consumed, err) &&
+		events.size() == 5 && consumed == sizeof(interrupted_continuation) &&
+		events[0].code == 0xf6 && events[1].code == 0xf7 &&
+		events[2].code == 60 && events[3].code == 0xf7 &&
+		events[4].code == 0xfe;
+
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s\\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
-		continuation_preserved ? "合" : "NG");
+		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG");
 }
 
 
