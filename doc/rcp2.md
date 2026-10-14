@@ -52,6 +52,21 @@
 
 既存実装のコードを流用する場合は、ライセンスと帰属表示の条件を先に確認する。仕様の調査とコードの再利用は分けて扱う。
 
+### 時間フィールドに関する比較調査（未確定）
+
+第三者実装を比較した範囲では、次の共通点と注意点が見つかった。
+
+- RCP2 の 4 byte レコードについて、ValleyBell/MidiConverters の `rcp2mid.c` は先頭 byte をノート番号またはコマンド、2 byte 目を delay、3 byte 目を duration、4 byte 目を velocity として読み取る。ノートの発生位置は、そのレコードを処理する時点のトラック時刻で、duration はノート終了時刻の計算に使われている。
+- 同実装では duration が 0 のノートは出力しない。また、同じ高さのノートが既に鳴っている場合は、終了時刻を更新する処理がある。
+- Gearmulator の `RcpFilePlayer.cpp` も、ノートを現在 tick に置き、duration から終了 tick を求め、通常のノートや一部コマンドの後で delay を時刻に加算している。
+- ただし delay の扱いは全コマンドで一律ではない。Gearmulator では高いコマンド番号の一部を時間を進めないコマンドとして扱い、ループ終端の delay を反復回数として読む例もある。ValleyBell 側でも、コマンドによって delay フィールドを別の用途に使ったり、時刻加算を抑制したりする処理がある。
+
+参照:
+- [ValleyBell/MidiConverters: rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) — RCP2 のレコード読み取り、ノート長、コマンド別 delay 処理。
+- [Gearmulator: RcpFilePlayer.cpp](https://github.com/masanaohayashi/gearmulator/blob/codex/pr-rcp-player/source/ronaldo/88emu/88emuplayer/RcpFilePlayer.cpp) — 現在 tick、ノート終了 tick、コマンド別の時刻進行。
+
+**この比較だけで正式仕様が確定したわけではない。** 実装間でコマンドの対応や例外処理が異なる可能性があるため、現段階では時刻展開コードを追加しない。特に「delay は必ず全イベントの後に加算する」と一般化せず、コマンド分類・パラメーター用途・時刻進行を分けて設計する。今後は各コマンドの表と合成テストを用意し、仕様が確認できたものから実装する。
+
 ## 4. S-MU2000 への接続で注意する点
 
 S-MU2000 には MIDI イベントを処理する既存経路があるが、フロントエンドによってタイミング管理とイベントの受け渡し方が異なる。
