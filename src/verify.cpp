@@ -295,6 +295,31 @@ static void check_rcp_sequence()
 }
 
 
+// RCP2 のノートレコードを型付きフィールドへ写し、コマンドを誤認しないことを確認する。
+static void check_rcp_note_decode()
+{
+    rcp::sequence_event raw;
+    raw.code = 60;
+    raw.p0 = 12;
+    raw.p1 = 100;
+    raw.p2 = 90;
+    rcp::note_event note;
+    std::string err;
+    const bool note_ok = rcp::decode_note_event(raw, note, err) &&
+        note.note == 60 && note.delay == 12 &&
+        note.duration == 100 && note.velocity == 90;
+
+    raw.code = 0x90;
+    note = {};
+    const bool command_rejected = !rcp::decode_note_event(raw, note, err) &&
+        note.note == 0 && note.delay == 0 &&
+        note.duration == 0 && note.velocity == 0 && !err.empty();
+
+    std::printf("RCP2 ノート解釈: フィールド分離 %s・コマンド誤認防止 %s\\n",
+        note_ok ? "合" : "NG", command_rejected ? "合" : "NG");
+}
+
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -435,6 +460,7 @@ int main()
 	check_smf_player();
 	check_rcp_header();
 	check_rcp_sequence();
+	check_rcp_note_decode();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
