@@ -5,6 +5,7 @@
 #include "compat/a64asm.h"
 #include "ui/bend_thinner.h"
 #include "smf.h"
+#include "rcp.h"
 #include "ui/font_check.h"
 #include <cstdio>
 #include <cstring>
@@ -199,6 +200,28 @@ static void check_font_parses()
 	            ui::font_parses(junk.data(), junk.size()), ui::font_parses(glyf.data(), 40));
 }
 
+
+// RCP2 の形式識別だけを検証する。トラック／イベントの解析は未実装。
+static void check_rcp_header()
+{
+	const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
+	std::vector<u8> data(0x20, 0);
+	std::memcpy(data.data(), signature, sizeof(signature) - 1);
+
+	rcp::header_info info;
+	std::string err;
+	const bool valid = rcp::inspect_header(data.data(), data.size(), info, err);
+	const bool type_ok = valid && info.type == rcp::format::rcp2 && info.minimum_header_size == 0x20;
+
+	const bool short_ok = !rcp::inspect_header(data.data(), 0x1f, info, err);
+	std::vector<u8> junk(0x20, 0x55);
+	const bool junk_ok = !rcp::inspect_header(junk.data(), junk.size(), info, err);
+	const bool null_ok = !rcp::inspect_header(nullptr, data.size(), info, err);
+
+	std::printf("RCP2 ヘッダー識別: 正常 %s・短い入力の拒否 %s・不一致の拒否 %s・null の拒否 %s（イベント解析は未実装）\\n",
+	            type_ok ? "合" : "NG", short_ok ? "合" : "NG", junk_ok ? "合" : "NG", null_ok ? "合" : "NG");
+}
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -236,6 +259,7 @@ int main()
 
 	check_bend_thinner();
 	check_smf_player();
+	check_rcp_header();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
