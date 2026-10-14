@@ -363,10 +363,13 @@ static void check_rcp_sequence()
 			0, comment, comment_records, err) &&
 		comment.empty() && comment_records == 0 && !err.empty();
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s\n",
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
-		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG",\n		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",\n		comment_fe_boundary_ok ? "合" : "NG",\n		comment_bad_start_ok && comment_missing_end_ok ? "合" : "NG");
+		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG",
+		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",
+		comment_fe_boundary_ok ? "合" : "NG",
+		comment_bad_start_ok && comment_missing_end_ok ? "合" : "NG");
 }
 
 
