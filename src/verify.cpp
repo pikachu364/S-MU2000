@@ -356,27 +356,39 @@ static void check_rcp_note_decode()
 
 static void check_rcp_tracks()
 {
-    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
-    const size_t track_length = track_header_size + 8;
-    std::vector<u8> data(header_size + track_length, 0);
+    const size_t first_length = track_header_size + 12;
+    const size_t second_length = track_header_size + 8;
+    std::vector<u8> data(header_size + first_length + second_length, 0);
     std::memcpy(data.data(), signature, sizeof(signature) - 1);
     data[30] = 0;
     data[31] = 0;
-    data[0x1e6] = 1; // one track
+    data[0x1e6] = 2; // two tracks
     const size_t at = header_size;
-    data[at] = u8(track_length);
-    data[at + 1] = u8(track_length >> 8);
+    data[at] = u8(first_length);
+    data[at + 1] = u8(first_length >> 8);
     data[at + 2] = 1;
     data[at + track_header_size] = 60;
     data[at + track_header_size + 4] = 0xfe;
+    // Bytes after FE remain inside track 1's declared boundary and must not be parsed.
+    data[at + track_header_size + 8] = 0x90;
+    const size_t at2 = at + first_length;
+    data[at2] = u8(second_length);
+    data[at2 + 1] = u8(second_length >> 8);
+    data[at2 + 2] = 2;
+    data[at2 + track_header_size] = 64;
+    data[at2 + track_header_size + 4] = 0xfe;
 
     std::vector<rcp::track> tracks;
     std::string err;
     const bool valid_ok = rcp::parse_tracks(data.data(), data.size(), tracks, err) &&
-        tracks.size() == 1 && tracks[0].header.track_id == 1 &&
-        tracks[0].sequence.size() == 2 && tracks[0].sequence[1].code == 0xfe;
+        tracks.size() == 2 &&
+        tracks[0].header.track_id == 1 && tracks[0].sequence.size() == 2 &&
+        tracks[0].sequence[0].code == 60 && tracks[0].sequence[1].code == 0xfe &&
+        tracks[1].header.track_id == 2 && tracks[1].sequence.size() == 2 &&
+        tracks[1].sequence[0].code == 64 && tracks[1].sequence[1].code == 0xfe;
 
     std::vector<u8> short_length = data;
     short_length[at] = 0x2b;
@@ -395,11 +407,10 @@ static void check_rcp_tracks()
     const bool no_end_ok = !rcp::parse_tracks(no_end.data(), no_end.size(), tracks, err) &&
         tracks.empty();
 
-    std::printf("RCP2 トラック走査: 正常 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\n",
+    std::printf("RCP2 トラック走査: 複数トラック/FE 後の余剰 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\\n",
         valid_ok ? "合" : "NG", short_length_ok ? "合" : "NG",
         overrun_ok ? "合" : "NG", no_end_ok ? "合" : "NG");
 }
-
 
 static void check_rcp_intermediate()
 {
