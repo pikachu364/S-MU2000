@@ -377,6 +377,14 @@ static void check_rcp_note_timeline()
         timeline[2].start_tick == 15 && timeline[2].note.note == 62 &&
         timeline[2].note.duration == 0 && err.empty();
 
+    std::vector<rcp::sequence_event> after_end;
+    after_end.push_back(event(60, 12, 100, 90));
+    after_end.push_back(event(0xfe, 0, 0, 0));
+    after_end.push_back(event(0xf6, 7, 0, 0));
+    const bool end_stops_scan =
+        rcp::expand_note_only_timeline(after_end, timeline, err) &&
+        timeline.size() == 1 && timeline[0].note.note == 60 && err.empty();
+
     std::vector<rcp::sequence_event> with_command;
     with_command.push_back(event(60, 12, 100, 90));
     with_command.push_back(event(0xf6, 7, 0, 0));
@@ -391,9 +399,9 @@ static void check_rcp_note_timeline()
         !rcp::expand_note_only_timeline(no_end, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 ノート時間展開（ノート専用）: tick/順序/duration 0 %s・未知コマンド拒否 %s・FE なし拒否 %s\n",
-        timeline_ok ? "合" : "NG", command_rejected ? "合" : "NG",
-        missing_end_rejected ? "合" : "NG");
+    std::printf("RCP2 ノート時間展開（ノート専用）: tick/順序/duration 0 %s・FE 後を無視 %s・未知コマンド拒否 %s・FE なし拒否 %s\n",
+        timeline_ok ? "合" : "NG", end_stops_scan ? "合" : "NG",
+        command_rejected ? "合" : "NG", missing_end_rejected ? "合" : "NG");
 }
 
 static void check_rcp_tracks()
