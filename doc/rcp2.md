@@ -6,10 +6,11 @@
 
 ## 現在の実装状況
 
-- `src/rcp.h` / `src/rcp.cpp` を追加し、RCP2 の識別文字列と最小ヘッダー長を検査する入口を用意した。
-- `verify` に、正常な識別文字列・短い入力・不一致・null 入力の検査を追加した。
+- `src/rcp.h` / `src/rcp.cpp` を追加し、RCP2 の識別文字列と固定ヘッダー（0x586 bytes）の読み取りを実装した。タイトル、コメント、TPQ、テンポ、拍子、キー、PlayBIAS の生バイト、トラック数を取得する。
+- `verify` に、合成ヘッダーを使った項目読み取り・短い入力・不一致・null 入力の検査を追加した。
 - Makefile と CMake の共通コアに登録した。
 - **トラック表・イベント解析・MIDI への変換・再生は未実装。** この段階では RCP2 の曲を再生できない。
+- ヘッダーの項目位置は [ValleyBell/MidiConverters の RCPFormat.txt](https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt) の表を参照。これは第三者による解析資料であり、公式仕様として断定しない。
 - 識別文字列は既存コンバーターの判定を参考にした。ヘッダー全体のレイアウトやイベント仕様は、実ファイルと複数実装の照合後に確定する。
 
 
