@@ -1,7 +1,7 @@
 // license:BSD-3-Clause
 //
-// RCP2 固定ヘッダーの形式識別と読み取り。
-// イベント解釈は仕様・実ファイルの照合後に追加する。
+// RCP2 の固定ヘッダーと未解釈シーケンスレコードを安全に読み取る。
+// コマンド意味論やイベント時間の展開は別段階で実装する。
 
 #include "rcp.h"
 
@@ -125,7 +125,7 @@ bool parse_sequence(const u8 *data, size_t size,
 		return false;
 	}
 
-	// Reserve only complete records. Avoid arithmetic that can overflow.
+	// Only inspect complete records. Avoid arithmetic that can overflow.
 	const size_t record_count = size / 4;
 	for (size_t i = 0; i < record_count; ++i) {
 		const size_t offset = i * 4;
