@@ -1,7 +1,7 @@
 // license:BSD-3-Clause
 //
 // Roland RCP シーケンサーファイルの解析入口。
-// 現段階では形式識別だけを行い、トラック／イベント解析はまだ行わない。
+// 現段階では RCP2 の固定ヘッダーまでを扱い、トラック／イベント解析はまだ行わない。
 
 #ifndef S_MU2000_RCP_H
 #define S_MU2000_RCP_H
@@ -28,6 +28,22 @@ struct header_info {
 // RCP ファイルの形式を識別する。成功してもイベント解析・再生を保証しない。
 // data はファイル先頭、size はバイト数。
 bool inspect_header(const u8 *data, size_t size, header_info &out, std::string &err);
+
+// RCP2 固定ヘッダーを読む。文字列は文字コード変換せず、末尾の空白/NUL のみ除去する。
+// 現段階ではトラックデータの存在やイベント列の正当性は検証しない。
+struct document_header {
+	std::string title;
+	std::string comment;
+	u16 ticks_per_quarter = 0;
+	u8 tempo_bpm = 0;
+	u8 beat_numerator = 0;
+	u8 beat_denominator = 0;
+	u8 key_signature = 0;
+	u8 play_bias = 0; // 仕様の符号表現は未確定のため生バイトを保持
+	u8 track_count = 0;
+};
+
+bool parse_header(const u8 *data, size_t size, document_header &out, std::string &err);
 
 } // namespace rcp
 
