@@ -294,6 +294,51 @@ static void check_rcp_sequence()
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG");
 }
 
+
+static void check_rcp_tracks()
+{
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 8;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[0x1e6] = 1; // one track
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    data[at + 2] = 1;
+    data[at + track_header_size] = 60;
+    data[at + track_header_size + 4] = 0xfe;
+
+    std::vector<rcp::track> tracks;
+    std::string err;
+    const bool valid_ok = rcp::parse_tracks(data.data(), data.size(), tracks, err) &&
+        tracks.size() == 1 && tracks[0].header.track_id == 1 &&
+        tracks[0].sequence.size() == 2 && tracks[0].sequence[1].code == 0xfe;
+
+    std::vector<u8> short_length = data;
+    short_length[at] = 0x2b;
+    short_length[at + 1] = 0;
+    const bool short_length_ok = !rcp::parse_tracks(short_length.data(), short_length.size(), tracks, err) &&
+        tracks.empty();
+
+    std::vector<u8> overrun = data;
+    overrun[at] = 0xff;
+    overrun[at + 1] = 0xff;
+    const bool overrun_ok = !rcp::parse_tracks(overrun.data(), overrun.size(), tracks, err) &&
+        tracks.empty();
+
+    std::vector<u8> no_end = data;
+    no_end[at + track_header_size + 4] = 0x7f;
+    const bool no_end_ok = !rcp::parse_tracks(no_end.data(), no_end.size(), tracks, err) &&
+        tracks.empty();
+
+    std::printf("RCP2 トラック走査: 正常 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\\n",
+        valid_ok ? "合" : "NG", short_length_ok ? "合" : "NG",
+        overrun_ok ? "合" : "NG", no_end_ok ? "合" : "NG");
+}
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -333,6 +378,7 @@ int main()
 	check_smf_player();
 	check_rcp_header();
 	check_rcp_sequence();
+	check_rcp_tracks();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
