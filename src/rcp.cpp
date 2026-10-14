@@ -205,4 +205,36 @@ bool parse_tracks(const u8 *data, size_t size,
     return true;
 }
 
+
+bool build_intermediate(const u8 *data, size_t size,
+                        intermediate_document &out, std::string &err)
+{
+    out = {};
+    err.clear();
+
+    if (!parse_header(data, size, out.header, err))
+        return false;
+
+    std::vector<track> parsed_tracks;
+    if (!parse_tracks(data, size, parsed_tracks, err)) {
+        out = {};
+        return false;
+    }
+
+    out.tracks.reserve(parsed_tracks.size());
+    for (const track &source : parsed_tracks) {
+        intermediate_track target;
+        target.header = source.header;
+        target.events.reserve(source.sequence.size());
+        for (size_t i = 0; i < source.sequence.size(); ++i) {
+            intermediate_event event;
+            event.record_index = i;
+            event.raw = source.sequence[i];
+            target.events.push_back(event);
+        }
+        out.tracks.push_back(target);
+    }
+    return true;
+}
+
 } // namespace rcp
