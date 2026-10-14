@@ -101,6 +101,20 @@ struct note_event {
 // Returns false for command records (code >= 0x80), leaving out zeroed.
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err);
 
+// Experimental note-only timeline. start_tick is the current tick before the
+// note's delay is applied; after each note, p0 advances the cursor. FE ends the
+// sequence and is not emitted. Other commands are rejected because their timing
+// semantics are command-specific and not yet implemented. duration=0 is kept.
+// This is not a full RCP2 event expander.
+struct timed_note_event {
+    u32 start_tick = 0;
+    note_event note;
+};
+
+bool expand_note_only_timeline(const std::vector<sequence_event> &sequence,
+                               std::vector<timed_note_event> &out,
+                               std::string &err);
+
 // Intermediate representation retains the source record and its track-local order.
 struct intermediate_event {
     size_t record_index = 0;
