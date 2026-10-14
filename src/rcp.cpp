@@ -151,6 +151,49 @@ bool parse_sequence(const u8 *data, size_t size,
 }
 
 
+bool extract_comment_data(const std::vector<sequence_event> &sequence,
+                          size_t start_index, std::vector<u8> &out,
+                          size_t &records_consumed, std::string &err)
+{
+    out.clear();
+    records_consumed = 0;
+    err.clear();
+
+    if (start_index >= sequence.size() || sequence[start_index].code != 0xf6) {
+        err = "RCP コメント抽出の開始位置が F6 ではありません";
+        return false;
+    }
+
+    // Require a track terminator in the supplied sequence before interpreting
+    // the record chain. parse_sequence normally guarantees this, but callers
+    // can construct the intermediate vector directly.
+    bool found_end = false;
+    for (size_t i = start_index; i < sequence.size(); ++i) {
+        if (sequence[i].code == 0xfe) {
+            found_end = true;
+            break;
+        }
+    }
+    if (!found_end) {
+        err = "RCP コメント抽出の入力に Track End (FE) がありません";
+        return false;
+    }
+
+    for (size_t i = start_index; i < sequence.size(); ++i) {
+        const sequence_event &event = sequence[i];
+        if (i != start_index && event.code != 0xf7)
+            break;
+        if (event.code == 0xfe)
+            break;
+
+        out.push_back(event.p1);
+        out.push_back(event.p2);
+        ++records_consumed;
+    }
+    return true;
+}
+
+
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err)
 {
     out = {};
