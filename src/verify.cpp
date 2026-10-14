@@ -344,7 +344,7 @@ static void check_rcp_tracks()
 
 static void check_rcp_intermediate()
 {
-    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
     const size_t track_length = track_header_size + 12;
@@ -392,7 +392,7 @@ static void check_rcp_intermediate()
     const bool reject_ok = !rcp::build_intermediate(invalid.data(), invalid.size(), doc, err) &&
         doc.tracks.empty() && doc.header.title.empty();
 
-    std::printf("RCP2 中間表現: 生レコード保持/順序 %s・不正入力時に出力を消去 %s\\n",
+    std::printf("RCP2 中間表現: 生レコード保持/順序 %s・不正入力時に出力を消去 %s\n",
         fields_ok ? "合" : "NG", reject_ok ? "合" : "NG");
 }
 
