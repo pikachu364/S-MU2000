@@ -406,7 +406,7 @@ static void check_rcp_intermediate()
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
-    const size_t track_length = track_header_size + 12;
+    const size_t track_length = track_header_size + 16;
     std::vector<u8> data(header_size + track_length, 0);
     std::memcpy(data.data(), signature, sizeof(signature) - 1);
     data[30] = 0;
@@ -426,11 +426,16 @@ static void check_rcp_intermediate()
     data[at + 12] = 'e';
     data[at + 13] = 's';
     data[at + 14] = 't';
+    // Two distinct note records followed by FE: preserve raw fields and source order.
     data[at + track_header_size] = 60;
     data[at + track_header_size + 1] = 12;
     data[at + track_header_size + 2] = 100;
     data[at + track_header_size + 3] = 90;
-    data[at + track_header_size + 4] = 0xfe;
+    data[at + track_header_size + 4] = 64;
+    data[at + track_header_size + 5] = 3;
+    data[at + track_header_size + 6] = 20;
+    data[at + track_header_size + 7] = 70;
+    data[at + track_header_size + 8] = 0xfe;
 
     rcp::intermediate_document doc;
     std::string err;
@@ -439,12 +444,19 @@ static void check_rcp_intermediate()
         doc.header.tempo_bpm == 100 && doc.tracks.size() == 1 &&
         doc.tracks[0].header.track_id == 7 &&
         doc.tracks[0].header.name == "IR test" &&
-        doc.tracks[0].events.size() == 2 &&
+        doc.tracks[0].events.size() == 3 &&
         doc.tracks[0].events[0].record_index == 0 &&
         doc.tracks[0].events[0].raw.code == 60 &&
         doc.tracks[0].events[0].raw.p0 == 12 &&
+        doc.tracks[0].events[0].raw.p1 == 100 &&
+        doc.tracks[0].events[0].raw.p2 == 90 &&
         doc.tracks[0].events[1].record_index == 1 &&
-        doc.tracks[0].events[1].raw.code == 0xfe;
+        doc.tracks[0].events[1].raw.code == 64 &&
+        doc.tracks[0].events[1].raw.p0 == 3 &&
+        doc.tracks[0].events[1].raw.p1 == 20 &&
+        doc.tracks[0].events[1].raw.p2 == 70 &&
+        doc.tracks[0].events[2].record_index == 2 &&
+        doc.tracks[0].events[2].raw.code == 0xfe;
 
     std::vector<u8> invalid = data;
     invalid[at + track_header_size + 4] = 0x7f;
