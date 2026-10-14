@@ -17,6 +17,7 @@ constexpr char RCP2_SIGNATURE[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
 constexpr size_t RCP2_SIGNATURE_SIZE = sizeof(RCP2_SIGNATURE) - 1;
 constexpr size_t RCP2_PREFIX_SIZE = 0x20;
 constexpr size_t RCP2_HEADER_SIZE = 0x586;
+constexpr size_t RCP2_TRACK_HEADER_SIZE = 0x2c;
 
 std::string fixed_string(const u8 *data, size_t size)
 {
@@ -81,6 +82,32 @@ bool parse_header(const u8 *data, size_t size, document_header &out, std::string
 	out.key_signature = data[0x1c4];
 	out.play_bias = data[0x1c5];
 	out.track_count = data[0x1e6];
+	return true;
+}
+
+bool parse_track_header(const u8 *data, size_t size, track_header &out, std::string &err)
+{
+	out = {};
+	err.clear();
+
+	if (data == nullptr) {
+		err = "RCP トラックヘッダーが null です";
+		return false;
+	}
+	if (size < RCP2_TRACK_HEADER_SIZE) {
+		err = "RCP トラックヘッダーが短すぎます";
+		return false;
+	}
+
+	out.encoded_length = static_cast<u16>(data[0]) |
+	                     (static_cast<u16>(data[1]) << 8);
+	out.track_id = data[2];
+	out.rhythm_mode = data[3];
+	out.midi_channel = data[4];
+	out.key = data[5];
+	out.tick_offset = data[6];
+	out.mute = data[7];
+	out.name = fixed_string(data + 8, 0x24);
 	return true;
 }
 
