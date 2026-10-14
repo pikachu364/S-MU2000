@@ -150,4 +150,59 @@ bool parse_sequence(const u8 *data, size_t size,
 	return false;
 }
 
+
+bool parse_tracks(const u8 *data, size_t size,
+                  std::vector<track> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+
+    document_header header;
+    if (!parse_header(data, size, header, err))
+        return false;
+
+    size_t offset = RCP2_HEADER_SIZE;
+    for (size_t i = 0; i < header.track_count; ++i) {
+        if (offset > size || size - offset < RCP2_TRACK_HEADER_SIZE) {
+            out.clear();
+            err = "RCP2 トラックヘッダーがファイル末尾を越えています";
+            return false;
+        }
+
+        track parsed;
+        if (!parse_track_header(data + offset, size - offset, parsed.header, err)) {
+            out.clear();
+            return false;
+        }
+
+        const size_t track_length = parsed.header.encoded_length;
+        if (track_length < RCP2_TRACK_HEADER_SIZE) {
+            out.clear();
+            err = "RCP2 トラック長がトラックヘッダーより短いです";
+            return false;
+        }
+        if (track_length > size - offset) {
+            out.clear();
+            err = "RCP2 トラック長がファイル末尾を越えています";
+            return false;
+        }
+
+        const size_t sequence_size = track_length - RCP2_TRACK_HEADER_SIZE;
+        size_t consumed = 0;
+        if (!parse_sequence(data + offset + RCP2_TRACK_HEADER_SIZE,
+                            sequence_size, parsed.sequence, consumed, err)) {
+            out.clear();
+            err = "RCP2 トラック " + std::to_string(i + 1) +
+                  " のシーケンスが不正です: " + err;
+            return false;
+        }
+
+        // parse_sequence stops at FE. The encoded track boundary is authoritative;
+        // bytes after FE remain unparsed padding/unknown data.
+        out.push_back(parsed);
+        offset += track_length;
+    }
+    return true;
+}
+
 } // namespace rcp
