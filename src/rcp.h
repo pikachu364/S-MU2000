@@ -86,6 +86,29 @@ struct track {
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err);
 
+ 
+// コマンドの意味を決めつけず、解析済みレコードを後段が扱いやすい形にまとめる。
+// record_index はトラック内の 0 始まりのレコード番号。時間/tick への変換はまだ行わない。
+struct intermediate_event {
+    size_t record_index = 0;
+    sequence_event raw;
+};
+
+struct intermediate_track {
+    track_header header;
+    std::vector<intermediate_event> events;
+};
+
+struct intermediate_document {
+    document_header header;
+    std::vector<intermediate_track> tracks;
+};
+
+// ファイル全体を解析し、ヘッダー・トラック情報・生レコードを中間表現にまとめる。
+// 失敗時は out を空にする。未知コマンドも値を変更せず保持する。
+bool build_intermediate(const u8 *data, size_t size,
+                        intermediate_document &out, std::string &err);
+
 } // namespace rcp
 
 #endif // S_MU2000_RCP_H
