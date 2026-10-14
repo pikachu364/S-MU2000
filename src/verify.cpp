@@ -354,6 +354,48 @@ static void check_rcp_note_decode()
 }
 
 
+static void check_rcp_note_timeline()
+{
+    auto event = [](u8 code, u8 p0, u8 p1, u8 p2) {
+        rcp::sequence_event raw;
+        raw.code = code; raw.p0 = p0; raw.p1 = p1; raw.p2 = p2;
+        return raw;
+    };
+    std::vector<rcp::sequence_event> sequence;
+    sequence.push_back(event(60, 12, 100, 90));
+    sequence.push_back(event(64, 3, 20, 70));
+    sequence.push_back(event(62, 0, 0, 127));
+    sequence.push_back(event(0xfe, 0, 0, 0));
+
+    std::vector<rcp::timed_note_event> timeline;
+    std::string err;
+    const bool timeline_ok = rcp::expand_note_only_timeline(sequence, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].start_tick == 0 && timeline[0].note.note == 60 &&
+        timeline[0].note.duration == 100 && timeline[0].note.velocity == 90 &&
+        timeline[1].start_tick == 12 && timeline[1].note.note == 64 &&
+        timeline[2].start_tick == 15 && timeline[2].note.note == 62 &&
+        timeline[2].note.duration == 0 && err.empty();
+
+    std::vector<rcp::sequence_event> with_command;
+    with_command.push_back(event(60, 12, 100, 90));
+    with_command.push_back(event(0xf6, 7, 0, 0));
+    with_command.push_back(event(0xfe, 0, 0, 0));
+    const bool command_rejected =
+        !rcp::expand_note_only_timeline(with_command, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::vector<rcp::sequence_event> no_end;
+    no_end.push_back(event(60, 12, 100, 90));
+    const bool missing_end_rejected =
+        !rcp::expand_note_only_timeline(no_end, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 ノート時間展開（ノート専用）: tick/順序/duration 0 %s・未知コマンド拒否 %s・FE なし拒否 %s\\n",
+        timeline_ok ? "合" : "NG", command_rejected ? "合" : "NG",
+        missing_end_rejected ? "合" : "NG");
+}
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
@@ -518,6 +560,7 @@ int main()
 	check_rcp_header();
 	check_rcp_sequence();
 	check_rcp_note_decode();
+	check_rcp_note_timeline();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
