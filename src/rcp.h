@@ -76,6 +76,16 @@ bool parse_sequence(const u8 *data, size_t size,
                     std::vector<sequence_event> &out,
                     size_t &bytes_consumed, std::string &err);
 
+// Parsed RCP2 track. raw_length includes the 2-byte length field and the full
+// 0x2c-byte track header; sequence contains records through FE.
+struct track {
+    track_header header;
+    std::vector<sequence_event> sequence;
+};
+
+bool parse_tracks(const u8 *data, size_t size,
+                  std::vector<track> &out, std::string &err);
+
 } // namespace rcp
 
 #endif // S_MU2000_RCP_H
