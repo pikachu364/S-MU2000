@@ -341,6 +341,61 @@ static void check_rcp_tracks()
         overrun_ok ? "合" : "NG", no_end_ok ? "合" : "NG");
 }
 
+
+static void check_rcp_intermediate()
+{
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 12;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[30] = 0;
+    data[31] = 0;
+    data[0x1c0] = 0xe0;
+    data[0x1e7] = 1;
+    data[0x1c1] = 100;
+    data[0x1e6] = 1;
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    data[at + 2] = 7;
+    data[at + 8] = 'I';
+    data[at + 9] = 'R';
+    data[at + 10] = ' ';
+    data[at + 11] = 't';
+    data[at + 12] = 'e';
+    data[at + 13] = 's';
+    data[at + 14] = 't';
+    data[at + track_header_size] = 60;
+    data[at + track_header_size + 1] = 12;
+    data[at + track_header_size + 2] = 100;
+    data[at + track_header_size + 3] = 90;
+    data[at + track_header_size + 4] = 0xfe;
+
+    rcp::intermediate_document doc;
+    std::string err;
+    const bool ok = rcp::build_intermediate(data.data(), data.size(), doc, err);
+    const bool fields_ok = ok && doc.header.ticks_per_quarter == 480 &&
+        doc.header.tempo_bpm == 100 && doc.tracks.size() == 1 &&
+        doc.tracks[0].header.track_id == 7 &&
+        doc.tracks[0].header.name == "IR test" &&
+        doc.tracks[0].events.size() == 2 &&
+        doc.tracks[0].events[0].record_index == 0 &&
+        doc.tracks[0].events[0].raw.code == 60 &&
+        doc.tracks[0].events[0].raw.p0 == 12 &&
+        doc.tracks[0].events[1].record_index == 1 &&
+        doc.tracks[0].events[1].raw.code == 0xfe;
+
+    std::vector<u8> invalid = data;
+    invalid[at + track_header_size + 4] = 0x7f;
+    const bool reject_ok = !rcp::build_intermediate(invalid.data(), invalid.size(), doc, err) &&
+        doc.tracks.empty() && doc.header.title.empty();
+
+    std::printf("RCP2 中間表現: 生レコード保持/順序 %s・不正入力時に出力を消去 %s\\n",
+        fields_ok ? "合" : "NG", reject_ok ? "合" : "NG");
+}
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -381,6 +436,7 @@ int main()
 	check_rcp_header();
 	check_rcp_sequence();
 	check_rcp_tracks();
+	check_rcp_intermediate();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
