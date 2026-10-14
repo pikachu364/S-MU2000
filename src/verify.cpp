@@ -321,7 +321,7 @@ static void check_rcp_sequence()
 		events[2].code == 60 && events[3].code == 0xf7 &&
 		events[4].code == 0xfe;
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s\\n",
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
 		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG");
@@ -380,7 +380,7 @@ static void check_rcp_note_decode()
         note.note == 61 && note.delay == 1 &&
         note.duration == 2 && note.velocity == 3 && err.empty();
 
-    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s・duration 0 保持 %s・エラー解除 %s\\n",
+    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s・duration 0 保持 %s・エラー解除 %s\n",
         note_ok ? "合" : "NG", upper_note_ok ? "合" : "NG",
         lower_command_rejected && upper_command_rejected ? "合" : "NG",
         zero_duration_ok ? "合" : "NG", recovery_ok ? "合" : "NG");
@@ -439,7 +439,7 @@ static void check_rcp_note_timeline()
 
 static void check_rcp_tracks()
 {
-    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
     const size_t first_length = track_header_size + 12;
@@ -490,7 +490,7 @@ static void check_rcp_tracks()
     const bool no_end_ok = !rcp::parse_tracks(no_end.data(), no_end.size(), tracks, err) &&
         tracks.empty();
 
-    std::printf("RCP2 トラック走査: 複数トラック/FE 後の余剰 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\\n",
+    std::printf("RCP2 トラック走査: 複数トラック/FE 後の余剰 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\n",
         valid_ok ? "合" : "NG", short_length_ok ? "合" : "NG",
         overrun_ok ? "合" : "NG", no_end_ok ? "合" : "NG");
 }
