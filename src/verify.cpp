@@ -304,10 +304,10 @@ static void check_rcp_note_decode()
     raw.p1 = 100;
     raw.p2 = 90;
     rcp::note_event note;
-    std::string err;
+    std::string err = "stale error";
     const bool note_ok = rcp::decode_note_event(raw, note, err) &&
         note.note == 60 && note.delay == 12 &&
-        note.duration == 100 && note.velocity == 90;
+        note.duration == 100 && note.velocity == 90 && err.empty();
 
     raw.code = 0x7f;
     raw.p0 = 0xff;
@@ -315,7 +315,7 @@ static void check_rcp_note_decode()
     raw.p2 = 0;
     const bool upper_note_ok = rcp::decode_note_event(raw, note, err) &&
         note.note == 0x7f && note.delay == 0xff &&
-        note.duration == 0x80 && note.velocity == 0;
+        note.duration == 0x80 && note.velocity == 0 && err.empty();
 
     raw.code = 0x80;
     note = {};
@@ -329,9 +329,19 @@ static void check_rcp_note_decode()
         note.note == 0 && note.delay == 0 &&
         note.duration == 0 && note.velocity == 0 && !err.empty();
 
-    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s\\n",
+    // A successful decode after a command error must clear the old error.
+    raw.code = 61;
+    raw.p0 = 1;
+    raw.p1 = 2;
+    raw.p2 = 3;
+    const bool recovery_ok = rcp::decode_note_event(raw, note, err) &&
+        note.note == 61 && note.delay == 1 &&
+        note.duration == 2 && note.velocity == 3 && err.empty();
+
+    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s・エラー解除 %s\\n",
         note_ok ? "合" : "NG", upper_note_ok ? "合" : "NG",
-        lower_command_rejected && upper_command_rejected ? "合" : "NG");
+        lower_command_rejected && upper_command_rejected ? "合" : "NG",
+        recovery_ok ? "合" : "NG");
 }
 
 
