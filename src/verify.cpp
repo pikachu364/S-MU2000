@@ -334,7 +334,7 @@ static void check_rcp_tracks()
     const bool no_end_ok = !rcp::parse_tracks(no_end.data(), no_end.size(), tracks, err) &&
         tracks.empty();
 
-    std::printf("RCP2 トラック走査: 正常 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\\n",
+    std::printf("RCP2 トラック走査: 正常 %s・短い長さ拒否 %s・末尾越え拒否 %s・FE なし拒否 %s\n",
         valid_ok ? "合" : "NG", short_length_ok ? "合" : "NG",
         overrun_ok ? "合" : "NG", no_end_ok ? "合" : "NG");
 }
