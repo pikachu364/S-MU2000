@@ -67,7 +67,7 @@
 - [ValleyBell/MidiConverters: rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) — RCP2 のレコード読み取り、ノート長、コマンド別 delay 処理。
 - [Gearmulator: RcpFilePlayer.cpp](https://github.com/masanaohayashi/gearmulator/blob/codex/pr-rcp-player/source/ronaldo/88emu/88emuplayer/RcpFilePlayer.cpp) — 現在 tick、ノート終了 tick、コマンド別の時刻進行。
 
-**この比較だけで正式仕様が確定したわけではない。** 実装間でコマンドの対応や例外処理が異なる可能性があるため、現段階では時刻展開コードを追加しない。特に「delay は必ず全イベントの後に加算する」と一般化せず、コマンド分類・パラメーター用途・時刻進行を分けて設計する。今後は各コマンドの表と合成テストを用意し、仕様が確認できたものから実装する。
+**この比較だけで正式仕様が確定したわけではない。** 実装間でコマンドの対応や例外処理が異なる可能性があるため、現段階では、ノートだけの合成列を対象にした `expand_note_only_timeline` を実験的な足場として追加した。ただし、一般のコマンド列へは適用しない。特に「delay は必ず全イベントの後に加算する」と一般化せず、コマンド分類・パラメーター用途・時刻進行を分けて設計する。今後は各コマンドの表と合成テストを用意し、仕様が確認できたものから実装する。
 
 
 ### コマンド棚卸し（第三者実装ベース・暫定）
