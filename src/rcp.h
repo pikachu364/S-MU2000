@@ -89,6 +89,19 @@ bool parse_tracks(const u8 *data, size_t size,
  
 // コマンドの意味を決めつけず、解析済みレコードを後段が扱いやすい形にまとめる。
 // record_index はトラック内の 0 始まりのレコード番号。時間/tick への変換はまだ行わない。
+// Decoded view of a note record (code 0x00..0x7f). This does not convert
+// delay/duration to absolute ticks and does not apply transposition or tempo.
+struct note_event {
+    u8 note = 0;
+    u8 delay = 0;
+    u8 duration = 0;
+    u8 velocity = 0;
+};
+
+// Returns false for command records (code >= 0x80), leaving out zeroed.
+bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err);
+
+// Intermediate representation retains the source record and its track-local order.
 struct intermediate_event {
     size_t record_index = 0;
     sequence_event raw;
