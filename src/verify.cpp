@@ -205,7 +205,7 @@ static void check_font_parses()
 static void check_rcp_header()
 {
 	const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
-	std::vector<u8> data(0x586, 0);
+	std::vector<u8> data(0x586 + 0x2c, 0);
 	std::memcpy(data.data(), signature, sizeof(signature) - 1);
 	data[30] = 0;
 	data[31] = 0;
@@ -235,12 +235,30 @@ static void check_rcp_header()
 	const bool short_header_ok = !rcp::parse_header(data.data(), 0x585, header, err);
 	std::vector<u8> junk(0x586, 0x55);
 	const bool junk_ok = !rcp::parse_header(junk.data(), junk.size(), header, err);
+	// トラックヘッダーはファイル末尾に合成し、イベントデータは作らない。
+	const size_t track = 0x586;
+	data[track + 0] = 0x2c;
+	data[track + 1] = 0;
+	data[track + 2] = 1;
+	data[track + 3] = 0;
+	data[track + 4] = 3;
+	data[track + 5] = 0;
+	data[track + 6] = 0xff;
+	data[track + 7] = 1;
+	std::memcpy(data.data() + track + 8, "Track one", 9);
+	rcp::track_header th;
+	const bool track_ok = rcp::parse_track_header(data.data() + track, 0x2c, th, err) &&
+	                      th.encoded_length == 0x2c && th.track_id == 1 &&
+	                      th.midi_channel == 3 && th.tick_offset == 0xff &&
+	                      th.mute == 1 && th.name == "Track one";
+	const bool short_track_ok = !rcp::parse_track_header(data.data() + track, 0x2b, th, err);
+	const bool null_track_ok = !rcp::parse_track_header(nullptr, 0x2c, th, err);
 	const bool null_ok = !rcp::parse_header(nullptr, data.size(), header, err);
 
-	std::printf("RCP2 固定ヘッダー: 識別 %s・項目 %s・短い入力 %s/%s・不一致 %s・null %s（トラック解析は未実装）\n",
+	std::printf("RCP2 固定ヘッダー: 識別 %s・項目 %s・短い入力 %s/%s・不一致 %s・null %s・トラックヘッダー %s・短いトラック %s・null トラック %s\n",
 	            identify_ok ? "合" : "NG", fields_ok ? "合" : "NG",
 	            short_prefix_ok ? "合" : "NG", short_header_ok ? "合" : "NG",
-	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG");
+	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG", track_ok ? "合" : "NG", short_track_ok ? "合" : "NG", null_track_ok ? "合" : "NG");
 }
 
 int main()
