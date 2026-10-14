@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace rcp {
 
@@ -59,6 +60,21 @@ struct track_header {
 };
 
 bool parse_track_header(const u8 *data, size_t size, track_header &out, std::string &err);
+
+// RCP2 のシーケンスレコードを生データのまま読む。
+// 各レコードは 4 bytes。FE (Track End) を含めて返し、FE までの消費 byte 数を返す。
+// コマンドの意味・p0 の時間解釈・ループ展開はこの段階では行わない。
+// FE がない、または途中でレコードが切れている入力は失敗とする。
+struct sequence_event {
+	u8 code = 0; // 00..7F: note height, 80..FF: command ID
+	u8 p0 = 0;   // delay field; interpretation depends on command
+	u8 p1 = 0;
+	u8 p2 = 0;
+};
+
+bool parse_sequence(const u8 *data, size_t size,
+                    std::vector<sequence_event> &out,
+                    size_t &bytes_consumed, std::string &err);
 
 } // namespace rcp
 
