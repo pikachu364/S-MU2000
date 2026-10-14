@@ -321,10 +321,52 @@ static void check_rcp_sequence()
 		events[2].code == 60 && events[3].code == 0xf7 &&
 		events[4].code == 0xfe;
 
+	// 実験的な意味解釈: F6 と直後に連なる F7 の p1/p2 だけを集め、
+	// 最初の別レコードや FE は消費しない。
+	auto event = [](u8 code, u8 p0, u8 p1, u8 p2) {
+		rcp::sequence_event e;
+		e.code = code; e.p0 = p0; e.p1 = p1; e.p2 = p2;
+		return e;
+	};
+	std::vector<u8> comment;
+	size_t comment_records = 0;
+	std::vector<rcp::sequence_event> comment_sequence = {
+		event(0xf6, 99, 'A', 'B'), event(0xf7, 88, 'C', 'D'),
+		event(0xf7, 77, 'E', 'F'), event(0x3c, 1, 2, 3),
+		event(0xf7, 0, 'X', 'Y'), event(0xfe, 0, 0, 0)
+	};
+	const bool comment_chain_ok =
+		rcp::extract_comment_data(comment_sequence, 0, comment, comment_records, err) &&
+		comment == std::vector<u8>({'A', 'B', 'C', 'D', 'E', 'F'}) &&
+		comment_records == 3 && err.empty();
+	const bool comment_stop_ok =
+		rcp::extract_comment_data(comment_sequence, 0, comment, comment_records, err) &&
+		comment_records == 3 && comment.size() == 6;
+	std::vector<rcp::sequence_event> comment_at_end = {
+		event(0xf6, 0, 'G', 'H'), event(0xfe, 0, 0, 0),
+		event(0xf7, 0, 'I', 'J')
+	};
+	const bool comment_fe_boundary_ok =
+		rcp::extract_comment_data(comment_at_end, 0, comment, comment_records, err) &&
+		comment == std::vector<u8>({'G', 'H'}) && comment_records == 1;
+	comment = {'Z'};
+	comment_records = 9;
+	const bool comment_bad_start_ok =
+		!rcp::extract_comment_data(comment_sequence, 3, comment, comment_records, err) &&
+		comment.empty() && comment_records == 0 && !err.empty();
+	comment = {'Z'};
+	comment_records = 9;
+	const bool comment_missing_end_ok =
+		!rcp::extract_comment_data(
+			std::vector<rcp::sequence_event>{event(0xf6, 0, 'A', 'B'),
+				event(0xf7, 0, 'C', 'D')},
+			0, comment, comment_records, err) &&
+		comment.empty() && comment_records == 0 && !err.empty();
+
 	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
-		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG");
+		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG",\n		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",\n		comment_fe_boundary_ok ? "合" : "NG",\n		comment_bad_start_ok && comment_missing_end_ok ? "合" : "NG");
 }
 
 
