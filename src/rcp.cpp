@@ -169,6 +169,53 @@ bool decode_note_event(const sequence_event &raw, note_event &out, std::string &
 }
 
 
+bool expand_note_only_timeline(const std::vector<sequence_event> &sequence,
+                               std::vector<timed_note_event> &out,
+                               std::string &err)
+{
+    out.clear();
+    err.clear();
+
+    u32 current_tick = 0;
+    bool found_end = false;
+    for (const sequence_event &raw : sequence) {
+        if (raw.code == 0xfe) {
+            found_end = true;
+            break;
+        }
+        if (raw.code >= 0x80) {
+            out.clear();
+            err = "ノート専用時間展開では未対応コマンドを扱えません";
+            return false;
+        }
+
+        note_event note;
+        if (!decode_note_event(raw, note, err)) {
+            out.clear();
+            return false;
+        }
+        timed_note_event timed;
+        timed.start_tick = current_tick;
+        timed.note = note;
+        out.push_back(timed);
+
+        if (note.delay > 0xffffffffu - current_tick) {
+            out.clear();
+            err = "RCP ノートの tick が 32 bit 範囲を超えます";
+            return false;
+        }
+        current_tick += note.delay;
+    }
+
+    if (!found_end) {
+        out.clear();
+        err = "ノート専用時間展開に Track End (FE) がありません";
+        return false;
+    }
+    return true;
+}
+
+
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err)
 {
