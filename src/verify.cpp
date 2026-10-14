@@ -289,9 +289,26 @@ static void check_rcp_sequence()
 	const bool null_ok = !rcp::parse_sequence(nullptr, 4, events, consumed, err) &&
 		events.empty() && consumed == 0;
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s\n",
+	// F6 の継続データ候補 F7 は意味解釈せず、順序と raw field を保持する。
+	const u8 multi_record_text[] = {
+		0xf6, 0, 'A', 'B',
+		0xf7, 0, 'C', 'D',
+		0xf7, 0, 'E', 'F',
+		0xfe, 0, 0, 0
+	};
+	const bool continuation_preserved =
+		rcp::parse_sequence(multi_record_text, sizeof(multi_record_text),
+			events, consumed, err) &&
+		events.size() == 4 && consumed == sizeof(multi_record_text) &&
+		events[0].code == 0xf6 && events[0].p1 == 'A' && events[0].p2 == 'B' &&
+		events[1].code == 0xf7 && events[1].p1 == 'C' && events[1].p2 == 'D' &&
+		events[2].code == 0xf7 && events[2].p1 == 'E' && events[2].p2 == 'F' &&
+		events[3].code == 0xfe;
+
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
-		partial_ok ? "合" : "NG", null_ok ? "合" : "NG");
+		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
+		continuation_preserved ? "合" : "NG");
 }
 
 
