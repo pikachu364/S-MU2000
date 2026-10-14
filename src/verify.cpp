@@ -309,14 +309,29 @@ static void check_rcp_note_decode()
         note.note == 60 && note.delay == 12 &&
         note.duration == 100 && note.velocity == 90;
 
-    raw.code = 0x90;
+    raw.code = 0x7f;
+    raw.p0 = 0xff;
+    raw.p1 = 0x80;
+    raw.p2 = 0;
+    const bool upper_note_ok = rcp::decode_note_event(raw, note, err) &&
+        note.note == 0x7f && note.delay == 0xff &&
+        note.duration == 0x80 && note.velocity == 0;
+
+    raw.code = 0x80;
     note = {};
-    const bool command_rejected = !rcp::decode_note_event(raw, note, err) &&
+    const bool lower_command_rejected = !rcp::decode_note_event(raw, note, err) &&
         note.note == 0 && note.delay == 0 &&
         note.duration == 0 && note.velocity == 0 && !err.empty();
 
-    std::printf("RCP2 ノート解釈: フィールド分離 %s・コマンド誤認防止 %s\\n",
-        note_ok ? "合" : "NG", command_rejected ? "合" : "NG");
+    raw.code = 0xff;
+    note = {};
+    const bool upper_command_rejected = !rcp::decode_note_event(raw, note, err) &&
+        note.note == 0 && note.delay == 0 &&
+        note.duration == 0 && note.velocity == 0 && !err.empty();
+
+    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s\\n",
+        note_ok ? "合" : "NG", upper_note_ok ? "合" : "NG",
+        lower_command_rejected && upper_command_rejected ? "合" : "NG");
 }
 
 
