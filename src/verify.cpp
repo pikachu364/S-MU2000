@@ -391,7 +391,7 @@ static void check_rcp_note_timeline()
         !rcp::expand_note_only_timeline(no_end, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 ノート時間展開（ノート専用）: tick/順序/duration 0 %s・未知コマンド拒否 %s・FE なし拒否 %s\\n",
+    std::printf("RCP2 ノート時間展開（ノート専用）: tick/順序/duration 0 %s・未知コマンド拒否 %s・FE なし拒否 %s\n",
         timeline_ok ? "合" : "NG", command_rejected ? "合" : "NG",
         missing_end_rejected ? "合" : "NG");
 }
