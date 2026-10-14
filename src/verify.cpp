@@ -329,6 +329,15 @@ static void check_rcp_note_decode()
         note.note == 0 && note.delay == 0 &&
         note.duration == 0 && note.velocity == 0 && !err.empty();
 
+    // A zero duration is preserved as raw data; semantic handling belongs downstream.
+    raw.code = 62;
+    raw.p0 = 0;
+    raw.p1 = 0;
+    raw.p2 = 127;
+    const bool zero_duration_ok = rcp::decode_note_event(raw, note, err) &&
+        note.note == 62 && note.delay == 0 &&
+        note.duration == 0 && note.velocity == 127 && err.empty();
+
     // A successful decode after a command error must clear the old error.
     raw.code = 61;
     raw.p0 = 1;
@@ -338,10 +347,10 @@ static void check_rcp_note_decode()
         note.note == 61 && note.delay == 1 &&
         note.duration == 2 && note.velocity == 3 && err.empty();
 
-    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s・エラー解除 %s\\n",
+    std::printf("RCP2 ノート解釈: フィールド分離 %s・上端ノート %s・コマンド境界拒否 %s・duration 0 保持 %s・エラー解除 %s\\n",
         note_ok ? "合" : "NG", upper_note_ok ? "合" : "NG",
         lower_command_rejected && upper_command_rejected ? "合" : "NG",
-        recovery_ok ? "合" : "NG");
+        zero_duration_ok ? "合" : "NG", recovery_ok ? "合" : "NG");
 }
 
 
