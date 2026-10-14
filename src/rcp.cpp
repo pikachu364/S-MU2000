@@ -151,6 +151,24 @@ bool parse_sequence(const u8 *data, size_t size,
 }
 
 
+bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err)
+{
+    out = {};
+    err.clear();
+
+    if (raw.code >= 0x80) {
+        err = "RCP レコードはノートではなくコマンドです";
+        return false;
+    }
+
+    out.note = raw.code;
+    out.delay = raw.p0;
+    out.duration = raw.p1;
+    out.velocity = raw.p2;
+    return true;
+}
+
+
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err)
 {
