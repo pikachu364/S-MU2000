@@ -90,6 +90,17 @@ bool extract_comment_data(const std::vector<sequence_event> &sequence,
 // Preserves leading/interior spaces and all other bytes (including NUL). Returns new size.
 size_t trim_comment_trailing_spaces(std::vector<u8> &data);
 
+// Experimental F5 decoder based on ValleyBell/MidiConverters' RCP2 handler.
+// p0 is interpreted as key signature, not delay; delay_advance is always zero.
+struct key_signature_event {
+	int accidentals = 0; // negative = flats, positive = sharps
+	bool minor = false;
+	u8 delay_advance = 0;
+};
+
+bool decode_key_signature_event(const sequence_event &raw,
+                                key_signature_event &out, std::string &err);
+
 // Parsed RCP2 track. raw_length includes the 2-byte length field and the full
 // 0x2c-byte track header; sequence contains records through FE.
 struct track {
