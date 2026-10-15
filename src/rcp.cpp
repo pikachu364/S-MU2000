@@ -390,6 +390,71 @@ bool expand_note_key_signature_timeline(const std::vector<sequence_event> &seque
 }
 
 
+
+bool expand_note_key_signature_tempo_timeline(
+    const std::vector<sequence_event> &sequence, u16 bpm,
+    std::vector<timed_event> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+
+    u32 current_tick = 0;
+    bool found_end = false;
+    for (const sequence_event &raw : sequence) {
+        if (raw.code == 0xfe) {
+            found_end = true;
+            break;
+        }
+
+        timed_event timed;
+        timed.tick = current_tick;
+        u32 delay_advance = 0;
+
+        if (raw.code == 0xf5) {
+            if (!decode_key_signature_event(raw, timed.key, err)) {
+                out.clear();
+                return false;
+            }
+            timed.kind = timeline_event_kind::key_signature;
+            delay_advance = timed.key.delay_advance;
+        } else if (raw.code == 0xe7) {
+            if (!decode_tempo_event(raw, bpm, timed.tempo, err)) {
+                out.clear();
+                return false;
+            }
+            timed.kind = timeline_event_kind::tempo;
+            delay_advance = timed.tempo.delay;
+        } else if (raw.code < 0x80) {
+            if (!decode_note_event(raw, timed.note, err)) {
+                out.clear();
+                return false;
+            }
+            timed.kind = timeline_event_kind::note;
+            delay_advance = timed.note.delay;
+        } else {
+            out.clear();
+            err = "時間展開ではノート・F5・E7 以外のコマンドを扱えません";
+            return false;
+        }
+
+        out.push_back(timed);
+        if (delay_advance > 0xffffffffu - current_tick) {
+            out.clear();
+            err = "RCP イベントの tick が 32 bit 範囲を超えます";
+            return false;
+        }
+        current_tick += delay_advance;
+    }
+
+    if (!found_end) {
+        out.clear();
+        err = "時間展開に Track End (FE) がありません";
+        return false;
+    }
+    return true;
+}
+
+
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err)
 {
