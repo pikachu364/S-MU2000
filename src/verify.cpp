@@ -669,6 +669,38 @@ static void check_rcp_intermediate()
         fields_ok ? "合" : "NG", reject_ok ? "合" : "NG");
 }
 
+static void check_rcp_tempo_event_decode()
+{
+    rcp::sequence_event raw;
+    raw.code = 0xe7;
+    raw.p0 = 7;
+    raw.p1 = 32;
+    raw.p2 = 4;
+    rcp::tempo_event event;
+    std::string err = "stale error";
+    const bool fields_ok = rcp::decode_tempo_event(raw, 120, event, err) &&
+        event.delay == 7 && event.scale == 32 && event.gradual == 4 &&
+        event.microseconds_per_quarter == 250000 && err.empty();
+
+    raw.code = 0xe6;
+    const bool wrong_command_rejected =
+        !rcp::decode_tempo_event(raw, 120, event, err) &&
+        event.delay == 0 && event.scale == 0 &&
+        event.microseconds_per_quarter == 0 && !err.empty();
+
+    raw.code = 0xe7;
+    raw.p1 = 0;
+    const bool zero_scale_rejected =
+        !rcp::decode_tempo_event(raw, 120, event, err) &&
+        event.delay == 0 && event.scale == 0 &&
+        event.microseconds_per_quarter == 0 && !err.empty();
+
+    std::printf("RCP2 E7 イベント解釈（実験）: p0/p1/p2 保持 %s・誤コマンド拒否 %s・scale 0 拒否 %s\n",
+        fields_ok ? "合" : "NG", wrong_command_rejected ? "合" : "NG",
+        zero_scale_rejected ? "合" : "NG");
+}
+
+
 static void check_rcp_tempo_conversion()
 {
     u32 tempo = 123;
@@ -737,6 +769,7 @@ int main()
 	check_rcp_note_decode();
 	check_rcp_note_timeline();
 	check_rcp_tempo_conversion();
+	check_rcp_tempo_event_decode();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
