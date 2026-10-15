@@ -752,8 +752,9 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
+    // FE 以降の未知コマンドも無視し、FE より前のノートだけを展開する。
     sequence = {event(60, 1, 4, 90), event(0xfe, 0, 0, 0),
-                event(62, 2, 4, 80)};
+                event(0x90, 2, 4, 80)};
     const bool end_terminates_ok =
         rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.size() == 1 && timeline[0].tick == 0 &&
@@ -764,10 +765,16 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・未知コマンド拒否 %s・scale 0 拒否 %s・FE 終端/後続無視 %s・FE なし拒否 %s\n",
+    sequence.clear();
+    const bool empty_missing_end_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・未知コマンド拒否 %s・scale 0 拒否 %s・FE 終端/後続未知無視 %s・FE なし/空入力拒否 %s\\n",
         timing_ok ? "合" : "NG", same_tick_order_ok ? "合" : "NG",
         unsupported_rejected ? "合" : "NG", invalid_tempo_rejected ? "合" : "NG",
-        end_terminates_ok ? "合" : "NG", missing_end_rejected ? "合" : "NG");
+        end_terminates_ok ? "合" : "NG",
+        missing_end_rejected && empty_missing_end_rejected ? "合" : "NG");
 }
 
 
