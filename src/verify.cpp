@@ -431,7 +431,7 @@ static void check_rcp_sequence()
     mixed[1].code = 0xf6;
     const bool mixed_reject_ok = !rcp::expand_note_key_signature_timeline(mixed, mixed_timeline, err) &&
         mixed_timeline.empty() && !err.empty();
-    std::printf("RCP2 F5 時間展開: tick 維持 %s・未対応コマンド拒否 %s\\n",
+    std::printf("RCP2 F5 時間展開: tick 維持 %s・未対応コマンド拒否 %s\n",
         mixed_ok ? "合" : "NG", mixed_reject_ok ? "合" : "NG");
 }
 
