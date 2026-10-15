@@ -291,6 +291,24 @@ bool expand_note_only_timeline(const std::vector<sequence_event> &sequence,
 
 
 
+bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err)
+{
+    out = 0;
+    err.clear();
+
+    if (bpm == 0 || scale == 0) {
+        err = "RCP2 テンポ計算では BPM と scale に 0 を指定できません";
+        return false;
+    }
+
+    // Match the reference converter's integer formula without rounding:
+    // 60,000,000 * 64 / (BPM * scale). The maximum numerator fits in u32.
+    const u32 denominator = static_cast<u32>(bpm) * static_cast<u32>(scale);
+    out = (60000000u * 64u) / denominator;
+    return true;
+}
+
+
 bool expand_note_key_signature_timeline(const std::vector<sequence_event> &sequence,
                                         std::vector<timed_event> &out,
                                         std::string &err)
