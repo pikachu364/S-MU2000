@@ -76,6 +76,8 @@ ValleyBell/MidiConverters の `rcp2mid.c` では、E7 を `Tempo Modifier` と�
 
 当該実装の `Tempo2Mid` はコメント上の式を `60,000,000 / BPM × (scale / 64)` とし、整数演算では `60,000,000 × 64 / (BPM × scale)` を使う（丸めは行わない）。E7 ではヘッダーの BPM と p1 がこの計算に渡される。これは同実装の変換式の確認であり、公式仕様の確定ではない。BPM または scale が 0 の場合は除算不能になるため、移植するなら入力検証を必須にする。p1 の全値域、p2 による変化の正式な意味は未確定。通常の p0 delay 進行とテンポ状態の更新を分離した合成テストを作る。現段階では E7 を時間展開ヘルパーで受け入れず、ノート＋F5 専用の実験関数の拒否範囲を維持する。
 
+実験用の `rcp2_tempo_us_per_quarter` を追加し、参照式の整数演算を独立させた。BPM 120 / scale 64 → 500000 µs、BPM 120 / scale 32 → 250000 µs を期待値とし、BPM=0 と scale=0 は除算前に拒否して出力値を 0 に戻す合成テストを追加した。これは参照実装との式の照合を助ける小さな関数であり、E7 の p2 による段階的変更や全入力範囲の互換性は実装していない。ローカルのビルド・テスト実行結果はまだ得られていない。
+
 参照: [ValleyBell/MidiConverters: rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) — E7 ハンドラー。
 
 ### コマンド棚卸し（第三者実装ベース・暫定）
