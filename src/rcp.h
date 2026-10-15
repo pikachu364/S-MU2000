@@ -142,8 +142,8 @@ bool decode_tempo_event(const sequence_event &raw, u16 bpm,
 // Returns MIDI microseconds per quarter note; rejects zero BPM/scale.
 bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
-// Experimental timeline accepting notes and F5 only. F5 is emitted at the
-// current tick and must not advance it; other commands are rejected.
+// Experimental legacy timeline accepting notes and F5 only. F5 is emitted at
+// the current tick and must not advance it; other commands (including E7) are rejected.
 enum class timeline_event_kind { note, key_signature, tempo };
 struct timed_event {
     u32 tick = 0;
