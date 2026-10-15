@@ -669,6 +669,32 @@ static void check_rcp_intermediate()
         fields_ok ? "合" : "NG", reject_ok ? "合" : "NG");
 }
 
+static void check_rcp_tempo_conversion()
+{
+    u32 tempo = 123;
+    std::string err = "stale error";
+    const bool standard_ok =
+        rcp::rcp2_tempo_us_per_quarter(120, 64, tempo, err) &&
+        tempo == 500000 && err.empty();
+    const bool half_scale_ok =
+        rcp::rcp2_tempo_us_per_quarter(120, 32, tempo, err) &&
+        tempo == 250000 && err.empty();
+
+    tempo = 123;
+    const bool zero_bpm_rejected =
+        !rcp::rcp2_tempo_us_per_quarter(0, 64, tempo, err) &&
+        tempo == 0 && !err.empty();
+    tempo = 123;
+    const bool zero_scale_rejected =
+        !rcp::rcp2_tempo_us_per_quarter(120, 0, tempo, err) &&
+        tempo == 0 && !err.empty();
+
+    std::printf("RCP2 E7 テンポ計算（実験）: 120/64=%s・120/32=%s・BPM 0 拒否 %s・scale 0 拒否 %s\\n",
+        standard_ok ? "合" : "NG", half_scale_ok ? "合" : "NG",
+        zero_bpm_rejected ? "合" : "NG", zero_scale_rejected ? "合" : "NG");
+}
+
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -710,6 +736,7 @@ int main()
 	check_rcp_sequence();
 	check_rcp_note_decode();
 	check_rcp_note_timeline();
+	check_rcp_tempo_conversion();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
