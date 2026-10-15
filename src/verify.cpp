@@ -387,6 +387,29 @@ static void check_rcp_sequence()
 	std::printf("RCP2 コメント末尾空白: 先頭/途中保持 %s・全空白 %s・NUL 非終端扱い %s・空白なし %s\n",
 		comment_trim_ok ? "合" : "NG", comment_all_spaces_ok ? "合" : "NG",
 		comment_nul_ok ? "合" : "NG", comment_no_trim_ok ? "合" : "NG");
+
+	// F5 の p0 はキー署名データとして解釈し、時間進行は別フィールドで 0 とする。
+	rcp::sequence_event f5;
+	f5.code = 0xf5; f5.p0 = 0x03; f5.p1 = 44; f5.p2 = 55;
+	rcp::key_signature_event key;
+	const bool f5_sharps_ok = rcp::decode_key_signature_event(f5, key, err) &&
+		key.accidentals == 3 && !key.minor && key.delay_advance == 0 && err.empty();
+	f5.p0 = 0x0a; // two flats
+	const bool f5_flats_ok = rcp::decode_key_signature_event(f5, key, err) &&
+		key.accidentals == -2 && !key.minor && key.delay_advance == 0;
+	f5.p0 = 0x17; // seven sharps, minor
+	const bool f5_minor_ok = rcp::decode_key_signature_event(f5, key, err) &&
+		key.accidentals == 7 && key.minor && key.delay_advance == 0;
+	f5.p0 = 0x1f; // seven flats, minor
+	const bool f5_flats_minor_ok = rcp::decode_key_signature_event(f5, key, err) &&
+		key.accidentals == -7 && key.minor && key.delay_advance == 0;
+	f5.code = 0xf6;
+	const bool f5_wrong_command_ok = !rcp::decode_key_signature_event(f5, key, err) &&
+		key.accidentals == 0 && !key.minor && key.delay_advance == 0 && !err.empty();
+	std::printf("RCP2 F5 キー署名: シャープ %s・フラット %s・短調 %s・フラット短調 %s・コマンド境界拒否 %s\\n",
+		f5_sharps_ok ? "合" : "NG", f5_flats_ok ? "合" : "NG",
+		f5_minor_ok ? "合" : "NG", f5_flats_minor_ok ? "合" : "NG",
+		f5_wrong_command_ok ? "合" : "NG");
 }
 
 
