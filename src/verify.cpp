@@ -689,7 +689,7 @@ static void check_rcp_tempo_conversion()
         !rcp::rcp2_tempo_us_per_quarter(120, 0, tempo, err) &&
         tempo == 0 && !err.empty();
 
-    std::printf("RCP2 E7 テンポ計算（実験）: 120/64=%s・120/32=%s・BPM 0 拒否 %s・scale 0 拒否 %s\\n",
+    std::printf("RCP2 E7 テンポ計算（実験）: 120/64=%s・120/32=%s・BPM 0 拒否 %s・scale 0 拒否 %s\n",
         standard_ok ? "合" : "NG", half_scale_ok ? "合" : "NG",
         zero_bpm_rejected ? "合" : "NG", zero_scale_rejected ? "合" : "NG");
 }
