@@ -202,6 +202,29 @@ size_t trim_comment_trailing_spaces(std::vector<u8> &data)
 }
 
 
+bool decode_key_signature_event(const sequence_event &raw,
+                                key_signature_event &out, std::string &err)
+{
+    out = {};
+    err.clear();
+
+    if (raw.code != 0xf5) {
+        err = "RCP レコードは F5 キー署名コマンドではありません";
+        return false;
+    }
+
+    // Mirrors the referenced converter's mapping: bit 3 selects flats,
+    // low three bits give the count, and bit 4 selects minor.
+    const int count = raw.p0 & 0x07;
+    out.accidentals = (raw.p0 & 0x08) ? -count : count;
+    out.minor = (raw.p0 & 0x10) != 0;
+    // In the reference handler p0 is consumed as key data and then cleared,
+    // so it does not advance the event timeline as a delay.
+    out.delay_advance = 0;
+    return true;
+}
+
+
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err)
 {
     out = {};
