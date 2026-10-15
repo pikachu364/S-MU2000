@@ -701,6 +701,50 @@ static void check_rcp_tempo_event_decode()
 }
 
 
+
+static void check_rcp_tempo_timeline()
+{
+    auto event = [](u8 code, u8 p0, u8 p1, u8 p2) {
+        rcp::sequence_event raw;
+        raw.code = code; raw.p0 = p0; raw.p1 = p1; raw.p2 = p2;
+        return raw;
+    };
+    std::vector<rcp::sequence_event> sequence = {
+        event(60, 5, 4, 90),
+        event(0xe7, 7, 32, 0),
+        event(62, 3, 4, 80),
+        event(0xfe, 0, 0, 0)
+    };
+    std::vector<rcp::timed_event> timeline;
+    std::string err;
+    const bool timing_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 0 && timeline[0].note.note == 60 &&
+        timeline[1].kind == rcp::timeline_event_kind::tempo &&
+        timeline[1].tick == 5 && timeline[1].tempo.delay == 7 &&
+        timeline[1].tempo.microseconds_per_quarter == 250000 &&
+        timeline[2].kind == rcp::timeline_event_kind::note &&
+        timeline[2].tick == 12 && timeline[2].note.note == 62 && err.empty();
+
+    sequence[1] = event(0xf6, 7, 32, 0);
+    const bool unsupported_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    sequence = {event(60, 255, 4, 90), event(0xe7, 255, 64, 0),
+                event(0xfe, 0, 0, 0)};
+    const bool overflow_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・未知コマンド拒否 %s・tick overflow 拒否 %s\n",
+        timing_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
+        overflow_rejected ? "合" : "NG");
+}
+
+
 static void check_rcp_tempo_conversion()
 {
     u32 tempo = 123;
@@ -770,6 +814,7 @@ int main()
 	check_rcp_note_timeline();
 	check_rcp_tempo_conversion();
 	check_rcp_tempo_event_decode();
+	check_rcp_tempo_timeline();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
