@@ -363,6 +363,20 @@ static void check_rcp_sequence()
 			0, comment, comment_records, err) &&
 		comment.empty() && comment_records == 0 && !err.empty();
 
+	// Referenced converter trims only trailing ASCII spaces, not NUL or leading spaces.
+	std::vector<u8> trim_comment = {' ', 'A', ' ', 'B', ' ', ' '};
+	const bool comment_trim_ok = rcp::trim_comment_trailing_spaces(trim_comment) == 4 &&
+		trim_comment == std::vector<u8>({' ', 'A', ' ', 'B'});
+	std::vector<u8> all_spaces = {' ', ' ', ' '};
+	const bool comment_all_spaces_ok = rcp::trim_comment_trailing_spaces(all_spaces) == 0 &&
+		all_spaces.empty();
+	std::vector<u8> embedded_nul = {'A', 0, ' ', ' '};
+	const bool comment_nul_ok = rcp::trim_comment_trailing_spaces(embedded_nul) == 2 &&
+		embedded_nul == std::vector<u8>({'A', 0});
+	std::vector<u8> no_trim = {'A', 0, 'B'};
+	const bool comment_no_trim_ok = rcp::trim_comment_trailing_spaces(no_trim) == 3 &&
+		no_trim == std::vector<u8>({'A', 0, 'B'});
+
 	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
@@ -370,6 +384,9 @@ static void check_rcp_sequence()
 		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",
 		comment_fe_boundary_ok ? "合" : "NG",
 		comment_bad_start_ok && comment_missing_end_ok ? "合" : "NG");
+	std::printf("RCP2 コメント末尾空白: 先頭/途中保持 %s・全空白 %s・NUL 非終端扱い %s・空白なし %s\\n",
+		comment_trim_ok ? "合" : "NG", comment_all_spaces_ok ? "合" : "NG",
+		comment_nul_ok ? "合" : "NG", comment_no_trim_ok ? "合" : "NG");
 }
 
 
