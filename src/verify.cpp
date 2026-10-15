@@ -728,6 +728,19 @@ static void check_rcp_tempo_timeline()
         timeline[2].kind == rcp::timeline_event_kind::note &&
         timeline[2].tick == 12 && timeline[2].note.note == 62 && err.empty();
 
+    sequence = {event(60, 5, 4, 90), event(0xf5, 3, 0, 0),
+                event(0xe7, 7, 32, 0), event(62, 3, 4, 80),
+                event(0xfe, 0, 0, 0)};
+    const bool same_tick_order_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].tick == 0 && timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[1].tick == 5 && timeline[1].kind == rcp::timeline_event_kind::key_signature &&
+        timeline[1].key.accidentals == 3 &&
+        timeline[2].tick == 5 && timeline[2].kind == rcp::timeline_event_kind::tempo &&
+        timeline[3].tick == 12 && timeline[3].kind == rcp::timeline_event_kind::note &&
+        timeline[3].note.note == 62 && err.empty();
+
     sequence[1] = event(0xf6, 7, 32, 0);
     const bool unsupported_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
@@ -740,8 +753,8 @@ static void check_rcp_tempo_timeline()
         timeline.empty() && !err.empty();
 
     std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・未知コマンド拒否 %s・scale 0 拒否 %s\n",
-        timing_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
-        invalid_tempo_rejected ? "合" : "NG");
+        timing_ok ? "合" : "NG", same_tick_order_ok ? "合" : "NG",
+        unsupported_rejected ? "合" : "NG", invalid_tempo_rejected ? "合" : "NG");
 }
 
 
