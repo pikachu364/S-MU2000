@@ -86,6 +86,10 @@ bool extract_comment_data(const std::vector<sequence_event> &sequence,
                           size_t start_index, std::vector<u8> &out,
                           size_t &records_consumed, std::string &err);
 
+// Experimental helper matching the referenced converter's trailing-ASCII-space trim.
+// Preserves leading/interior spaces and all other bytes (including NUL). Returns new size.
+size_t trim_comment_trailing_spaces(std::vector<u8> &data);
+
 // Parsed RCP2 track. raw_length includes the 2-byte length field and the full
 // 0x2c-byte track header; sequence contains records through FE.
 struct track {
