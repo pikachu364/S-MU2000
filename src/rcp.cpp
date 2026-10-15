@@ -194,6 +194,14 @@ bool extract_comment_data(const std::vector<sequence_event> &sequence,
 }
 
 
+size_t trim_comment_trailing_spaces(std::vector<u8> &data)
+{
+    while (!data.empty() && data.back() == 0x20)
+        data.pop_back();
+    return data.size();
+}
+
+
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err)
 {
     out = {};
