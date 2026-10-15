@@ -733,15 +733,15 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    sequence = {event(60, 255, 4, 90), event(0xe7, 255, 64, 0),
+    sequence = {event(60, 5, 4, 90), event(0xe7, 7, 0, 0),
                 event(0xfe, 0, 0, 0)};
-    const bool overflow_rejected =
+    const bool invalid_tempo_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・未知コマンド拒否 %s・tick overflow 拒否 %s\n",
+    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・未知コマンド拒否 %s・scale 0 拒否 %s\\n",
         timing_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
-        overflow_rejected ? "合" : "NG");
+        invalid_tempo_rejected ? "合" : "NG");
 }
 
 
