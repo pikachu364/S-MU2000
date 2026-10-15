@@ -126,6 +126,10 @@ struct note_event {
 // Returns false for command records (code >= 0x80), leaving out zeroed.
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err);
 
+// Experimental conversion matching ValleyBell/MidiConverters' Tempo2Mid formula.
+// Returns MIDI microseconds per quarter note; rejects zero BPM/scale.
+bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
+
 // Experimental timeline accepting notes and F5 only. F5 is emitted at the
 // current tick and must not advance it; other commands are rejected.
 enum class timeline_event_kind { note, key_signature };
