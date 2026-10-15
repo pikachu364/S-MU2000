@@ -144,17 +144,25 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
 // Experimental timeline accepting notes and F5 only. F5 is emitted at the
 // current tick and must not advance it; other commands are rejected.
-enum class timeline_event_kind { note, key_signature };
+enum class timeline_event_kind { note, key_signature, tempo };
 struct timed_event {
     u32 tick = 0;
     timeline_event_kind kind = timeline_event_kind::note;
     note_event note;
     key_signature_event key;
+    tempo_event tempo;
 };
 
 bool expand_note_key_signature_timeline(const std::vector<sequence_event> &sequence,
                                         std::vector<timed_event> &out,
                                         std::string &err);
+
+// Experimental timeline for notes, F5 key signatures, and E7 tempo changes.
+// E7 is emitted at the current tick, then p0 advances the cursor; gradual
+// tempo curves (p2) are retained but not expanded.
+bool expand_note_key_signature_tempo_timeline(
+    const std::vector<sequence_event> &sequence, u16 bpm,
+    std::vector<timed_event> &out, std::string &err);
 
 
 // Experimental note-only timeline. start_tick is the current tick before the
