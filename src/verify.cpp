@@ -410,6 +410,29 @@ static void check_rcp_sequence()
 		f5_sharps_ok ? "合" : "NG", f5_flats_ok ? "合" : "NG",
 		f5_minor_ok ? "合" : "NG", f5_flats_minor_ok ? "合" : "NG",
 		f5_wrong_command_ok ? "合" : "NG");
+
+    // F5 は直前までの tick に置き、p0 を加算しない。
+    std::vector<rcp::sequence_event> mixed = {
+        { 60, 5, 90, 100 },
+        { 0xf5, 0x10, 0, 0 },
+        { 62, 7, 80, 95 },
+        { 0xfe, 0, 0, 0 }
+    };
+    std::vector<rcp::timed_event> mixed_timeline;
+    const bool mixed_ok = rcp::expand_note_key_signature_timeline(mixed, mixed_timeline, err) &&
+        mixed_timeline.size() == 3 &&
+        mixed_timeline[0].kind == rcp::timeline_event_kind::note &&
+        mixed_timeline[0].tick == 0 && mixed_timeline[0].note.note == 60 &&
+        mixed_timeline[1].kind == rcp::timeline_event_kind::key_signature &&
+        mixed_timeline[1].tick == 5 && mixed_timeline[1].key.minor &&
+        mixed_timeline[1].key.delay_advance == 0 &&
+        mixed_timeline[2].kind == rcp::timeline_event_kind::note &&
+        mixed_timeline[2].tick == 5 && mixed_timeline[2].note.note == 62;
+    mixed[1].code = 0xf6;
+    const bool mixed_reject_ok = !rcp::expand_note_key_signature_timeline(mixed, mixed_timeline, err) &&
+        mixed_timeline.empty() && !err.empty();
+    std::printf("RCP2 F5 時間展開: tick 維持 %s・未対応コマンド拒否 %s\\n",
+        mixed_ok ? "合" : "NG", mixed_reject_ok ? "合" : "NG");
 }
 
 
