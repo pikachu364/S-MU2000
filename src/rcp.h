@@ -126,6 +126,18 @@ struct note_event {
 // Returns false for command records (code >= 0x80), leaving out zeroed.
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err);
 
+// Experimental E7 decoder based on ValleyBell/MidiConverters. p0 is kept as
+// delay, p1 is the tempo scale, and p2 is the gradual-change parameter (semantics
+// beyond the reference converter's warning are not implemented).
+struct tempo_event {
+    u8 delay = 0;
+    u8 scale = 0;
+    u8 gradual = 0;
+    u32 microseconds_per_quarter = 0;
+};
+bool decode_tempo_event(const sequence_event &raw, u16 bpm,
+                        tempo_event &out, std::string &err);
+
 // Experimental conversion matching ValleyBell/MidiConverters' Tempo2Mid formula.
 // Returns MIDI microseconds per quarter note; rejects zero BPM/scale.
 bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
