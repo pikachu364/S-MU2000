@@ -291,6 +291,29 @@ bool expand_note_only_timeline(const std::vector<sequence_event> &sequence,
 
 
 
+bool decode_tempo_event(const sequence_event &raw, u16 bpm,
+                        tempo_event &out, std::string &err)
+{
+    out = tempo_event{};
+    err.clear();
+
+    if (raw.code != 0xe7) {
+        err = "テンポイベントのコマンドが E7 ではありません";
+        return false;
+    }
+
+    u32 tempo = 0;
+    if (!rcp2_tempo_us_per_quarter(bpm, raw.p1, tempo, err))
+        return false;
+
+    out.delay = raw.p0;
+    out.scale = raw.p1;
+    out.gradual = raw.p2;
+    out.microseconds_per_quarter = tempo;
+    return true;
+}
+
+
 bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err)
 {
     out = 0;
