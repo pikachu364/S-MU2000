@@ -377,14 +377,14 @@ static void check_rcp_sequence()
 	const bool comment_no_trim_ok = rcp::trim_comment_trailing_spaces(no_trim) == 3 &&
 		no_trim == std::vector<u8>({'A', 0, 'B'});
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\\n",
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
 		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
 		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG",
 		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",
 		comment_fe_boundary_ok ? "合" : "NG",
 		comment_bad_start_ok && comment_missing_end_ok ? "合" : "NG");
-	std::printf("RCP2 コメント末尾空白: 先頭/途中保持 %s・全空白 %s・NUL 非終端扱い %s・空白なし %s\\n",
+	std::printf("RCP2 コメント末尾空白: 先頭/途中保持 %s・全空白 %s・NUL 非終端扱い %s・空白なし %s\n",
 		comment_trim_ok ? "合" : "NG", comment_all_spaces_ok ? "合" : "NG",
 		comment_nul_ok ? "合" : "NG", comment_no_trim_ok ? "合" : "NG");
 }
