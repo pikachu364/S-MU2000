@@ -290,6 +290,65 @@ bool expand_note_only_timeline(const std::vector<sequence_event> &sequence,
 }
 
 
+
+bool expand_note_key_signature_timeline(const std::vector<sequence_event> &sequence,
+                                        std::vector<timed_event> &out,
+                                        std::string &err)
+{
+    out.clear();
+    err.clear();
+
+    u32 current_tick = 0;
+    bool found_end = false;
+    for (const sequence_event &raw : sequence) {
+        if (raw.code == 0xfe) {
+            found_end = true;
+            break;
+        }
+
+        timed_event timed;
+        timed.tick = current_tick;
+        if (raw.code == 0xf5) {
+            if (!decode_key_signature_event(raw, timed.key, err)) {
+                out.clear();
+                return false;
+            }
+            timed.kind = timeline_event_kind::key_signature;
+            out.push_back(timed);
+            // F5 p0 is key-signature data in the reference implementation.
+            continue;
+        }
+
+        if (raw.code >= 0x80) {
+            out.clear();
+            err = "時間展開では F5 以外の未対応コマンドを扱えません";
+            return false;
+        }
+
+        if (!decode_note_event(raw, timed.note, err)) {
+            out.clear();
+            return false;
+        }
+        timed.kind = timeline_event_kind::note;
+        out.push_back(timed);
+
+        if (timed.note.delay > 0xffffffffu - current_tick) {
+            out.clear();
+            err = "RCP イベントの tick が 32 bit 範囲を超えます";
+            return false;
+        }
+        current_tick += timed.note.delay;
+    }
+
+    if (!found_end) {
+        out.clear();
+        err = "時間展開に Track End (FE) がありません";
+        return false;
+    }
+    return true;
+}
+
+
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err)
 {
