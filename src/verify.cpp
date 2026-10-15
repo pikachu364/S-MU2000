@@ -406,7 +406,7 @@ static void check_rcp_sequence()
 	f5.code = 0xf6;
 	const bool f5_wrong_command_ok = !rcp::decode_key_signature_event(f5, key, err) &&
 		key.accidentals == 0 && !key.minor && key.delay_advance == 0 && !err.empty();
-	std::printf("RCP2 F5 キー署名: シャープ %s・フラット %s・短調 %s・フラット短調 %s・コマンド境界拒否 %s\\n",
+	std::printf("RCP2 F5 キー署名: シャープ %s・フラット %s・短調 %s・フラット短調 %s・コマンド境界拒否 %s\n",
 		f5_sharps_ok ? "合" : "NG", f5_flats_ok ? "合" : "NG",
 		f5_minor_ok ? "合" : "NG", f5_flats_minor_ok ? "合" : "NG",
 		f5_wrong_command_ok ? "合" : "NG");
