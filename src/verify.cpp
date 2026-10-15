@@ -547,7 +547,7 @@ static void check_rcp_note_timeline()
 
 static void check_rcp_tracks()
 {
-    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\n";
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
     const size_t first_length = track_header_size + 12;
