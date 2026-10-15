@@ -126,6 +126,21 @@ struct note_event {
 // Returns false for command records (code >= 0x80), leaving out zeroed.
 bool decode_note_event(const sequence_event &raw, note_event &out, std::string &err);
 
+// Experimental timeline accepting notes and F5 only. F5 is emitted at the
+// current tick and must not advance it; other commands are rejected.
+enum class timeline_event_kind { note, key_signature };
+struct timed_event {
+    u32 tick = 0;
+    timeline_event_kind kind = timeline_event_kind::note;
+    note_event note;
+    key_signature_event key;
+};
+
+bool expand_note_key_signature_timeline(const std::vector<sequence_event> &sequence,
+                                        std::vector<timed_event> &out,
+                                        std::string &err);
+
+
 // Experimental note-only timeline. start_tick is the current tick before the
 // note's delay is applied; after each note, p0 advances the cursor. FE ends the
 // sequence and is not emitted. Other commands are rejected because their timing
