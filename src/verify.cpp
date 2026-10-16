@@ -286,6 +286,14 @@ static void check_rcp_sequence()
 	const u8 partial[] = { 60, 0, 90 };
 	const bool partial_ok = !rcp::parse_sequence(partial, sizeof(partial), events, consumed, err) &&
 		events.empty() && consumed == 0;
+
+	// FE の後ろに不完全な断片があっても、終端までで解析を止める。
+	const u8 end_with_partial_tail[] = { 0xfe, 0, 0, 0, 0x90, 1 };
+	const bool partial_tail_ignored =
+		rcp::parse_sequence(end_with_partial_tail, sizeof(end_with_partial_tail),
+			events, consumed, err) &&
+		events.size() == 1 && events[0].code == 0xfe && consumed == 4 && err.empty();
+
 	const bool null_ok = !rcp::parse_sequence(nullptr, 4, events, consumed, err) &&
 		events.empty() && consumed == 0;
 
@@ -377,9 +385,9 @@ static void check_rcp_sequence()
 	const bool comment_no_trim_ok = rcp::trim_comment_trailing_spaces(no_trim) == 3 &&
 		no_trim == std::vector<u8>({'A', 0, 'B'});
 
-	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\n",
+	std::printf("RCP2 シーケンスレコード: 内容/FE 終端 %s・終端なし拒否 %s・途中切れ拒否 %s・FE 後の断片無視 %s・null 拒否 %s・F6/F7 raw 保持 %s・別レコード順序保持 %s・F6 コメント抽出 %s/%s/%s/%s\n",
 		fields_ok ? "合" : "NG", missing_end_ok ? "合" : "NG",
-		partial_ok ? "合" : "NG", null_ok ? "合" : "NG",
+		partial_ok ? "合" : "NG", partial_tail_ignored ? "合" : "NG", null_ok ? "合" : "NG",
 		continuation_preserved ? "合" : "NG", interruption_preserved ? "合" : "NG",
 		comment_chain_ok ? "合" : "NG", comment_stop_ok ? "合" : "NG",
 		comment_fe_boundary_ok ? "合" : "NG",
