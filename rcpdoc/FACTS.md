@@ -60,6 +60,18 @@
 - ビルドやローカルテストは、パソコンの開発環境が使えるときに行う。
 - 過去に確認されたローカルの未コミット変更は GitHub の内容と同一とは限らない。ローカル側を上書き・リセットしない。
 
+## F-007 — JMPlayer の RCP 形式資料を調査した
+
+**状態:** 外部資料の内容を閲覧して確認。S-MU2000 の実装・テストでの再現は未確認。
+
+- [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md) は、RCP のヘッダー、44-byte track header、4-byte event、イベントコマンド、`0xFC` repeat、`0xFE` end-of-track などを説明している。
+- 同資料は、参照 MIDI との比較対象303曲のうち、225曲が全チャンネルでノート単位一致、66曲は参照 MIDI の末尾に追加素材がある形で冒頭が一致、12曲は差異が残ると報告している。これは資料の著者による報告であり、S-MU2000 の検証結果ではない。
+- 同資料では、`0x98` の意味、トラックヘッダー `+7` の bit 0 以外、いくつかの曲の差異などが未解決として挙げられている。
+- [JMPlayer rcpfilehandler.cpp](https://github.com/jihodaya/jmplayer/blob/main/rcpfilehandler.cpp) には、RCP イベント処理だけでなく、GSD から GS SysEx を組み立てる処理も含まれている。
+- この資料を仕様候補・比較対象として利用し、コードをコピーしない。S-MU2000 側で確認するまでは、記述を自プロジェクトの確定事実に昇格させない。
+
+詳細: [JMPlayer RCP 調査ノート](references/jmplayer-rcp-notes.md)
+
 ## 更新ルール
 
 新しい事実を追加するときは、確認方法・根拠リンク・制約を記録します。過去のテスト結果を現在の検証結果として再利用しません。
