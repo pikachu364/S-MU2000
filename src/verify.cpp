@@ -1,4 +1,7 @@
 // license:BSD-3-Clause
+
+// The mute-flag regression check contributes to the process exit status.
+static bool rcp_mute_flags_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -266,6 +269,7 @@ static void check_rcp_header()
 		            unsigned(mute_header.mute));
 	}
 	std::printf("RCP2 mute flag preservation: %s\n", mute_flags_ok ? "OK" : "FAIL");
+	rcp_mute_flags_test_ok = mute_flags_ok;
 	data[track + 7] = 1;
 	const bool short_track_ok = !rcp::parse_track_header(data.data() + track, 0x2b, th, err);
 	const bool null_track_ok = !rcp::parse_track_header(nullptr, 0x2c, th, err);
@@ -901,5 +905,5 @@ int main()
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return 0;
+	return rcp_mute_flags_test_ok ? 0 : 1;
 }
