@@ -271,10 +271,11 @@ static void check_rcp_header()
 	const bool null_track_ok = !rcp::parse_track_header(nullptr, 0x2c, th, err);
 	const bool null_ok = !rcp::parse_header(nullptr, data.size(), header, err);
 
-	std::printf("RCP2 固定ヘッダー: 識別 %s・項目 %s・短い入力 %s/%s・不一致 %s・null %s・トラックヘッダー %s・短いトラック %s・null トラック %s\n",
+	std::printf("RCP2 固定ヘッダー: 識別 %s・項目 %s・短い入力 %s/%s・不一致 %s・null %s・トラックヘッダー %s・ミュートフラグ %s・短いトラック %s・null トラック %s\n",
 	            identify_ok ? "合" : "NG", fields_ok ? "合" : "NG",
 	            short_prefix_ok ? "合" : "NG", short_header_ok ? "合" : "NG",
-	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG", track_ok ? "合" : "NG", short_track_ok ? "合" : "NG", null_track_ok ? "合" : "NG");
+	            junk_ok ? "合" : "NG", null_ok ? "合" : "NG", track_ok ? "合" : "NG",
+	            mute_flags_ok ? "合" : "NG", short_track_ok ? "合" : "NG", null_track_ok ? "合" : "NG");
 }
 
 // RCP2 の 4 byte シーケンスレコードを合成データで検証する。
