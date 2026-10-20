@@ -693,7 +693,7 @@ static void check_rcp_intermediate()
         doc.tracks[0].events[2].raw.code == 0xfe;
 
     std::vector<u8> invalid = data;
-    invalid[at + track_header_size + 4] = 0x7f;
+    invalid[at + track_header_size + 8] = 0x7f;
     const bool reject_ok = !rcp::build_intermediate(invalid.data(), invalid.size(), doc, err) &&
         doc.tracks.empty() && doc.header.title.empty();
 
