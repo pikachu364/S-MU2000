@@ -261,11 +261,11 @@ static void check_rcp_header()
 		    rcp::parse_track_header(data.data() + track, 0x2c, mute_header, err) &&
 		    mute_header.mute == flag;
 		mute_flags_ok = mute_flags_ok && case_ok;
-		std::printf("RCP2 mute flag 0x%02x: %s (parsed=0x%02x)\\n",
+		std::printf("RCP2 mute flag 0x%02x: %s (parsed=0x%02x)\n",
 		            unsigned(flag), case_ok ? "OK" : "FAIL",
 		            unsigned(mute_header.mute));
 	}
-	std::printf("RCP2 mute flag preservation: %s\\n", mute_flags_ok ? "OK" : "FAIL");
+	std::printf("RCP2 mute flag preservation: %s\n", mute_flags_ok ? "OK" : "FAIL");
 	data[track + 7] = 1;
 	const bool short_track_ok = !rcp::parse_track_header(data.data() + track, 0x2b, th, err);
 	const bool null_track_ok = !rcp::parse_track_header(nullptr, 0x2c, th, err);
