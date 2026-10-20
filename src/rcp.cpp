@@ -325,9 +325,9 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err)
     }
 
     // Match the reference converter's integer formula without rounding:
-    // 60,000,000 * 64 / (BPM * scale). The maximum numerator fits in u32.
-    const u32 denominator = static_cast<u32>(bpm) * static_cast<u32>(scale);
-    out = (60000000u * 64u) / denominator;
+    // 60,000,000 * scale / (BPM * 64).
+    const u32 denominator = static_cast<u32>(bpm) * 64u;
+    out = (60000000u * static_cast<u32>(scale)) / denominator;
     return true;
 }
 
