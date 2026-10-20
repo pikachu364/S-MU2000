@@ -251,6 +251,22 @@ static void check_rcp_header()
 	                      th.encoded_length == 0x2c && th.track_id == 1 &&
 	                      th.midi_channel == 3 && th.tick_offset == 0xff &&
 	                      th.mute == 1 && th.name == "Track one";
+	// The track header stores the mute byte verbatim; test common flag values.
+	const u8 mute_flags[] = { 0x00, 0x01, 0x02, 0x04 };
+	bool mute_flags_ok = true;
+	for (u8 flag : mute_flags) {
+		data[track + 7] = flag;
+		rcp::track_header mute_header;
+		const bool case_ok =
+		    rcp::parse_track_header(data.data() + track, 0x2c, mute_header, err) &&
+		    mute_header.mute == flag;
+		mute_flags_ok = mute_flags_ok && case_ok;
+		std::printf("RCP2 mute flag 0x%02x: %s (parsed=0x%02x)\\n",
+		            unsigned(flag), case_ok ? "OK" : "FAIL",
+		            unsigned(mute_header.mute));
+	}
+	std::printf("RCP2 mute flag preservation: %s\\n", mute_flags_ok ? "OK" : "FAIL");
+	data[track + 7] = 1;
 	const bool short_track_ok = !rcp::parse_track_header(data.data() + track, 0x2b, th, err);
 	const bool null_track_ok = !rcp::parse_track_header(nullptr, 0x2c, th, err);
 	const bool null_ok = !rcp::parse_header(nullptr, data.size(), header, err);
