@@ -6,7 +6,7 @@
 
 **状態:** 作者との Discussion に基づく方針
 
-- まず RCP2 系（`.rcp`）を対象にする。
+- まず RCP2 系（.rcp）を対象にする。
 - 将来の RCP3 対応を考慮し、ファイル解析と MIDI イベントへの展開を分離する。
 - CM6/GSD の読み込みは初期段階では対象外とする。
 - 既存の変換ツールは挙動比較の参考にし、コードを流用しない。
@@ -19,9 +19,9 @@
 
 **状態:** リポジトリ URL と作業履歴で確認
 
-- リポジトリ: `pikachu364/S-MU2000`
-- 作業ブランチ: `feature/rcp2-parser-skeleton`
-- 本ドキュメント群の保存先: `rcpdoc/`
+- リポジトリ: pikachu364/S-MU2000
+- 作業ブランチ: feature/rcp2-parser-skeleton
+- 本ドキュメント群の保存先: rcpdoc/
 
 ## F-003 — 2026-10-15 のレポートで記録されたローカルテスト
 
@@ -29,11 +29,11 @@
 
 過去レポートには次の結果が記録されている。
 
-- `make build/verify.exe`：成功
-- `RCP2 basic playback parser`：OK
-- `RCP2 FE terminator`：OK
+- make build/verify.exe：成功
+- RCP2 basic playback parser：OK
+- RCP2 FE terminator：OK
 
-ただし、同じレポートで `0xFE` 終端テストのデータ構成に問題がある可能性が指摘され、合格を確定扱いにしないよう記録されている。
+ただし、同じレポートで 0xFE 終端テストのデータ構成に問題がある可能性が指摘され、合格を確定扱いにしないよう記録されている。
 
 **根拠:** [2026-10-15 作業レポート](reports/rcp2-local-progress-2026-10-15.md)
 
@@ -42,7 +42,7 @@
 **状態:** コミット記録あり。ビルド・実行は未確認。
 
 - コミット: [ace8ce8](https://github.com/pikachu364/S-MU2000/commit/ace8ce8f648d81fc3b726a02894fd744b2168125)
-- 内容: `src/verify.cpp` に、`0xFE` の後ろに不完全な断片がある場合のテストを追加した。
+- 内容: src/verify.cpp に、0xFE の後ろに不完全な断片がある場合のテストを追加した。
 - テストコードが存在することと、そのテストが実行時に正しく動くことは別である。
 
 ## F-005 — 作業レポートを GitHub に保存済み
@@ -64,13 +64,22 @@
 
 **状態:** 外部資料の内容を閲覧して確認。S-MU2000 の実装・テストでの再現は未確認。
 
-- [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md) は、RCP のヘッダー、44-byte track header、4-byte event、イベントコマンド、`0xFC` repeat、`0xFE` end-of-track などを説明している。
+- [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md) は、RCP のヘッダー、44-byte track header、4-byte event、イベントコマンド、0xFC repeat、0xFE end-of-track などを説明している。
 - 同資料は、参照 MIDI との比較対象303曲のうち、225曲が全チャンネルでノート単位一致、66曲は参照 MIDI の末尾に追加素材がある形で冒頭が一致、12曲は差異が残ると報告している。これは資料の著者による報告であり、S-MU2000 の検証結果ではない。
-- 同資料では、`0x98` の意味、トラックヘッダー `+7` の bit 0 以外、いくつかの曲の差異などが未解決として挙げられている。
+- 同資料では、0x98 の意味、トラックヘッダー +7 の bit 0 以外、いくつかの曲の差異などが未解決として挙げられている。
 - [JMPlayer rcpfilehandler.cpp](https://github.com/jihodaya/jmplayer/blob/main/rcpfilehandler.cpp) には、RCP イベント処理だけでなく、GSD から GS SysEx を組み立てる処理も含まれている。
 - この資料を仕様候補・比較対象として利用し、コードをコピーしない。S-MU2000 側で確認するまでは、記述を自プロジェクトの確定事実に昇格させない。
 
 詳細: [JMPlayer RCP 調査ノート](references/jmplayer-rcp-notes.md)
+
+## F-008 — GitHub 上の RCP2 FE 終端テストを強化
+
+**状態:** ソース差分を GitHub から再取得して確認。ビルド・実行は未確認。
+
+- コミット: [53d8536](https://github.com/pikachu364/S-MU2000/commit/53d8536496e844a9cf38c4619ec3c3959de140b5)
+- src/verify.cpp の既存トラックテストで、FE の後ろのレコードを、有効なノートレコード（61, 0, 48, 100）に変更した。
+- レコードは宣言済みトラック範囲内に置かれ、テストは FE までの2イベントのみが解析結果に含まれることを検査する。
+- これはテストコードの構造を確認した記録であり、テストが実行され成功したという意味ではない。
 
 ## 更新ルール
 
