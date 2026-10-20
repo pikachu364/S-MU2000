@@ -571,8 +571,11 @@ static void check_rcp_tracks()
     data[at + 2] = 1;
     data[at + track_header_size] = 60;
     data[at + track_header_size + 4] = 0xfe;
-    // Bytes after FE remain inside track 1's declared boundary and must not be parsed.
-    data[at + track_header_size + 8] = 0x90;
+    // A complete, valid note record after FE remains inside track 1's declared boundary but must not be parsed.
+    data[at + track_header_size + 8] = 61;
+    data[at + track_header_size + 9] = 0;
+    data[at + track_header_size + 10] = 48;
+    data[at + track_header_size + 11] = 100;
     const size_t at2 = at + first_length;
     data[at2] = u8(second_length);
     data[at2 + 1] = u8(second_length >> 8);
