@@ -583,6 +583,30 @@ bool build_intermediate(const u8 *data, size_t size,
     return true;
 }
 
+bool apply_note_transposition(u8 note, u8 raw_track_transposition,
+                              u8 raw_document_transposition, u8 &out,
+                              std::string &err)
+{
+    out = 0;
+    err.clear();
+    if (note > 0x7f) {
+        err = "RCP ノート番号が 7 bit 範囲外です";
+        return false;
+    }
+
+    int transpose = 0;
+    if ((raw_track_transposition & 0x80) == 0) {
+        const int track_value = raw_track_transposition & 0x7f;
+        const int track_offset = (track_value & 0x40) ? track_value - 0x80 : track_value;
+        const int document_offset = raw_document_transposition < 0x80
+            ? raw_document_transposition : int(raw_document_transposition) - 0x100;
+        transpose = track_offset + document_offset;
+    }
+    out = static_cast<u8>((int(note) + transpose) & 0x7f);
+    return true;
+}
+
+
 bool apply_signed_track_offset(u32 tick, u8 raw_offset, u32 &out, std::string &err)
 {
     out = 0;
