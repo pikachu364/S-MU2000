@@ -672,10 +672,22 @@ static void check_rcp_document_timeline()
         merged.size() == 1 && merged[0].event.tick == 127 && err.empty();
     const bool offset_bounds_ok = minimum_offset_ok && maximum_offset_ok;
 
-    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・未対応コマンド拒否 %s・空文書 %s\n",
+    // The signed offset applies to all emitted event kinds, not only notes.
+    doc.tracks[0].events = {raw(60, 0, 8, 90), raw(0xf5, 0, 0, 0),
+                            raw(0xe7, 0, 32, 0), raw(0xfe, 0, 0, 0)};
+    doc.tracks[0].header.tick_offset = 3;
+    const bool all_kinds_offset_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 3 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.tick == 3 &&
+        merged[1].event.kind == rcp::timeline_event_kind::key_signature && merged[1].event.tick == 3 &&
+        merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
+        err.empty();
+
+    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
-        offset_bounds_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
-        empty_ok ? "合" : "NG");
+        offset_bounds_ok ? "合" : "NG", all_kinds_offset_ok ? "合" : "NG",
+        unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
 }
 
 
