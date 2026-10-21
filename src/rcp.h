@@ -170,6 +170,15 @@ bool expand_note_key_signature_tempo_timeline(
 // sequence and is not emitted. Other commands are rejected because their timing
 // semantics are command-specific and not yet implemented. duration=0 is kept.
 // This is not a full RCP2 event expander.
+// Merged view preserves track identity while ordering by absolute tick.
+// Equal-tick events keep lower track index first and source order within each track.
+struct timed_track_event {
+    size_t track_index = 0;
+    timed_event event;
+};
+bool merge_timed_tracks(const std::vector<std::vector<timed_event>> &tracks,
+                        std::vector<timed_track_event> &out, std::string &err);
+
 struct timed_note_event {
     u32 start_tick = 0;
     note_event note;
