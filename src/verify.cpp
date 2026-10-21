@@ -713,6 +713,9 @@ static void check_rcp_document_timeline()
     const bool transpose_wrap_ok =
         rcp::apply_note_transposition(127, 1, 0, transposed_note, err) &&
         transposed_note == 0 && err.empty();
+    const bool transpose_negative_wrap_ok =
+        rcp::apply_note_transposition(0, 0x7f, 0, transposed_note, err) &&
+        transposed_note == 127 && err.empty();
     const bool transpose_invalid_note_rejected =
         !rcp::apply_note_transposition(0x80, 0, 0, transposed_note, err) &&
         transposed_note == 0 && !err.empty();
@@ -720,7 +723,7 @@ static void check_rcp_document_timeline()
         transpose_signed_track_ok ? "合" : "NG",
         transpose_signed_document_ok ? "合" : "NG",
         transpose_rhythm_channel_ok ? "合" : "NG",
-        transpose_wrap_ok ? "合" : "NG",
+        (transpose_wrap_ok && transpose_negative_wrap_ok) ? "合" : "NG",
         transpose_invalid_note_rejected ? "合" : "NG");
 
     u32 adjusted_tick = 99;
