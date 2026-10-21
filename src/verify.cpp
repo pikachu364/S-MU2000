@@ -625,19 +625,26 @@ static void check_rcp_document_timeline()
     doc.tracks.resize(2);
     doc.tracks[0].events = {raw(60, 5, 8, 90), raw(0xe7, 2, 32, 0), raw(0xfe, 0, 0, 0)};
     doc.tracks[1].events = {raw(65, 2, 8, 80), raw(0xf5, 3, 0, 0), raw(0xfe, 0, 0, 0)};
+    doc.tracks.resize(3);
+    doc.tracks[2].header.tick_offset = 0xfe; // signed -2 ticks
+    doc.tracks[2].events = {raw(67, 0, 8, 75), raw(68, 5, 8, 75), raw(0xfe, 0, 0, 0)};
 
     std::vector<rcp::timed_track_event> merged;
     std::string err;
     const bool order_ok = rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 4 &&
+        merged.size() == 6 &&
         merged[0].track_index == 0 && merged[0].event.tick == 0 &&
         merged[0].event.kind == rcp::timeline_event_kind::note &&
         merged[1].track_index == 1 && merged[1].event.tick == 0 &&
         merged[1].event.kind == rcp::timeline_event_kind::note &&
-        merged[2].track_index == 1 && merged[2].event.tick == 2 &&
-        merged[2].event.kind == rcp::timeline_event_kind::key_signature &&
-        merged[3].track_index == 0 && merged[3].event.tick == 5 &&
-        merged[3].event.kind == rcp::timeline_event_kind::tempo && err.empty();
+        merged[2].track_index == 2 && merged[2].event.tick == 0 &&
+        merged[2].event.kind == rcp::timeline_event_kind::note &&
+        merged[3].track_index == 1 && merged[3].event.tick == 2 &&
+        merged[3].event.kind == rcp::timeline_event_kind::key_signature &&
+        merged[4].track_index == 2 && merged[4].event.tick == 3 &&
+        merged[4].event.kind == rcp::timeline_event_kind::note &&
+        merged[5].track_index == 0 && merged[5].event.tick == 5 &&
+        merged[5].event.kind == rcp::timeline_event_kind::tempo && err.empty();
 
     doc.tracks[1].events[1].raw.code = 0xf6;
     const bool unsupported_rejected =
@@ -648,9 +655,9 @@ static void check_rcp_document_timeline()
     const bool empty_ok = rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.empty() && err.empty();
 
-    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・未対応コマンド拒否 %s・空文書 %s\n",
-        order_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
-        empty_ok ? "合" : "NG");
+    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
+        order_ok ? "合" : "NG", order_ok ? "合" : "NG",
+        unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
 }
 
 
