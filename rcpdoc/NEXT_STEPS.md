@@ -101,7 +101,7 @@
 1. [x] note・F5 key signature・E7 tempo の全イベント種別に開始オフセットが適用される回帰テストを追加し、期待出力を更新した（[2ed0c96](https://github.com/pikachu364/S-MU2000/commit/2ed0c9657b0fc69dda43794233d3539bea0a04d9)、[d13e84c](https://github.com/pikachu364/S-MU2000/commit/d13e84c08a0003c3cee30d09fc8a7815e0905833)）。改行エスケープ修正後の CI は成功。
 2. [x] 文書レベル展開で未対応コマンドを拒否し、失敗時に出力ベクターを空にする既存回帰テストをコード上で確認した。
 3. 32-bit tick 上限チェックは防御的チェックとして維持する。RCP2 の宣言トラック長は 16-bit のため、通常のパース済みトラックで上限に達する合成テストは費用対効果が低い。巨大な入力を生成するテストは避ける。
-4. [x] 参照実装の移調式を独立ヘルパーとして実装し、signed 7-bit track transpose、signed 8-bit document transpose、rhythm flag、7-bit 折返しを合成テスト化した。タイムラインへの統合適用は次段階。
+4. [x] 参照実装の移調式を独立ヘルパーとして実装し、signed 7-bit track transpose、signed 8-bit document transpose、rhythm flag、7-bit 折返しを合成テスト化した。文書レベルのタイムライン展開にも適用し、通常トラックとリズムチャンネルの両ケースを検査する。
 5. PC が利用できるとき、ローカル作業ツリーの未コミット変更を保護したうえで GitHub ブランチとの差分を確認する。既存のローカル作業を上書き・リセットしない。
 6. CHECKLIST.md の各項目を、コード確認・合成テスト・実行結果に分けて更新する。実際の RCP2 ファイルでの再生互換性は別の検証として扱う。
 
