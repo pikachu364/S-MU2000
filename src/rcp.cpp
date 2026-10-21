@@ -583,4 +583,38 @@ bool build_intermediate(const u8 *data, size_t size,
     return true;
 }
 
+bool expand_intermediate_timeline(const intermediate_document &document,
+                                  std::vector<timed_track_event> &out,
+                                  std::string &err)
+{
+    out.clear();
+    err.clear();
+
+    std::vector<std::vector<timed_event>> timelines;
+    timelines.reserve(document.tracks.size());
+    for (size_t i = 0; i < document.tracks.size(); ++i) {
+        std::vector<sequence_event> sequence;
+        sequence.reserve(document.tracks[i].events.size());
+        for (const intermediate_event &event : document.tracks[i].events)
+            sequence.push_back(event.raw);
+
+        std::vector<timed_event> timeline;
+        if (!expand_note_key_signature_tempo_timeline(
+                sequence, document.header.tempo_bpm, timeline, err)) {
+            out.clear();
+            err = "RCP2 トラック " + std::to_string(i + 1) +
+                  " の時間展開に失敗しました: " + err;
+            return false;
+        }
+        timelines.push_back(std::move(timeline));
+    }
+
+    if (!merge_timed_tracks(timelines, out, err)) {
+        out.clear();
+        return false;
+    }
+    return true;
+}
+
+
 } // namespace rcp
