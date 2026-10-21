@@ -684,6 +684,29 @@ static void check_rcp_document_timeline()
         merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
         err.empty();
 
+    u8 transposed_note = 0;
+    const bool transpose_signed_track_ok =
+        rcp::apply_note_transposition(60, 0x7f, 2, transposed_note, err) &&
+        transposed_note == 61 && err.empty();
+    const bool transpose_signed_document_ok =
+        rcp::apply_note_transposition(60, 2, 0xff, transposed_note, err) &&
+        transposed_note == 61 && err.empty();
+    const bool transpose_rhythm_channel_ok =
+        rcp::apply_note_transposition(60, 0x80, 12, transposed_note, err) &&
+        transposed_note == 60 && err.empty();
+    const bool transpose_wrap_ok =
+        rcp::apply_note_transposition(127, 1, 0, transposed_note, err) &&
+        transposed_note == 0 && err.empty();
+    const bool transpose_invalid_note_rejected =
+        !rcp::apply_note_transposition(0x80, 0, 0, transposed_note, err) &&
+        transposed_note == 0 && !err.empty();
+    std::printf("RCP2 ノート移調（参照実装準拠）: トラック符号付き %s・文書符号付き %s・リズムチャンネル %s・7-bit 折返し %s・範囲外ノート拒否 %s\n",
+        transpose_signed_track_ok ? "合" : "NG",
+        transpose_signed_document_ok ? "合" : "NG",
+        transpose_rhythm_channel_ok ? "合" : "NG",
+        transpose_wrap_ok ? "合" : "NG",
+        transpose_invalid_note_rejected ? "合" : "NG");
+
     u32 adjusted_tick = 99;
     const bool offset_helper_negative_ok =
         rcp::apply_signed_track_offset(0, 0x80, adjusted_tick, err) &&
