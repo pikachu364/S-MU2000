@@ -602,7 +602,10 @@ bool apply_note_transposition(u8 note, u8 raw_track_transposition,
             ? raw_document_transposition : int(raw_document_transposition) - 0x100;
         transpose = track_offset + document_offset;
     }
-    out = static_cast<u8>((int(note) + transpose) & 0x7f);
+    int adjusted_note = (int(note) + transpose) % 128;
+    if (adjusted_note < 0)
+        adjusted_note += 128;
+    out = static_cast<u8>(adjusted_note);
     return true;
 }
 
