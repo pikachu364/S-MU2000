@@ -99,8 +99,8 @@
 ### 次に行うこと
 
 1. ~~[GitHub Actions](https://github.com/pikachu364/S-MU2000/actions) で 83d213c の実行結果を確認する~~ — [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) 成功。
-2. [x] signed 8-bit オフセットの端点 `0x80`（-128）と `0x7f`（+127）の合成テストを追加し、期待出力を更新した（[9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)、[762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)）。Actions での実行結果は未確認。
-3. **次:** 新しい CI の結果を確認し、失敗時はログを調査する。
+2. [x] signed 8-bit オフセットの端点 `0x80`（-128）と `0x7f`（+127）の合成テストを追加し、期待出力を更新した（[9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)、[762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)）。[build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は古い baseline との出力不一致で失敗したが、baseline 更新後の [build #117](https://github.com/pikachu364/S-MU2000/actions/runs/39589690157) と後続 #118〜#120 は成功。
+3. **次:** 端点テストの CI 確認は完了。次は 32-bit tick 上限超過のテストと、未対応コマンド拒否の回帰テストを確認する。
 4. 文書レベル展開の制約（未対応コマンド、段階的テンポ変化）を維持し、未対応コマンドの失敗ケースを回帰テストで守る。
 5. パソコンが使えるとき、ローカル作業ツリーの未コミット変更を保護したうえで GitHub ブランチとの差分を確認する。未コミット作業を破棄・上書き・リセットしない。
 6. CHECKLIST.md の各項目を、コード確認・合成テスト・実行結果に分けて更新する。実際の RCP ファイルでの再生互換性は別の検証として扱う。
