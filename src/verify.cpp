@@ -684,6 +684,22 @@ static void check_rcp_document_timeline()
         merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
         err.empty();
 
+    doc.tracks[0].events = {raw(60, 0, 8, 90), raw(0xfe, 0, 0, 0)};
+    doc.tracks[0].header.tick_offset = 0;
+    doc.tracks[0].header.key = 0x7f; // signed 7-bit -1
+    doc.header.play_bias = 2;
+    const bool timeline_transpose_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 1 && merged[0].event.note.note == 61 && err.empty();
+    doc.tracks[0].header.key = 0x80; // rhythm-channel flag suppresses both offsets
+    doc.header.play_bias = 12;
+    const bool timeline_rhythm_transpose_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 1 && merged[0].event.note.note == 60 && err.empty();
+    std::printf("RCP2 文書移調適用: トラック/文書移調 %s・リズム抑止 %s\\n",
+        timeline_transpose_ok ? "合" : "NG",
+        timeline_rhythm_transpose_ok ? "合" : "NG");
+
     u8 transposed_note = 0;
     const bool transpose_signed_track_ok =
         rcp::apply_note_transposition(60, 0x7f, 2, transposed_note, err) &&
