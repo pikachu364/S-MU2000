@@ -97,3 +97,12 @@
 - `0x80`（-128）は tick 0 にクランプされ、`0x7f`（+127）はローカル tick 0 のイベントを tick 127 に移動することを検査する。
 - テスト変更: [9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)。期待出力更新: [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)。
 - これはコードと期待出力を GitHub に追加した記録であり、テスト実行結果ではない。追加後の Actions は未確認。
+
+
+## 2026-10-21 — オフセット端点テストの CI 失敗と期待出力修正
+
+- [build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は、テスト変更コミット [9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de) で失敗した。
+- 共有ログでは、コードのコンパイルではなく `verify` の期待出力不一致が原因。実際の出力に「オフセット境界 合」が追加された一方、baseline は旧形式のままだった。
+- 期待出力を [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7) で更新。後続の build #117 と、ドキュメント更新後の #118〜#120 は、ユーザー共有の Actions 一覧で completed successfully と確認できた。
+- したがって #116 は中間コミットでの baseline 不一致、#117 以降で修正後の CI 成功を確認済み。Node.js 20、MinGW、Ubuntu runner の警告はこのテスト不一致とは別件。
+- 実際の RCP2 楽曲での再生確認や、ローカル作業ツリーとの差分確認は未実施。
