@@ -19,7 +19,7 @@ jobs:
     # friends ship with the OS. auv3/clap are not in `all`, so they build
     # explicitly (AUV3_ROMS=none: no ROMs in the bundle; running anything
     # still needs them, like everywhere else).
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
       - run: make -j$(sysctl -n hw.ncpu) all
