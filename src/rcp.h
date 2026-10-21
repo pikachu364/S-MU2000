@@ -207,8 +207,9 @@ struct intermediate_document {
 // ファイル全体を解析し、ヘッダー・トラック情報・生レコードを中間表現にまとめる。
 // 失敗時は out を空にする。未知コマンドも値を変更せず保持する。
 // Experimental document-level timeline: expands each intermediate track using
-// the currently supported note/F5/E7 subset, then merges events by absolute tick.
-// Track tick offsets and gradual tempo curves are intentionally not applied yet.
+// the currently supported note/F5/E7 subset, applies signed track start offsets,
+// then merges events by absolute tick. Negative ticks are clamped to zero;
+// gradual tempo curves are intentionally not applied yet.
 bool expand_intermediate_timeline(const intermediate_document &document,
                                   std::vector<timed_track_event> &out,
                                   std::string &err);
