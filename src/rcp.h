@@ -206,6 +206,10 @@ struct intermediate_document {
 
 // ファイル全体を解析し、ヘッダー・トラック情報・生レコードを中間表現にまとめる。
 // 失敗時は out を空にする。未知コマンドも値を変更せず保持する。
+// Apply the RCP2 signed 8-bit track-start offset to one absolute tick.
+// Negative results clamp to zero; values above the 32-bit tick range fail.
+bool apply_signed_track_offset(u32 tick, u8 raw_offset, u32 &out, std::string &err);
+
 // Experimental document-level timeline: expands each intermediate track using
 // the currently supported note/F5/E7 subset, applies signed track start offsets,
 // then merges events by absolute tick. Negative ticks are clamped to zero;
