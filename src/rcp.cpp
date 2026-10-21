@@ -657,6 +657,17 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                 return false;
             }
             event.tick = adjusted_tick;
+            if (event.kind == timeline_event_kind::note) {
+                u8 adjusted_note = 0;
+                if (!apply_note_transposition(event.note.note,
+                                              document.tracks[i].header.key,
+                                              document.header.play_bias,
+                                              adjusted_note, err)) {
+                    out.clear();
+                    return false;
+                }
+                event.note.note = adjusted_note;
+            }
         }
         timelines.push_back(std::move(timeline));
     }
