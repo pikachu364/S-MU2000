@@ -645,6 +645,9 @@ static void check_rcp_document_timeline()
         merged[4].event.kind == rcp::timeline_event_kind::note &&
         merged[5].track_index == 0 && merged[5].event.tick == 5 &&
         merged[5].event.kind == rcp::timeline_event_kind::tempo && err.empty();
+    const offset_ok = merged.size() == 6 &&
+        merged[2].track_index == 2 && merged[2].event.tick == 0 &&
+        merged[4].track_index == 2 && merged[4].event.tick == 3;
 
     doc.tracks[1].events[1].raw.code = 0xf6;
     const bool unsupported_rejected =
@@ -656,7 +659,7 @@ static void check_rcp_document_timeline()
         merged.empty() && err.empty();
 
     std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
-        order_ok ? "合" : "NG", order_ok ? "合" : "NG",
+        order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
         unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
 }
 
