@@ -129,3 +129,5 @@
 - ValleyBell/MidiConverters の `rcp2mid.c` を照合し、トラック移調バイトの bit 7 が立つ場合は移調を抑止し、通常トラックでは signed 7-bit トラック値と signed 8-bit 文書値を加算してノート番号を 7 bit に折り返す処理を独立ヘルパー化した。
 - 合成テストは負の各移調、リズムチャンネル、折返し、範囲外ノートを対象とする。タイムラインへの適用はまだ行っておらず、今回の変更の CI も未確認。
 - 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+- 追加段階: ノート移調を `expand_intermediate_timeline` に適用し、トラック移調 + 文書移調、およびリズムチャンネルで移調を抑止する統合テストを追加。CI は未確認。
