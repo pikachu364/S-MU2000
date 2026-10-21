@@ -116,3 +116,13 @@
 - 最新の fixture 修正コミット: [83d213c](https://github.com/pikachu364/S-MU2000/commit/83d213c42eace8e882446e80d78aeee4c8ab41e0)
 - CI 根拠: [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) は `83d213c` で completed successfully。ユーザー共有の Actions 一覧に基づく記録。
 - **制約:** CI 成功は、合成テストと対象ブランチのビルドが通ったことを示すが、実際の RCP ファイルでの再生互換性や全コマンド対応を証明しない。
+
+
+## F-012 — 符号付きトラック開始オフセットの端点テストを追加
+
+**状態:** テストコードと期待出力の GitHub コミットを確認。追加後の CI 実行結果は未確認。
+
+- `0x80` を signed 8-bit の -128 として適用した場合、tick 0 未満のイベントが 0 にクランプされることを検査する。
+- `0x7f` を +127 として適用した場合、ローカル tick 0 のイベントが tick 127 になることを検査する。
+- テスト: [9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)。期待出力: [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)。
+- **制約:** GitHub にテストを追加した事実は、テストが実行され合格したことを意味しない。CI の結果を別途確認する。
