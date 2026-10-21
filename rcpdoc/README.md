@@ -34,18 +34,18 @@
 - `/r/roms` はアップロードしない。テストは自作の合成データを使う。
 - コードや資料の更新後は、関連するこのディレクトリの記録も必要に応じて更新する。
 
-## 現在の状況（2026-10-21）
+## 現在の状況（2026-10-21 更新）
 
 - 複数トラックの時刻付きイベントを tick 順に安定統合する処理と、文書レベルのタイムライン展開を追加済み。
 - 文書レベル展開では、対応済みイベントのサブセットを扱い、署名付きトラック開始オフセットを適用する。負の tick は 0 にクランプし、32-bit 範囲超過はエラーにする。
-- 最新のテスト fixture 修正: [83d213c](https://github.com/pikachu364/S-MU2000/commit/83d213c42eace8e882446e80d78aeee4c8ab41e0)。この修正後の GitHub Actions 結果はまだ未確認。
+- 最新のテスト fixture 修正: [83d213c](https://github.com/pikachu364/S-MU2000/commit/83d213c42eace8e882446e80d78aeee4c8ab41e0)。[build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) は completed successfully。後続のドキュメント更新 #102〜#106 と runner 設定更新 #107〜#111 も共有された Actions 一覧では成功。
 - 実際の RCP2 楽曲ファイルでの再生互換性、全イベントの対応、ローカル環境とリモートの差分統合は未完了。
 
 ## 重要な未完了項目
 
-- [ ] [GitHub Actions](https://github.com/pikachu364/S-MU2000/actions) で 83d213c の CI 結果を確認し、失敗があればログを調査する。
+- [x] [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) で 83d213c の CI 成功を確認。
 - [ ] パソコン環境でローカル作業ツリーを保護したうえで、必要に応じて `verify.exe` をビルド・実行する。
-- [ ] [CHECKLIST.md](CHECKLIST.md) を使い、各イベントのコード確認と合成テストを進める。
+- [ ] [CHECKLIST.md](CHECKLIST.md) を使い、各イベントのコード確認と合成テストを進める。次の実装課題は tick 0 クランプと 32-bit 上限境界の合成テスト。
 - [ ] ローカル作業と GitHub ブランチの差分を確認してから、必要な変更だけを安全に統合する。
 
 この資料は途中経過の記録です。RCP2 全体の互換性や実装の完成を保証するものではありません。
