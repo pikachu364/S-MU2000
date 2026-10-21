@@ -128,3 +128,13 @@
 - CI [build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は古い期待出力との不一致で失敗した。実際の出力には新しい「オフセット境界 合」が含まれていたが、baseline が未更新だった。
 - 期待出力更新 [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7) 後の [build #117](https://github.com/pikachu364/S-MU2000/actions/runs/39589690157) と後続 build #118〜#120 は completed successfully。
 - **制約:** CI 成功はこのブランチの合成テスト・ビルド結果であり、実際の RCP2 ファイルでの再生互換性や全コマンド対応を証明しない。
+
+
+## F-013 — トラック開始オフセットを全イベント種別で検査するテスト
+
+**状態:** テストコードと期待出力のコミットを GitHub 上で確認。新規テストの CI は未確認。
+
+- 文書レベル展開の回帰テストで、正のトラック開始オフセットがノート、F5 キー署名、E7 テンポの各イベントの tick に適用されることを検査する。
+- テスト変更: [2ed0c96](https://github.com/pikachu364/S-MU2000/commit/2ed0c9657b0fc69dda43794233d3539bea0a04d9)。期待出力更新: [d13e84c](https://github.com/pikachu364/S-MU2000/commit/d13e84c08a0003c3cee30d09fc8a7815e0905833)。
+- 32-bit tick 上限チェックは実装に存在する。RCP2 のトラック長フィールドが 16-bit であるため、通常のパース済みトラック長からは delay 累積だけで 32-bit 上限を超えない。巨大な合成入力を作るテストは費用対効果が低く、未実施。
+- **制約:** 合成テスト追加のコミット記録は、CI 成功や実際の RCP2 ファイルの再生互換性を証明しない。
