@@ -684,7 +684,7 @@ static void check_rcp_document_timeline()
         merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
         err.empty();
 
-    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\\n",
+    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
         offset_bounds_ok ? "合" : "NG", all_kinds_offset_ok ? "合" : "NG",
         unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
