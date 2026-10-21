@@ -694,7 +694,7 @@ static void check_rcp_document_timeline()
     const bool offset_helper_overflow_ok =
         !rcp::apply_signed_track_offset(0xffffffffu, 1, adjusted_tick, err) &&
         adjusted_tick == 0 && !err.empty();
-    std::printf("RCP2 符号付き tick オフセット: 負値クランプ %s・正値加算 %s・32-bit 超過拒否 %s\\n",
+    std::printf("RCP2 符号付き tick オフセット: 負値クランプ %s・正値加算 %s・32-bit 超過拒否 %s\n",
         offset_helper_negative_ok ? "合" : "NG",
         offset_helper_positive_ok ? "合" : "NG",
         offset_helper_overflow_ok ? "合" : "NG");
