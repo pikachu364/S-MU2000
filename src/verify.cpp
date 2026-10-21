@@ -574,6 +574,42 @@ static void check_rcp_note_timeline()
         command_rejected ? "合" : "NG", missing_end_rejected ? "合" : "NG");
 }
 
+static void check_rcp_track_merge()
+{
+    auto timed = [](u32 tick, u8 note) {
+        rcp::timed_event e;
+        e.tick = tick;
+        e.kind = rcp::timeline_event_kind::note;
+        e.note.note = note;
+        return e;
+    };
+    std::vector<std::vector<rcp::timed_event>> tracks = {
+        {timed(0, 60), timed(10, 61), timed(10, 62)},
+        {timed(5, 70), timed(10, 71)},
+        {}
+    };
+    std::vector<rcp::timed_track_event> merged;
+    std::string err;
+    const bool order_ok = rcp::merge_timed_tracks(tracks, merged, err) &&
+        merged.size() == 5 &&
+        merged[0].track_index == 0 && merged[0].event.tick == 0 && merged[0].event.note.note == 60 &&
+        merged[1].track_index == 1 && merged[1].event.tick == 5 && merged[1].event.note.note == 70 &&
+        merged[2].track_index == 0 && merged[2].event.tick == 10 && merged[2].event.note.note == 61 &&
+        merged[3].track_index == 0 && merged[3].event.tick == 10 && merged[3].event.note.note == 62 &&
+        merged[4].track_index == 1 && merged[4].event.tick == 10 && merged[4].event.note.note == 71 &&
+        err.empty();
+    tracks[1] = {timed(8, 72), timed(7, 73)};
+    const bool unsorted_rejected =
+        !rcp::merge_timed_tracks(tracks, merged, err) && merged.empty() && !err.empty();
+    tracks.clear();
+    const bool empty_ok = rcp::merge_timed_tracks(tracks, merged, err) &&
+        merged.empty() && err.empty();
+    std::printf("RCP2 複数トラック時間統合: tick 順/同 tick 安定順序 %s・逆順拒否 %s・空入力 %s\n",
+        order_ok ? "合" : "NG", unsorted_rejected ? "合" : "NG",
+        empty_ok ? "合" : "NG");
+}
+
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -888,6 +924,7 @@ int main()
 	check_rcp_tempo_conversion();
 	check_rcp_tempo_event_decode();
 	check_rcp_tempo_timeline();
+	check_rcp_track_merge();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
