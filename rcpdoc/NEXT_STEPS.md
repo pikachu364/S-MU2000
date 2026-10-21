@@ -94,7 +94,7 @@
 
 ## 2026-10-22 時点の作業状況・優先順位
 
-文書レベルのタイムライン展開、符号付き開始オフセット、オフセット端点、note/F5/E7 全イベント種別への適用をテストで確認する変更を進めた。新しいテスト追加直後は `printf` の改行エスケープ誤りで `make test` の出力比較が失敗したが、[a9d5a61](https://github.com/pikachu364/S-MU2000/commit/a9d5a61e17223a0428257441f82054122ad30e6b) で修正した。ユーザー共有の Actions 一覧では build [#129](https://github.com/pikachu364/S-MU2000/actions/runs/39610751688) とドキュメント更新後の [#130](https://github.com/pikachu364/S-MU2000/actions/runs/39610751688) が completed successfully と表示された（#130 の URL/ID は一覧から独立に確認できないため、Actions 一覧で最新結果を参照する）。
+文書レベルのタイムライン展開、符号付き開始オフセット、オフセット端点、note/F5/E7 全イベント種別への適用をテストで確認する変更を進めた。新しいテスト追加直後は `printf` の改行エスケープ誤りで `make test` の出力比較が失敗したが、[a9d5a61](https://github.com/pikachu364/S-MU2000/commit/a9d5a61e17223a0428257441f82054122ad30e6b) で修正した。ユーザー共有の Actions 一覧では、修正コミットの build #129 とドキュメント更新後の build #130 がどちらも completed successfully と表示された。
 
 ### 次に行うこと
 
