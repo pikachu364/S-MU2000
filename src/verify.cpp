@@ -658,9 +658,24 @@ static void check_rcp_document_timeline()
     const bool empty_ok = rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.empty() && err.empty();
 
-    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
+    // Exercise both signed 8-bit offset endpoints: -128 clamps tick zero,
+    // while +127 shifts an event at local tick zero to tick 127.
+    doc.tracks.resize(1);
+    doc.tracks[0].events = {raw(60, 0, 8, 90), raw(0xfe, 0, 0, 0)};
+    doc.tracks[0].header.tick_offset = 0x80;
+    const bool minimum_offset_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 1 && merged[0].event.tick == 0 && err.empty();
+    doc.tracks[0].header.tick_offset = 0x7f;
+    const bool maximum_offset_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 1 && merged[0].event.tick == 127 && err.empty();
+    const bool offset_bounds_ok = minimum_offset_ok && maximum_offset_ok;
+
+    std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
-        unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
+        offset_bounds_ok ? "合" : "NG", unsupported_rejected ? "合" : "NG",
+        empty_ok ? "合" : "NG");
 }
 
 
