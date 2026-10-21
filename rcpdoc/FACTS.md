@@ -148,4 +148,4 @@
 - ValleyBell/MidiConverters の RCP2 ハンドラーを参照し、トラック移調バイトの bit 7 が立つ場合はリズムチャンネル扱いとして移調を抑止する。通常トラックでは bit 6 を符号ビットとする signed 7-bit トラック移調に、文書ヘッダーの signed 8-bit 移調を加算する。
 - 最終ノート番号は参照実装と同様に `& 0x7f` で 7-bit 範囲へ折り返す。入力ノート自体が 0x7f を超える場合は拒否する。
 - テストでは負のトラック移調、負の文書移調、リズムチャンネルでの抑止、7-bit 折返し、範囲外ノート拒否を検査する。
-- 参照: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)。このヘルパー追加だけでは、再生タイムラインへの移調適用が完了したことを意味しない。
+- 参照: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)。文書レベルのタイムライン展開でも、ノートイベントにこの移調処理を適用する。
