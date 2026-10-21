@@ -120,9 +120,11 @@
 
 ## F-012 — 符号付きトラック開始オフセットの端点テストを追加
 
-**状態:** テストコードと期待出力の GitHub コミットを確認。追加後の CI 実行結果は未確認。
+**状態:** テストコードと期待出力を GitHub に追加し、baseline 更新後の CI 成功をユーザー共有の Actions 一覧で確認。
 
 - `0x80` を signed 8-bit の -128 として適用した場合、tick 0 未満のイベントが 0 にクランプされることを検査する。
 - `0x7f` を +127 として適用した場合、ローカル tick 0 のイベントが tick 127 になることを検査する。
 - テスト: [9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)。期待出力: [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)。
-- **制約:** GitHub にテストを追加した事実は、テストが実行され合格したことを意味しない。CI の結果を別途確認する。
+- CI [build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は古い期待出力との不一致で失敗した。実際の出力には新しい「オフセット境界 合」が含まれていたが、baseline が未更新だった。
+- 期待出力更新 [762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7) 後の [build #117](https://github.com/pikachu364/S-MU2000/actions/runs/39589690157) と後続 build #118〜#120 は completed successfully。
+- **制約:** CI 成功はこのブランチの合成テスト・ビルド結果であり、実際の RCP2 ファイルでの再生互換性や全コマンド対応を証明しない。
