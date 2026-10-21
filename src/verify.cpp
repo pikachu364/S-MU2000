@@ -645,7 +645,7 @@ static void check_rcp_document_timeline()
         merged[4].event.kind == rcp::timeline_event_kind::note &&
         merged[5].track_index == 0 && merged[5].event.tick == 5 &&
         merged[5].event.kind == rcp::timeline_event_kind::tempo && err.empty();
-    const offset_ok = merged.size() == 6 &&
+    const bool offset_ok = merged.size() == 6 &&
         merged[2].track_index == 2 && merged[2].event.tick == 0 &&
         merged[4].track_index == 2 && merged[4].event.tick == 3;
 
