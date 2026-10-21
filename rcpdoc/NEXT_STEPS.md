@@ -100,8 +100,8 @@
 
 1. ~~[GitHub Actions](https://github.com/pikachu364/S-MU2000/actions) で 83d213c の実行結果を確認する~~ — [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) 成功。
 2. [x] signed 8-bit オフセットの端点 `0x80`（-128）と `0x7f`（+127）の合成テストを追加し、期待出力を更新した（[9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)、[762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)）。[build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は古い baseline との出力不一致で失敗したが、baseline 更新後の [build #117](https://github.com/pikachu364/S-MU2000/actions/runs/39589690157) と後続 #118〜#120 は成功。
-3. **次:** 端点テストの CI 確認は完了。次は 32-bit tick 上限超過のテストと、未対応コマンド拒否の回帰テストを確認する。
-4. 文書レベル展開の制約（未対応コマンド、段階的テンポ変化）を維持し、未対応コマンドの失敗ケースを回帰テストで守る。
+3. [x] オフセットが note・F5 key signature・E7 tempo の全イベント種別に適用される回帰テストを追加した（[2ed0c96](https://github.com/pikachu364/S-MU2000/commit/2ed0c9657b0fc69dda43794233d3539bea0a04d9)、baseline [d13e84c](https://github.com/pikachu364/S-MU2000/commit/d13e84c08a0003c3cee30d09fc8a7815e0905833)）。この新規テストの CI は未確認。
+4. 32-bit tick 上限超過は防御的チェックとして維持する。RCP2 の宣言トラック長が 16-bit のため、通常のパース済みトラックで tick 上限に到達するテストは現実的でない。巨大な合成ベクターによる高コスト試験は避け、未対応コマンド拒否の既存回帰テストを確認する。
 5. パソコンが使えるとき、ローカル作業ツリーの未コミット変更を保護したうえで GitHub ブランチとの差分を確認する。未コミット作業を破棄・上書き・リセットしない。
 6. CHECKLIST.md の各項目を、コード確認・合成テスト・実行結果に分けて更新する。実際の RCP ファイルでの再生互換性は別の検証として扱う。
 
