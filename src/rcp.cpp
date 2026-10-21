@@ -455,6 +455,48 @@ bool expand_note_key_signature_tempo_timeline(
 }
 
 
+bool merge_timed_tracks(const std::vector<std::vector<timed_event>> &tracks,
+                        std::vector<timed_track_event> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    for (const auto &track_events : tracks) {
+        for (size_t i = 1; i < track_events.size(); ++i) {
+            if (track_events[i].tick < track_events[i - 1].tick) {
+                err = "RCP トラック内のイベントが tick 順ではありません";
+                return false;
+            }
+        }
+    }
+    std::vector<size_t> positions(tracks.size(), 0);
+    size_t remaining = 0;
+    for (const auto &track_events : tracks)
+        remaining += track_events.size();
+    out.reserve(remaining);
+    while (remaining != 0) {
+        size_t selected = tracks.size();
+        u32 selected_tick = 0;
+        for (size_t i = 0; i < tracks.size(); ++i) {
+            if (positions[i] >= tracks[i].size())
+                continue;
+            const u32 tick = tracks[i][positions[i]].tick;
+            if (selected == tracks.size() || tick < selected_tick) {
+                selected = i;
+                selected_tick = tick;
+            }
+        }
+        if (selected == tracks.size()) {
+            out.clear();
+            err = "RCP トラック統合で内部状態が不正です";
+            return false;
+        }
+        out.push_back({selected, tracks[selected][positions[selected]++]});
+        --remaining;
+    }
+    return true;
+}
+
+
 bool parse_tracks(const u8 *data, size_t size,
                   std::vector<track> &out, std::string &err)
 {
