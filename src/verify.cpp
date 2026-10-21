@@ -684,6 +684,21 @@ static void check_rcp_document_timeline()
         merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
         err.empty();
 
+    u32 adjusted_tick = 99;
+    const bool offset_helper_negative_ok =
+        rcp::apply_signed_track_offset(0, 0x80, adjusted_tick, err) &&
+        adjusted_tick == 0 && err.empty();
+    const bool offset_helper_positive_ok =
+        rcp::apply_signed_track_offset(0, 0x7f, adjusted_tick, err) &&
+        adjusted_tick == 127 && err.empty();
+    const bool offset_helper_overflow_ok =
+        !rcp::apply_signed_track_offset(0xffffffffu, 1, adjusted_tick, err) &&
+        adjusted_tick == 0 && !err.empty();
+    std::printf("RCP2 符号付き tick オフセット: 負値クランプ %s・正値加算 %s・32-bit 超過拒否 %s\\n",
+        offset_helper_negative_ok ? "合" : "NG",
+        offset_helper_positive_ok ? "合" : "NG",
+        offset_helper_overflow_ok ? "合" : "NG");
+
     std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
         offset_bounds_ok ? "合" : "NG", all_kinds_offset_ok ? "合" : "NG",
