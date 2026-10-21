@@ -606,6 +606,21 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                   " の時間展開に失敗しました: " + err;
             return false;
         }
+        // RCP2 track start offset is a signed 8-bit tick value. Decode it
+        // arithmetically rather than relying on implementation-defined casts.
+        const int raw_offset = document.tracks[i].header.tick_offset;
+        const int tick_offset = raw_offset < 0x80 ? raw_offset : raw_offset - 0x100;
+        for (timed_event &event : timeline) {
+            const long long adjusted = static_cast<long long>(event.tick) + tick_offset;
+            // MIDI-style absolute timelines cannot represent negative ticks.
+            // Preserve the offset for later events and clamp pre-zero events.
+            if (adjusted > 0xffffffffll) {
+                out.clear();
+                err = "RCP トラック開始オフセット適用後の tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            event.tick = adjusted < 0 ? 0u : static_cast<u32>(adjusted);
+        }
         timelines.push_back(std::move(timeline));
     }
 
