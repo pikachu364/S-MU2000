@@ -583,6 +583,23 @@ bool build_intermediate(const u8 *data, size_t size,
     return true;
 }
 
+bool apply_signed_track_offset(u32 tick, u8 raw_offset, u32 &out, std::string &err)
+{
+    out = 0;
+    err.clear();
+
+    const int tick_offset = raw_offset < 0x80 ? raw_offset : int(raw_offset) - 0x100;
+    const long long adjusted = static_cast<long long>(tick) + tick_offset;
+    if (adjusted > 0xffffffffll) {
+        err = "RCP トラック開始オフセット適用後の tick が 32 bit 範囲を超えます";
+        return false;
+    }
+
+    out = adjusted < 0 ? 0u : static_cast<u32>(adjusted);
+    return true;
+}
+
+
 bool expand_intermediate_timeline(const intermediate_document &document,
                                   std::vector<timed_track_event> &out,
                                   std::string &err)
@@ -606,20 +623,16 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                   " の時間展開に失敗しました: " + err;
             return false;
         }
-        // RCP2 track start offset is a signed 8-bit tick value. Decode it
-        // arithmetically rather than relying on implementation-defined casts.
-        const int raw_offset = document.tracks[i].header.tick_offset;
-        const int tick_offset = raw_offset < 0x80 ? raw_offset : raw_offset - 0x100;
+        // Apply the signed track offset uniformly to every emitted event kind.
         for (timed_event &event : timeline) {
-            const long long adjusted = static_cast<long long>(event.tick) + tick_offset;
-            // MIDI-style absolute timelines cannot represent negative ticks.
-            // Preserve the offset for later events and clamp pre-zero events.
-            if (adjusted > 0xffffffffll) {
+            u32 adjusted_tick = 0;
+            if (!apply_signed_track_offset(event.tick,
+                                           document.tracks[i].header.tick_offset,
+                                           adjusted_tick, err)) {
                 out.clear();
-                err = "RCP トラック開始オフセット適用後の tick が 32 bit 範囲を超えます";
                 return false;
             }
-            event.tick = adjusted < 0 ? 0u : static_cast<u32>(adjusted);
+            event.tick = adjusted_tick;
         }
         timelines.push_back(std::move(timeline));
     }
