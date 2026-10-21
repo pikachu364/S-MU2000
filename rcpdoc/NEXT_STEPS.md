@@ -92,22 +92,21 @@
 **完了条件:** 全ジョブの結果が確定し、成功・失敗と未確認事項が記録されている。
 
 
-## 2026-10-21 時点の作業状況・優先順位
+## 2026-10-22 時点の作業状況・優先順位
 
-最新の変更は、文書レベルのタイムライン展開に署名付きトラック開始オフセットを適用する処理と、その回帰テストです。CI でテスト期待値の不一致が発生したため、fixture を修正したコミット [83d213c](https://github.com/pikachu364/S-MU2000/commit/83d213c42eace8e882446e80d78aeee4c8ab41e0) を追加しました。**確認済み:** [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) は `83d213c` で completed successfully。
+文書レベルのタイムライン展開、符号付き開始オフセット、オフセット端点、note/F5/E7 全イベント種別への適用をテストで確認する変更を進めた。新しいテスト追加直後は `printf` の改行エスケープ誤りで `make test` の出力比較が失敗したが、[a9d5a61](https://github.com/pikachu364/S-MU2000/commit/a9d5a61e17223a0428257441f82054122ad30e6b) で修正した。ユーザー共有の Actions 一覧では build [#129](https://github.com/pikachu364/S-MU2000/actions/runs/39610751688) とドキュメント更新後の [#130](https://github.com/pikachu364/S-MU2000/actions/runs/39610751688) が completed successfully と表示された（#130 の URL/ID は一覧から独立に確認できないため、Actions 一覧で最新結果を参照する）。
 
 ### 次に行うこと
 
-1. ~~[GitHub Actions](https://github.com/pikachu364/S-MU2000/actions) で 83d213c の実行結果を確認する~~ — [build #101](https://github.com/pikachu364/S-MU2000/actions/runs/39571008073) 成功。
-2. [x] signed 8-bit オフセットの端点 `0x80`（-128）と `0x7f`（+127）の合成テストを追加し、期待出力を更新した（[9d0d183](https://github.com/pikachu364/S-MU2000/commit/9d0d183dacf14f6cf95cf31574dc0eed8dc122de)、[762ee46](https://github.com/pikachu364/S-MU2000/commit/762ee46ed00adb1d548d150319b89d287dea2bc7)）。[build #116](https://github.com/pikachu364/S-MU2000/actions/runs/39589682748) は古い baseline との出力不一致で失敗したが、baseline 更新後の [build #117](https://github.com/pikachu364/S-MU2000/actions/runs/39589690157) と後続 #118〜#120 は成功。
-3. [x] オフセットが note・F5 key signature・E7 tempo の全イベント種別に適用される回帰テストを追加した（[2ed0c96](https://github.com/pikachu364/S-MU2000/commit/2ed0c9657b0fc69dda43794233d3539bea0a04d9)、baseline [d13e84c](https://github.com/pikachu364/S-MU2000/commit/d13e84c08a0003c3cee30d09fc8a7815e0905833)）。この新規テストの CI は未確認。
-4. 32-bit tick 上限超過は防御的チェックとして維持する。RCP2 の宣言トラック長が 16-bit のため、通常のパース済みトラックで tick 上限に到達するテストは現実的でない。巨大な合成ベクターによる高コスト試験は避け、未対応コマンド拒否の既存回帰テストを確認する。
-5. パソコンが使えるとき、ローカル作業ツリーの未コミット変更を保護したうえで GitHub ブランチとの差分を確認する。未コミット作業を破棄・上書き・リセットしない。
-6. CHECKLIST.md の各項目を、コード確認・合成テスト・実行結果に分けて更新する。実際の RCP ファイルでの再生互換性は別の検証として扱う。
+1. [x] note・F5 key signature・E7 tempo の全イベント種別に開始オフセットが適用される回帰テストを追加し、期待出力を更新した（[2ed0c96](https://github.com/pikachu364/S-MU2000/commit/2ed0c9657b0fc69dda43794233d3539bea0a04d9)、[d13e84c](https://github.com/pikachu364/S-MU2000/commit/d13e84c08a0003c3cee30d09fc8a7815e0905833)）。改行エスケープ修正後の CI は成功。
+2. [x] 文書レベル展開で未対応コマンドを拒否し、失敗時に出力ベクターを空にする既存回帰テストをコード上で確認した。
+3. 32-bit tick 上限チェックは防御的チェックとして維持する。RCP2 の宣言トラック長は 16-bit のため、通常のパース済みトラックで上限に達する合成テストは費用対効果が低い。巨大な入力を生成するテストは避ける。
+4. 次の実装候補は、現行サブセットの範囲でノート gate/duration の意味と transpose の適用箇所を資料と照合し、小さな合成テストを先に設計する。仕様が未確定な動作は実装済みと扱わない。
+5. PC が利用できるとき、ローカル作業ツリーの未コミット変更を保護したうえで GitHub ブランチとの差分を確認する。既存のローカル作業を上書き・リセットしない。
+6. CHECKLIST.md の各項目を、コード確認・合成テスト・実行結果に分けて更新する。実際の RCP2 ファイルでの再生互換性は別の検証として扱う。
 
 ### 現時点で完了扱いにしないこと
 
-- 83d213c の CI 成功
 - 実際の RCP2 ファイルを使った再生確認
 - RCP2 全コマンドの互換性
 - ローカル環境と GitHub ブランチの差分統合
