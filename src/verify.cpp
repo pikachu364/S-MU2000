@@ -627,7 +627,7 @@ static void check_rcp_document_timeline()
     doc.tracks[1].events = {raw(65, 2, 8, 80), raw(0xf5, 3, 0, 0), raw(0xfe, 0, 0, 0)};
     doc.tracks.resize(3);
     doc.tracks[2].header.tick_offset = 0xfe; // signed -2 ticks
-    doc.tracks[2].events = {raw(67, 0, 8, 75), raw(68, 5, 8, 75), raw(0xfe, 0, 0, 0)};
+    doc.tracks[2].events = {raw(67, 5, 8, 75), raw(68, 5, 8, 75), raw(0xfe, 0, 0, 0)};
 
     std::vector<rcp::timed_track_event> merged;
     std::string err;
