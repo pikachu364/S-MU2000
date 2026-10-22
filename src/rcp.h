@@ -40,7 +40,7 @@ struct document_header {
 	u8 beat_numerator = 0;
 	u8 beat_denominator = 0;
 	u8 key_signature = 0;
-	u8 play_bias = 0; // 仕様の符号表現は未確定のため生バイトを保持
+	u8 play_bias = 0; // raw signed 8-bit document transpose (reference-compatible interpretation)
 	u8 track_count = 0;
 };
 
