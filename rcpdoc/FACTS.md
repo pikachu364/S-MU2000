@@ -159,3 +159,14 @@
 - 発音するノートはノートオンを出し、duration に基づいて running-note 管理からノートオフを発行する。同じチャンネル/ノートが既に鳴っている場合は既存ノートの終了時刻を更新する特別扱いがあるため、単純に各ノートへ独立した note-off を足すだけでは完全互換にならない。
 - 根拠: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) の通常ノート処理と `AddRunningNote` / `CheckRunningNotes` 呼び出し。
 - 次の実装では、まず duration=0 の扱いと note-off tick の境界を合成テスト化し、同一音高の再発音・重複時の仕様を独立に設計する。これらを検証するまでは、duration を保持している現状を「gate 展開済み」とは扱わない。
+
+## F-016 — EB/EC/EE の標準 MIDI チャンネルイベント展開
+
+**状態:** 参照実装を照合して decoder と文書レベル時系列展開・合成テストを追加。今回のコード変更後の Actions は実行中/待機中で、最終結果は未確認。
+
+- EB は Control Change として p1=controller、p2=value を使い、p0 はイベント後に進める delay として扱う。
+- EC は p1 が 0x80 未満の場合に標準 MIDI Program Change として出力データを構成する。0x80 以上は参照実装で特殊な MT-32 インストゥルメント処理に使われるため、標準 Program Change に誤変換せず、現段階では明示的に拒否する。
+- EE は Pitch Bend として p1/p2 を 7-bit データバイトとして保持し、p0 はイベント後に進める delay として扱う。
+- EB/EE のデータバイトが 7-bit 範囲外の場合は拒否する。文書レベル展開で各イベントは現在 tick に配置し、p0 分だけ次イベントの tick を進める。
+- 根拠: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) の EB/EC/EE case handlers。
+- 制約: MIDI status byte のチャンネル付与や実際の MIDI 出力層への接続、EC の特殊 MT-32/SysEx 経路は未実装。
