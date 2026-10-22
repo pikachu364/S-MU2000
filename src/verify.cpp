@@ -677,13 +677,13 @@ static void check_rcp_document_timeline()
     const bool invalid_control_value_rejected =
         !rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.empty() && !err.empty();
-    std::printf("RCP2 EB/EC/EE MIDI コマンド: CC/Program/Pitch Bend と tick %s・特殊 EC 拒否 %s・7-bit 範囲外拒否 %s\\n",
+    std::printf("RCP2 EB/EC/EE MIDI コマンド: CC/Program/Pitch Bend と tick %s・特殊 EC 拒否 %s・7-bit 範囲外拒否 %s\n",
         midi_commands_ok ? "合" : "NG",
         special_instrument_rejected ? "合" : "NG",
         invalid_control_value_rejected ? "合" : "NG");
 
     doc.tracks.resize(3);
-    doc.tracks[1].events[1].raw.code = 0xf6;
+    doc.tracks[0].events[0].raw.code = 0xf6;
     const bool unsupported_rejected =
         !rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.empty() && !err.empty();
