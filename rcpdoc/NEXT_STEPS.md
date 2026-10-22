@@ -113,4 +113,13 @@
 
 7. [x] ValleyBell の参照実装で通常ノートのフィールド割当と duration=0 の扱いを確認し、F-015 に記録した。
 8. [ ] 次の実装候補は note gate / note-off の展開。duration=0 は発音させず delay は維持すること、同じチャンネル・音高の再発音では既存 note-off 時刻を更新する参照実装の動作をテストで固めてから実装する。
-9. [ ] 続いて EB Control Change、EC Instrument、EE Pitch Bend など、パラメータが MIDI イベントへ直接写像されるコマンドを小さな decoder として追加し、未対応コマンドは引き続き明示的に拒否する。
+9. [x] EB Control Change、EC の標準 Program Change、EE Pitch Bend の decoder と文書レベル展開を追加し、delay・7-bit 範囲・特殊 EC の拒否を合成テスト化した。Actions の最終結果は未確認。EC の特殊 MT-32/SysEx 経路は未対応。
+
+
+### 2026-10-22 — EB/EC/EE コマンド展開
+
+- [x] `src/rcp.h` に MIDI チャンネルイベント表現とコマンド decoder の宣言を追加。
+- [x] `src/rcp.cpp` で EB/EC/EE を現在 tick に配置し、p0 の delay で次イベント時刻を進める処理を追加。
+- [x] `src/verify.cpp` に CC/Program Change/Pitch Bend の時刻・値、特殊 EC、7-bit 範囲外のテストを追加し、`tests/verify.txt` の baseline を更新。
+- [ ] Actions #165 以降の実装・テストコミットの結果を確認し、失敗があればログを見て修正する。
+- [ ] 次は note duration の note-off 展開。重複する同音高ノートは参照実装が既存の終了時刻を更新するため、単純な note-off 追加を避け、トラック内の running-note 状態をテストで再現する。
