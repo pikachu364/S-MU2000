@@ -818,6 +818,12 @@ bool expand_intermediate_timeline(const intermediate_document &document,
     std::vector<std::vector<timed_event>> timelines;
     timelines.reserve(document.tracks.size());
     for (size_t i = 0; i < document.tracks.size(); ++i) {
+        // The referenced RCP2 layout assigns bit 0 of the mute byte to track mute.
+        // Keep the track slot so merged events retain their original track index.
+        if (document.tracks[i].header.mute & 0x01) {
+            timelines.emplace_back();
+            continue;
+        }
         std::vector<sequence_event> sequence;
         sequence.reserve(document.tracks[i].events.size());
         for (const intermediate_event &event : document.tracks[i].events)
