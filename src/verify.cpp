@@ -701,6 +701,8 @@ static void check_rcp_document_timeline()
         merged.empty() && err.empty();
 
     // A muted track must not contribute events or make an otherwise playable
+    rcp::intermediate_document mute_doc;
+    mute_doc.header.tempo_bpm = 120;
     // document fail merely because that track contains an unsupported command.
     mute_doc.tracks.resize(2);
     mute_doc.tracks[0].header.mute = 0x01;
