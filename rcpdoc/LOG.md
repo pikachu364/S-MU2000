@@ -149,3 +149,12 @@
 - 実装: [6c9045e](https://github.com/pikachu364/S-MU2000/commit/6c9045ec61af8226d77dffc7abb094e5fba4f660)（イベント表現）、[c4fd8de](https://github.com/pikachu364/S-MU2000/commit/c4fd8de43040cbff2d6bd74b7eb08c7420384a72)（decoder/展開）、[693ed61](https://github.com/pikachu364/S-MU2000/commit/693ed61cbdb6eb15ab869f03362983b4f9b9196f)（テスト）、[4502c5d](https://github.com/pikachu364/S-MU2000/commit/4502c5d31307ef9178b56806e1bc87d0fc78ed65)（verifier 状態と改行修正）、[a8230a5](https://github.com/pikachu364/S-MU2000/commit/a8230a51cc05d16cfbd45e898cc3b0b8c3cb078d)（baseline）。
 - 合成テストでは各イベントの tick と値、特殊 EC の拒否、7-bit 範囲外の拒否を検査する。テスト実行結果は GitHub Actions の確定後に追記する。
 - 制約: MIDI 出力層への接続、MIDI チャンネルの status byte 化、特殊 MT-32/SysEx 経路は未実装。次は note duration と note-off の running-note 挙動をテスト化する。
+
+## 2026-10-22 — ノート gate / note-off 展開
+
+- GitHub Actions #174 で EB/EC/EE verifier baseline の順序修正後の CI 成功を確認してから実装を開始した。
+- 文書レベル時系列で、duration=0 のノートを発音イベントとして出さず、正の duration に対して note-off を開始 tick + duration に追加する処理を実装した。
+- ValleyBell/MidiConverters の running-note 挙動に合わせ、同一トラック内で同じ移調後音高がまだ鳴っている場合は新規 note-on を追加せず、既存 note-off tick を現在 tick + duration に更新する。duration=0 の同音高再指定は既存 note-off を現在 tick に移動する。
+- note-off は開始イベントの移調後音高を引き継ぐ。gate 展開を符号付きトラック開始オフセットの前に行い、note-on/note-off の tick に同じ offset/clamp 規則を適用する。
+- src/verify.cpp と tests/verify.txt に、duration=0、同音高の終了更新、note-off tick/音高、複数トラック統合、オフセットとの相互作用を追加・更新した。
+- 今回のコミットと GitHub Actions の最終結果は、このログ更新時点では未確認。実 RCP2 ファイルの再生、SMF 出力への接続は未実施。

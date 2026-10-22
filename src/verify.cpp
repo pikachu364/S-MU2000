@@ -632,7 +632,7 @@ static void check_rcp_document_timeline()
     std::vector<rcp::timed_track_event> merged;
     std::string err;
     const bool order_ok = rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 6 &&
+        merged.size() == 10 &&
         merged[0].track_index == 0 && merged[0].event.tick == 0 &&
         merged[0].event.kind == rcp::timeline_event_kind::note &&
         merged[1].track_index == 1 && merged[1].event.tick == 0 &&
@@ -644,8 +644,16 @@ static void check_rcp_document_timeline()
         merged[4].track_index == 2 && merged[4].event.tick == 3 &&
         merged[4].event.kind == rcp::timeline_event_kind::note &&
         merged[5].track_index == 0 && merged[5].event.tick == 5 &&
-        merged[5].event.kind == rcp::timeline_event_kind::tempo && err.empty();
-    const bool offset_ok = merged.size() == 6 &&
+        merged[5].event.kind == rcp::timeline_event_kind::tempo &&
+        merged[6].track_index == 2 && merged[6].event.tick == 6 &&
+        merged[6].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[7].track_index == 0 && merged[7].event.tick == 8 &&
+        merged[7].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[8].track_index == 1 && merged[8].event.tick == 8 &&
+        merged[8].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[9].track_index == 2 && merged[9].event.tick == 11 &&
+        merged[9].event.kind == rcp::timeline_event_kind::note_off && err.empty();
+    const bool offset_ok = merged.size() == 10 &&
         merged[2].track_index == 2 && merged[2].event.tick == 0 &&
         merged[4].track_index == 2 && merged[4].event.tick == 3;
 
@@ -699,11 +707,15 @@ static void check_rcp_document_timeline()
     doc.tracks[0].header.tick_offset = 0x80;
     const bool minimum_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 1 && merged[0].event.tick == 0 && err.empty();
+        merged.size() == 2 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note_off && merged[0].event.tick == 0 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note && merged[1].event.tick == 0 && err.empty();
     doc.tracks[0].header.tick_offset = 0x7f;
     const bool maximum_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 1 && merged[0].event.tick == 127 && err.empty();
+        merged.size() == 2 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.tick == 127 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note_off && merged[1].event.tick == 135 && err.empty();
     const bool offset_bounds_ok = minimum_offset_ok && maximum_offset_ok;
 
     // The signed offset applies to all emitted event kinds, not only notes.
@@ -712,11 +724,11 @@ static void check_rcp_document_timeline()
     doc.tracks[0].header.tick_offset = 3;
     const bool all_kinds_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 3 &&
+        merged.size() == 4 &&
         merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.tick == 3 &&
         merged[1].event.kind == rcp::timeline_event_kind::key_signature && merged[1].event.tick == 3 &&
         merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
-        err.empty();
+        merged[3].event.kind == rcp::timeline_event_kind::note_off && merged[3].event.tick == 11 && err.empty();
 
     doc.tracks[0].events = {raw(60, 0, 8, 90), raw(0xfe, 0, 0, 0)};
     doc.tracks[0].header.tick_offset = 0;
@@ -724,12 +736,16 @@ static void check_rcp_document_timeline()
     doc.header.play_bias = 2;
     const bool timeline_transpose_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 1 && merged[0].event.note.note == 61 && err.empty();
+        merged.size() == 2 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.note.note == 61 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note_off && merged[1].event.note.note == 61 && err.empty();
     doc.tracks[0].header.key = 0x80; // rhythm-channel flag suppresses both offsets
     doc.header.play_bias = 12;
     const bool timeline_rhythm_transpose_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
-        merged.size() == 1 && merged[0].event.note.note == 60 && err.empty();
+        merged.size() == 2 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.note.note == 60 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note_off && merged[1].event.note.note == 60 && err.empty();
     std::printf("RCP2 文書移調適用: トラック/文書移調 %s・リズム抑止 %s\n",
         timeline_transpose_ok ? "合" : "NG",
         timeline_rhythm_transpose_ok ? "合" : "NG");
@@ -774,6 +790,31 @@ static void check_rcp_document_timeline()
         offset_helper_negative_ok ? "合" : "NG",
         offset_helper_positive_ok ? "合" : "NG",
         offset_helper_overflow_ok ? "合" : "NG");
+
+    doc.tracks.resize(1);
+    doc.tracks[0].header.tick_offset = 0;
+    doc.tracks[0].header.key = 0;
+    doc.header.play_bias = 0;
+    doc.tracks[0].events = {
+        raw(62, 0, 0, 80), raw(60, 5, 8, 90), raw(60, 1, 4, 70),
+        raw(64, 2, 3, 85), raw(0xfe, 0, 0, 0)
+    };
+    const bool note_gate_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 4 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note &&
+        merged[0].event.tick == 0 && merged[0].event.note.note == 60 &&
+        merged[0].event.note.velocity == 90 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note &&
+        merged[1].event.tick == 6 && merged[1].event.note.note == 64 &&
+        merged[2].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[2].event.tick == 9 && merged[2].event.note.note == 60 &&
+        merged[3].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[3].event.tick == 9 && merged[3].event.note.note == 64 &&
+        merged[2].event.note.velocity == 0 && merged[3].event.note.velocity == 0 && err.empty();
+    std::printf("RCP2 ノート長展開: duration 0 抑止 %s・同音高の終了更新 %s・note-off 時刻/音高 %s\n",
+        note_gate_ok ? "合" : "NG", note_gate_ok ? "合" : "NG",
+        note_gate_ok ? "合" : "NG");
 
     std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",

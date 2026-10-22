@@ -152,13 +152,15 @@
 
 ## F-015 — ノート duration と gate の参照実装上の扱い
 
-**状態:** ValleyBell/MidiConverters の参照コードを閲覧して確認。S-MU2000 側での note-off 展開・実再生は未実装/未確認。
+**状態:** 参照実装を確認し、文書レベルの note-off 展開と合成テストを追加。CI の確定結果は未確認。
 
 - RCP2 の通常ノートレコードは、`code` をノート番号、`p0` を開始までの delay、`p1` を duration、`p2` を velocity として参照実装が読む。
 - duration が 0 のノートは参照実装では発音イベントとして出力しない。
 - 発音するノートはノートオンを出し、duration に基づいて running-note 管理からノートオフを発行する。同じチャンネル/ノートが既に鳴っている場合は既存ノートの終了時刻を更新する特別扱いがあるため、単純に各ノートへ独立した note-off を足すだけでは完全互換にならない。
 - 根拠: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) の通常ノート処理と `AddRunningNote` / `CheckRunningNotes` 呼び出し。
-- 次の実装では、まず duration=0 の扱いと note-off tick の境界を合成テスト化し、同一音高の再発音・重複時の仕様を独立に設計する。これらを検証するまでは、duration を保持している現状を「gate 展開済み」とは扱わない。
+- 実装では duration=0 を発音イベントとして出さず、duration が正なら開始 tick + duration に note-off を置く。同じトラック内で同じ移調後音高が既に鳴っている場合は新しい note-on を出さず、既存 note-off の tick を現在 tick + 新 duration に更新する。
+- note gate はトラック内で展開してから符号付き開始オフセットを適用するため、開始・終了 tick はそれぞれ 0 未満なら 0 にクランプされる。note-off は note-on と同じ移調済み音高を持ち、velocity=0 として表現する。
+- 制約: 実際の SMF/MIDI 出力へのシリアライズ、実ファイル再生、極端な重複ノート数の参照互換性は未確認。
 
 ## F-016 — EB/EC/EE の標準 MIDI チャンネルイベント展開
 

@@ -144,7 +144,7 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
 // Experimental legacy timeline accepting notes and F5 only. F5 is emitted at
 // the current tick and must not advance it; other commands (including E7) are rejected.
-enum class timeline_event_kind { note, key_signature, tempo, control_change, program_change, pitch_bend };
+enum class timeline_event_kind { note, note_off, key_signature, tempo, control_change, program_change, pitch_bend };
 struct midi_channel_event {
     u8 delay = 0;
     u8 data1 = 0;
@@ -233,10 +233,11 @@ bool apply_note_transposition(u8 note, u8 raw_track_transposition,
 // Negative results clamp to zero; values above the 32-bit tick range fail.
 bool apply_signed_track_offset(u32 tick, u8 raw_offset, u32 &out, std::string &err);
 
-// Experimental document-level timeline: expands each intermediate track using
-// the currently supported note/F5/E7 subset, applies signed track start offsets,
-// then merges events by absolute tick. Negative ticks are clamped to zero;
-// gradual tempo curves are intentionally not applied yet.
+// Experimental document-level timeline: expands supported note/F5/E7/EB/EC/EE
+// events, applies note transposition, expands note duration to note-off events with
+// reference-compatible same-pitch running-note behavior, applies signed track
+// start offsets, then merges by absolute tick. Negative ticks clamp to zero;
+// gradual tempo curves and special EC instrument handling remain unsupported.
 bool expand_intermediate_timeline(const intermediate_document &document,
                                   std::vector<timed_track_event> &out,
                                   std::string &err);

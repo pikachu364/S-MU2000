@@ -5,6 +5,7 @@
 
 #include "rcp.h"
 
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -683,13 +684,81 @@ bool apply_signed_track_offset(u32 tick, u8 raw_offset, u32 &out, std::string &e
 }
 
 
+namespace {
+
+bool expand_note_gates(const std::vector<timed_event> &timeline,
+                       std::vector<timed_event> &out, std::string &err)
+{
+    struct running_note { u8 pitch; size_t note_off_index; u32 end_tick; };
+    out.clear();
+    err.clear();
+    std::vector<timed_event> expanded;
+    std::vector<running_note> running;
+    expanded.reserve(timeline.size());
+
+    for (const timed_event &event : timeline) {
+        if (event.kind != timeline_event_kind::note) {
+            expanded.push_back(event);
+            continue;
+        }
+        for (size_t i = 0; i < running.size();) {
+            if (running[i].end_tick <= event.tick)
+                running.erase(running.begin() + i);
+            else
+                ++i;
+        }
+        if (event.note.duration > 0xffffffffu - event.tick) {
+            out.clear();
+            err = "RCP ノートオフの tick が 32 bit 範囲を超えます";
+            return false;
+        }
+        const u32 new_end_tick = event.tick + event.note.duration;
+        size_t active_index = running.size();
+        for (size_t i = 0; i < running.size(); ++i) {
+            if (running[i].pitch == event.note.note) { active_index = i; break; }
+        }
+        if (active_index != running.size()) {
+            running_note &active = running[active_index];
+            expanded[active.note_off_index].tick = new_end_tick;
+            active.end_tick = new_end_tick;
+            if (event.note.duration == 0)
+                running.erase(running.begin() + active_index);
+            continue;
+        }
+        if (event.note.duration == 0)
+            continue;
+
+        expanded.push_back(event);
+        timed_event note_off;
+        note_off.tick = new_end_tick;
+        note_off.kind = timeline_event_kind::note_off;
+        note_off.note = event.note;
+        note_off.note.delay = 0;
+        note_off.note.duration = 0;
+        note_off.note.velocity = 0;
+        const size_t note_off_index = expanded.size();
+        expanded.push_back(note_off);
+        running.push_back({event.note.note, note_off_index, new_end_tick});
+    }
+    std::stable_sort(expanded.begin(), expanded.end(),
+        [](const timed_event &a, const timed_event &b) {
+            if (a.tick != b.tick) return a.tick < b.tick;
+            const bool a_off = a.kind == timeline_event_kind::note_off;
+            const bool b_off = b.kind == timeline_event_kind::note_off;
+            return a_off && !b_off;
+        });
+    out.swap(expanded);
+    return true;
+}
+
+} // namespace
+
 bool expand_intermediate_timeline(const intermediate_document &document,
                                   std::vector<timed_track_event> &out,
                                   std::string &err)
 {
     out.clear();
     err.clear();
-
     std::vector<std::vector<timed_event>> timelines;
     timelines.reserve(document.tracks.size());
     for (size_t i = 0; i < document.tracks.size(); ++i) {
@@ -697,7 +766,6 @@ bool expand_intermediate_timeline(const intermediate_document &document,
         sequence.reserve(document.tracks[i].events.size());
         for (const intermediate_event &event : document.tracks[i].events)
             sequence.push_back(event.raw);
-
         std::vector<timed_event> timeline;
         if (!expand_note_key_signature_tempo_timeline(
                 sequence, document.header.tempo_bpm, timeline, err)) {
@@ -706,8 +774,26 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                   " の時間展開に失敗しました: " + err;
             return false;
         }
-        // Apply the signed track offset uniformly to every emitted event kind.
         for (timed_event &event : timeline) {
+            if (event.kind != timeline_event_kind::note) continue;
+            u8 adjusted_note = 0;
+            if (!apply_note_transposition(event.note.note,
+                                          document.tracks[i].header.key,
+                                          document.header.play_bias,
+                                          adjusted_note, err)) {
+                out.clear();
+                return false;
+            }
+            event.note.note = adjusted_note;
+        }
+        std::vector<timed_event> gated_timeline;
+        if (!expand_note_gates(timeline, gated_timeline, err)) {
+            out.clear();
+            err = "RCP2 トラック " + std::to_string(i + 1) +
+                  " のノート長展開に失敗しました: " + err;
+            return false;
+        }
+        for (timed_event &event : gated_timeline) {
             u32 adjusted_tick = 0;
             if (!apply_signed_track_offset(event.tick,
                                            document.tracks[i].header.tick_offset,
@@ -716,21 +802,9 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                 return false;
             }
             event.tick = adjusted_tick;
-            if (event.kind == timeline_event_kind::note) {
-                u8 adjusted_note = 0;
-                if (!apply_note_transposition(event.note.note,
-                                              document.tracks[i].header.key,
-                                              document.header.play_bias,
-                                              adjusted_note, err)) {
-                    out.clear();
-                    return false;
-                }
-                event.note.note = adjusted_note;
-            }
         }
-        timelines.push_back(std::move(timeline));
+        timelines.push_back(std::move(gated_timeline));
     }
-
     if (!merge_timed_tracks(timelines, out, err)) {
         out.clear();
         return false;
