@@ -391,6 +391,56 @@ bool expand_note_key_signature_timeline(const std::vector<sequence_event> &seque
 
 
 
+bool decode_midi_channel_event(const sequence_event &raw,
+                              midi_channel_event &out,
+                              timeline_event_kind &kind,
+                              std::string &err)
+{
+    out = {};
+    kind = timeline_event_kind::note;
+    err.clear();
+
+    if (raw.code == 0xeb) {
+        if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
+            err = "RCP EB Control Change のデータ値が 7 bit 範囲外です";
+            return false;
+        }
+        out.delay = raw.p0;
+        out.data1 = raw.p1;
+        out.data2 = raw.p2;
+        kind = timeline_event_kind::control_change;
+        return true;
+    }
+
+    if (raw.code == 0xec) {
+        if (raw.p1 >= 0x80) {
+            err = "RCP EC の特殊インストゥルメント値は未対応です";
+            return false;
+        }
+        out.delay = raw.p0;
+        out.data1 = raw.p1;
+        out.data2 = 0;
+        kind = timeline_event_kind::program_change;
+        return true;
+    }
+
+    if (raw.code == 0xee) {
+        if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
+            err = "RCP EE Pitch Bend のデータ値が 7 bit 範囲外です";
+            return false;
+        }
+        out.delay = raw.p0;
+        out.data1 = raw.p1;
+        out.data2 = raw.p2;
+        kind = timeline_event_kind::pitch_bend;
+        return true;
+    }
+
+    err = "RCP レコードは EB/EC/EE MIDI チャンネルコマンドではありません";
+    return false;
+}
+
+
 bool expand_note_key_signature_tempo_timeline(
     const std::vector<sequence_event> &sequence, u16 bpm,
     std::vector<timed_event> &out, std::string &err)
@@ -424,6 +474,12 @@ bool expand_note_key_signature_tempo_timeline(
             }
             timed.kind = timeline_event_kind::tempo;
             delay_advance = timed.tempo.delay;
+        } else if (raw.code == 0xeb || raw.code == 0xec || raw.code == 0xee) {
+            if (!decode_midi_channel_event(raw, timed.channel, timed.kind, err)) {
+                out.clear();
+                return false;
+            }
+            delay_advance = timed.channel.delay;
         } else if (raw.code < 0x80) {
             if (!decode_note_event(raw, timed.note, err)) {
                 out.clear();
@@ -433,7 +489,7 @@ bool expand_note_key_signature_tempo_timeline(
             delay_advance = timed.note.delay;
         } else {
             out.clear();
-            err = "時間展開ではノート・F5・E7 以外のコマンドを扱えません";
+            err = "時間展開ではノート・F5・E7・EB・EC・EE 以外のコマンドを扱えません";
             return false;
         }
 
