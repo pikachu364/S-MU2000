@@ -702,13 +702,13 @@ static void check_rcp_document_timeline()
 
     // A muted track must not contribute events or make an otherwise playable
     // document fail merely because that track contains an unsupported command.
-    doc.tracks.resize(2);
-    doc.tracks[0].header.mute = 0x01;
-    doc.tracks[0].events = {raw(0xf6, 0, 'X', 'Y'), raw(0xfe, 0, 0, 0)};
-    doc.tracks[1].header.mute = 0;
-    doc.tracks[1].events = {raw(60, 0, 4, 90), raw(0xfe, 0, 0, 0)};
+    mute_doc.tracks.resize(2);
+    mute_doc.tracks[0].header.mute = 0x01;
+    mute_doc.tracks[0].events = {raw(0xf6, 0, 'X', 'Y'), raw(0xfe, 0, 0, 0)};
+    mute_doc.tracks[1].header.mute = 0;
+    mute_doc.tracks[1].events = {raw(60, 0, 4, 90), raw(0xfe, 0, 0, 0)};
     const bool mute_skips_track_ok =
-        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        rcp::expand_intermediate_timeline(mute_doc, merged, err) &&
         merged.size() == 2 &&
         merged[0].track_index == 1 &&
         merged[0].event.kind == rcp::timeline_event_kind::note &&
@@ -836,7 +836,7 @@ static void check_rcp_document_timeline()
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
         offset_bounds_ok ? "合" : "NG", all_kinds_offset_ok ? "合" : "NG",
         unsupported_rejected ? "合" : "NG", empty_ok ? "合" : "NG");
-    std::printf("RCP2 ミュートトラック: イベント除外/未対応コマンド無視 %s\\n",
+    std::printf("RCP2 ミュートトラック: イベント除外/未対応コマンド無視 %s\n",
         mute_skips_track_ok ? "合" : "NG");
 }
 
