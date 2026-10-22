@@ -696,7 +696,7 @@ static void check_rcp_document_timeline()
     const bool timeline_rhythm_transpose_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.size() == 1 && merged[0].event.note.note == 60 && err.empty();
-    std::printf("RCP2 文書移調適用: トラック/文書移調 %s・リズム抑止 %s\\n",
+    std::printf("RCP2 文書移調適用: トラック/文書移調 %s・リズム抑止 %s\n",
         timeline_transpose_ok ? "合" : "NG",
         timeline_rhythm_transpose_ok ? "合" : "NG");
 
