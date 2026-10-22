@@ -110,3 +110,7 @@
 - 実際の RCP2 ファイルを使った再生確認
 - RCP2 全コマンドの互換性
 - ローカル環境と GitHub ブランチの差分統合
+
+7. [x] ValleyBell の参照実装で通常ノートのフィールド割当と duration=0 の扱いを確認し、F-015 に記録した。
+8. [ ] 次の実装候補は note gate / note-off の展開。duration=0 は発音させず delay は維持すること、同じチャンネル・音高の再発音では既存 note-off 時刻を更新する参照実装の動作をテストで固めてから実装する。
+9. [ ] 続いて EB Control Change、EC Instrument、EE Pitch Bend など、パラメータが MIDI イベントへ直接写像されるコマンドを小さな decoder として追加し、未対応コマンドは引き続き明示的に拒否する。
