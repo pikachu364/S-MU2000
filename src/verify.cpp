@@ -881,6 +881,64 @@ static void check_rcp_midi_encoding()
 }
 
 
+static void check_rcp_tick_to_seconds()
+{
+    rcp::document_header header;
+    header.ticks_per_quarter = 480;
+    header.tempo_bpm = 120;
+    std::vector<rcp::timed_track_event> timeline;
+    rcp::timed_track_event event;
+    event.track_index = 0;
+    event.event.kind = rcp::timeline_event_kind::note;
+    event.event.tick = 0;
+    timeline.push_back(event);
+    event.event.kind = rcp::timeline_event_kind::tempo;
+    event.event.tick = 480;
+    event.event.tempo.microseconds_per_quarter = 250000;
+    timeline.push_back(event);
+    event.event.kind = rcp::timeline_event_kind::note;
+    event.event.tick = 960;
+    timeline.push_back(event);
+
+    std::vector<rcp::timed_seconds_event> seconds;
+    std::string err;
+    const bool timing_ok =
+        rcp::convert_timeline_to_seconds(header, timeline, seconds, err) &&
+        seconds.size() == 3 &&
+        seconds[0].time == 0.0 &&
+        seconds[1].time == 0.5 &&
+        seconds[2].time == 0.75 &&
+        seconds[1].source.event.kind == rcp::timeline_event_kind::tempo &&
+        seconds[2].source.event.tick == 960 && err.empty();
+
+    rcp::document_header invalid_header = header;
+    invalid_header.ticks_per_quarter = 0;
+    const bool zero_ppq_rejected =
+        !rcp::convert_timeline_to_seconds(invalid_header, timeline, seconds, err) &&
+        seconds.empty() && !err.empty();
+    invalid_header = header;
+    invalid_header.tempo_bpm = 0;
+    const bool zero_bpm_rejected =
+        !rcp::convert_timeline_to_seconds(invalid_header, timeline, seconds, err) &&
+        seconds.empty() && !err.empty();
+
+    timeline[2].event.tick = 400;
+    const bool reverse_tick_rejected =
+        !rcp::convert_timeline_to_seconds(header, timeline, seconds, err) &&
+        seconds.empty() && !err.empty();
+
+    timeline[2].event.tick = 960;
+    timeline[1].event.tempo.microseconds_per_quarter = 0;
+    const bool zero_tempo_rejected =
+        !rcp::convert_timeline_to_seconds(header, timeline, seconds, err) &&
+        seconds.empty() && !err.empty();
+
+    std::printf("RCP2 tick→秒変換: テンポ変更前後 %s・PPQ 0 拒否 %s・初期 BPM 0 拒否 %s・逆順 tick 拒否 %s・テンポ値 0 拒否 %s\\n",
+        timing_ok ? "合" : "NG", zero_ppq_rejected ? "合" : "NG",
+        zero_bpm_rejected ? "合" : "NG", reverse_tick_rejected ? "合" : "NG",
+        zero_tempo_rejected ? "合" : "NG");
+}
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -1198,6 +1256,7 @@ int main()
 	check_rcp_track_merge();
 	check_rcp_document_timeline();
 	check_rcp_midi_encoding();
+	check_rcp_tick_to_seconds();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();

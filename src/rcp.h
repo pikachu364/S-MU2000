@@ -248,6 +248,17 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                                   std::vector<timed_track_event> &out,
                                   std::string &err);
 
+// Absolute-tick events converted to seconds using the document PPQ and E7 tempo changes.
+// Channel/port mapping and gradual E7 curves remain separate concerns.
+struct timed_seconds_event {
+    double time = 0.0;
+    timed_track_event source;
+};
+bool convert_timeline_to_seconds(const document_header &header,
+                                 const std::vector<timed_track_event> &timeline,
+                                 std::vector<timed_seconds_event> &out,
+                                 std::string &err);
+
 bool build_intermediate(const u8 *data, size_t size,
                         intermediate_document &out, std::string &err);
 

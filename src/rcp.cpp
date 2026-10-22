@@ -868,5 +868,53 @@ bool expand_intermediate_timeline(const intermediate_document &document,
     return true;
 }
 
+bool convert_timeline_to_seconds(const document_header &header,
+                                 const std::vector<timed_track_event> &timeline,
+                                 std::vector<timed_seconds_event> &out,
+                                 std::string &err)
+{
+    out.clear();
+    err.clear();
+    if (header.ticks_per_quarter == 0) {
+        err = "RCP2 tick/秒変換では ticks_per_quarter が 0 です";
+        return false;
+    }
+    if (header.tempo_bpm == 0) {
+        err = "RCP2 tick/秒変換では初期 BPM が 0 です";
+        return false;
+    }
+
+    u64 tempo_us = 60000000ull / header.tempo_bpm;
+    u32 previous_tick = 0;
+    double seconds = 0.0;
+    out.reserve(timeline.size());
+    for (const timed_track_event &source : timeline) {
+        if (source.event.tick < previous_tick) {
+            out.clear();
+            err = "RCP2 秒変換の入力イベントが tick 順ではありません";
+            return false;
+        }
+        const u32 delta = source.event.tick - previous_tick;
+        seconds += (double(delta) * double(tempo_us)) /
+                   (double(header.ticks_per_quarter) * 1000000.0);
+        previous_tick = source.event.tick;
+
+        timed_seconds_event converted;
+        converted.time = seconds;
+        converted.source = source;
+        out.push_back(converted);
+
+        if (source.event.kind == timeline_event_kind::tempo) {
+            if (source.event.tempo.microseconds_per_quarter == 0) {
+                out.clear();
+                err = "RCP2 秒変換で 0 microseconds_per_quarter のテンポを検出しました";
+                return false;
+            }
+            tempo_us = source.event.tempo.microseconds_per_quarter;
+        }
+    }
+    return true;
+}
+
 
 } // namespace rcp
