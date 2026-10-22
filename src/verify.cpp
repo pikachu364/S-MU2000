@@ -873,7 +873,7 @@ static void check_rcp_midi_encoding()
          !rcp::encode_midi_message(event, 0, bytes, err)) &&
         bytes.empty() && !err.empty();
 
-    std::printf("RCP2 MIDIメッセージ符号化: Note On %s・Note Off %s・CC %s・Program Change %s・Pitch Bend %s・不正チャンネル拒否 %s・メタデータ分離 %s\\n",
+    std::printf("RCP2 MIDIメッセージ符号化: Note On %s・Note Off %s・CC %s・Program Change %s・Pitch Bend %s・不正チャンネル拒否 %s・メタデータ分離 %s\n",
         note_on_ok ? "合" : "NG", note_off_ok ? "合" : "NG",
         cc_ok ? "合" : "NG", program_ok ? "合" : "NG",
         bend_ok ? "合" : "NG", invalid_channel_rejected ? "合" : "NG",
