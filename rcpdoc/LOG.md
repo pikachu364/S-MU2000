@@ -131,3 +131,13 @@
 - 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
 
 - 追加段階: ノート移調を `expand_intermediate_timeline` に適用し、トラック移調 + 文書移調、およびリズムチャンネルで移調を抑止する統合テストを追加。CI は未確認。
+
+
+## 2026-10-22 — ノート gate の参照挙動を調査
+
+- `src/rcp.h` の `play_bias` コメントを、参照実装との照合後の signed 8-bit 文書移調という説明に修正した（[9444ef9](https://github.com/pikachu364/S-MU2000/commit/9444ef913815bcc87b16637892c7b8080019ce88)）。
+- ValleyBell/MidiConverters の `rcp2mid.c` を再確認し、RCP2 ノートの `code=音高 / p0=delay / p1=duration / p2=velocity`、duration 0 は発音しないこと、同じチャンネル/音高の再発音時は既存の終了時刻を更新することを確認して FACTS.md F-015 に記録した（[e55a842](https://github.com/pikachu364/S-MU2000/commit/e55a842d8648d57569a4177d49312030152c7710)）。
+- この発見により、現在の `note_event.duration` 保持だけでは note-off/gate 展開を実装したことにならない点を明確にした。単純な note-off 追加は同音高の再発音で参照実装と異なる可能性があるため、テスト設計を先に行う。
+- NEXT_STEPS.md で note gate と直接写像可能な MIDI コマンドの decoder を次候補として優先付けした（[3d0eae8](https://github.com/pikachu364/S-MU2000/commit/3d0eae8541eedbc207b47e3a2864ea7e55a07cb9)）。
+- `e55a842` の Actions build #162 は記録時点で queued。CI 結果はまだ成功扱いにしない。
+- 参照コード: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
