@@ -708,8 +708,8 @@ static void check_rcp_document_timeline()
     const bool minimum_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.size() == 2 &&
-        merged[0].event.kind == rcp::timeline_event_kind::note_off && merged[0].event.tick == 0 &&
-        merged[1].event.kind == rcp::timeline_event_kind::note && merged[1].event.tick == 0 && err.empty();
+        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.tick == 0 &&
+        merged[1].event.kind == rcp::timeline_event_kind::note_off && merged[1].event.tick == 0 && err.empty();
     doc.tracks[0].header.tick_offset = 0x7f;
     const bool maximum_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
