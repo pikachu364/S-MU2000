@@ -649,6 +649,40 @@ static void check_rcp_document_timeline()
         merged[2].track_index == 2 && merged[2].event.tick == 0 &&
         merged[4].track_index == 2 && merged[4].event.tick == 3;
 
+    // EB/EC/EE are emitted at the current tick; their p0 delay advances
+    // the cursor after each command, matching the reference converter.
+    doc.tracks.resize(1);
+    doc.tracks[0].header.tick_offset = 0;
+    doc.tracks[0].header.key = 0;
+    doc.header.play_bias = 0;
+    doc.tracks[0].events = {raw(0xeb, 2, 7, 100), raw(0xec, 3, 10, 0),
+                            raw(0xee, 1, 0, 64), raw(0xfe, 0, 0, 0)};
+    const bool midi_commands_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 3 &&
+        merged[0].event.kind == rcp::timeline_event_kind::control_change &&
+        merged[0].event.tick == 0 && merged[0].event.channel.data1 == 7 &&
+        merged[0].event.channel.data2 == 100 &&
+        merged[1].event.kind == rcp::timeline_event_kind::program_change &&
+        merged[1].event.tick == 2 && merged[1].event.channel.data1 == 10 &&
+        merged[2].event.kind == rcp::timeline_event_kind::pitch_bend &&
+        merged[2].event.tick == 5 && merged[2].event.channel.data1 == 0 &&
+        merged[2].event.channel.data2 == 64 && err.empty();
+
+    doc.tracks[0].events = {raw(0xec, 0, 0x80, 0), raw(0xfe, 0, 0, 0)};
+    const bool special_instrument_rejected =
+        !rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.empty() && !err.empty();
+    doc.tracks[0].events = {raw(0xeb, 0, 0x80, 0), raw(0xfe, 0, 0, 0)};
+    const bool invalid_control_value_rejected =
+        !rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.empty() && !err.empty();
+    std::printf("RCP2 EB/EC/EE MIDI コマンド: CC/Program/Pitch Bend と tick %s・特殊 EC 拒否 %s・7-bit 範囲外拒否 %s\\n",
+        midi_commands_ok ? "合" : "NG",
+        special_instrument_rejected ? "合" : "NG",
+        invalid_control_value_rejected ? "合" : "NG");
+
+    doc.tracks.resize(3);
     doc.tracks[1].events[1].raw.code = 0xf6;
     const bool unsupported_rejected =
         !rcp::expand_intermediate_timeline(doc, merged, err) &&
