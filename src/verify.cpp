@@ -933,7 +933,7 @@ static void check_rcp_tick_to_seconds()
         !rcp::convert_timeline_to_seconds(header, timeline, seconds, err) &&
         seconds.empty() && !err.empty();
 
-    std::printf("RCP2 tick→秒変換: テンポ変更前後 %s・PPQ 0 拒否 %s・初期 BPM 0 拒否 %s・逆順 tick 拒否 %s・テンポ値 0 拒否 %s\\n",
+    std::printf("RCP2 tick→秒変換: テンポ変更前後 %s・PPQ 0 拒否 %s・初期 BPM 0 拒否 %s・逆順 tick 拒否 %s・テンポ値 0 拒否 %s\n",
         timing_ok ? "合" : "NG", zero_ppq_rejected ? "合" : "NG",
         zero_bpm_rejected ? "合" : "NG", reverse_tick_rejected ? "合" : "NG",
         zero_tempo_rejected ? "合" : "NG");
