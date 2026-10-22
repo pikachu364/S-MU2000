@@ -442,6 +442,62 @@ bool decode_midi_channel_event(const sequence_event &raw,
 }
 
 
+bool encode_midi_message(const timed_event &event, u8 channel,
+                         std::vector<u8> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    if (channel > 0x0f) {
+        err = "MIDI チャンネルが 0..15 の範囲外です";
+        return false;
+    }
+
+    switch (event.kind) {
+    case timeline_event_kind::note:
+        if (event.note.note > 0x7f || event.note.velocity > 0x7f) {
+            err = "MIDI ノート番号またはベロシティが 7 bit 範囲外です";
+            return false;
+        }
+        out = {u8(0x90 | channel), event.note.note, event.note.velocity};
+        return true;
+    case timeline_event_kind::note_off:
+        if (event.note.note > 0x7f) {
+            err = "MIDI ノートオフのノート番号が 7 bit 範囲外です";
+            return false;
+        }
+        out = {u8(0x80 | channel), event.note.note, 0};
+        return true;
+    case timeline_event_kind::control_change:
+        if (event.channel.data1 > 0x7f || event.channel.data2 > 0x7f) {
+            err = "MIDI Control Change のデータ値が 7 bit 範囲外です";
+            return false;
+        }
+        out = {u8(0xb0 | channel), event.channel.data1, event.channel.data2};
+        return true;
+    case timeline_event_kind::program_change:
+        if (event.channel.data1 > 0x7f) {
+            err = "MIDI Program Change のデータ値が 7 bit 範囲外です";
+            return false;
+        }
+        out = {u8(0xc0 | channel), event.channel.data1};
+        return true;
+    case timeline_event_kind::pitch_bend:
+        if (event.channel.data1 > 0x7f || event.channel.data2 > 0x7f) {
+            err = "MIDI Pitch Bend のデータ値が 7 bit 範囲外です";
+            return false;
+        }
+        out = {u8(0xe0 | channel), event.channel.data1, event.channel.data2};
+        return true;
+    case timeline_event_kind::key_signature:
+    case timeline_event_kind::tempo:
+        err = "MIDI メタデータイベントはチャンネルメッセージではありません";
+        return false;
+    }
+    err = "未対応の MIDI イベント種別です";
+    return false;
+}
+
+
 bool expand_note_key_signature_tempo_timeline(
     const std::vector<sequence_event> &sequence, u16 bpm,
     std::vector<timed_event> &out, std::string &err)

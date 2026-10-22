@@ -823,6 +823,64 @@ static void check_rcp_document_timeline()
 }
 
 
+static void check_rcp_midi_encoding()
+{
+    std::string err;
+    std::vector<u8> bytes;
+    rcp::timed_event event;
+    event.kind = rcp::timeline_event_kind::note;
+    event.note.note = 60;
+    event.note.velocity = 100;
+    const bool note_on_ok =
+        rcp::encode_midi_message(event, 2, bytes, err) &&
+        bytes == std::vector<u8>({0x92, 60, 100}) && err.empty();
+
+    event.kind = rcp::timeline_event_kind::note_off;
+    event.note.note = 60;
+    const bool note_off_ok =
+        rcp::encode_midi_message(event, 2, bytes, err) &&
+        bytes == std::vector<u8>({0x82, 60, 0}) && err.empty();
+
+    event.kind = rcp::timeline_event_kind::control_change;
+    event.channel.data1 = 7;
+    event.channel.data2 = 99;
+    const bool cc_ok =
+        rcp::encode_midi_message(event, 1, bytes, err) &&
+        bytes == std::vector<u8>({0xb1, 7, 99}) && err.empty();
+
+    event.kind = rcp::timeline_event_kind::program_change;
+    event.channel.data1 = 10;
+    const bool program_ok =
+        rcp::encode_midi_message(event, 15, bytes, err) &&
+        bytes == std::vector<u8>({0xcf, 10}) && err.empty();
+
+    event.kind = rcp::timeline_event_kind::pitch_bend;
+    event.channel.data1 = 0;
+    event.channel.data2 = 64;
+    const bool bend_ok =
+        rcp::encode_midi_message(event, 0, bytes, err) &&
+        bytes == std::vector<u8>({0xe0, 0, 64}) && err.empty();
+
+    event.kind = rcp::timeline_event_kind::note;
+    event.note.note = 60;
+    event.note.velocity = 100;
+    const bool invalid_channel_rejected =
+        !rcp::encode_midi_message(event, 16, bytes, err) &&
+        bytes.empty() && !err.empty();
+
+    const bool metadata_rejected =
+        (event.kind = rcp::timeline_event_kind::tempo,
+         !rcp::encode_midi_message(event, 0, bytes, err)) &&
+        bytes.empty() && !err.empty();
+
+    std::printf("RCP2 MIDIメッセージ符号化: Note On %s・Note Off %s・CC %s・Program Change %s・Pitch Bend %s・不正チャンネル拒否 %s・メタデータ分離 %s\\n",
+        note_on_ok ? "合" : "NG", note_off_ok ? "合" : "NG",
+        cc_ok ? "合" : "NG", program_ok ? "合" : "NG",
+        bend_ok ? "合" : "NG", invalid_channel_rejected ? "合" : "NG",
+        metadata_rejected ? "合" : "NG");
+}
+
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -1139,6 +1197,7 @@ int main()
 	check_rcp_tempo_timeline();
 	check_rcp_track_merge();
 	check_rcp_document_timeline();
+	check_rcp_midi_encoding();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();

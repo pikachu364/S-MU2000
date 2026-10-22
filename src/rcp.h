@@ -168,6 +168,12 @@ bool decode_midi_channel_event(const sequence_event &raw,
                               timeline_event_kind &kind,
                               std::string &err);
 
+// Encode a timed note/channel event as a MIDI 1.0 channel message.
+// channel is explicitly supplied (0..15); RCP track-channel mapping is kept separate
+// until its file-format semantics are verified. Metadata events are not channel messages.
+bool encode_midi_message(const timed_event &event, u8 channel,
+                         std::vector<u8> &out, std::string &err);
+
 bool expand_note_key_signature_timeline(const std::vector<sequence_event> &sequence,
                                         std::vector<timed_event> &out,
                                         std::string &err);
