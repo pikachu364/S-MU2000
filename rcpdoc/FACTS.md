@@ -143,9 +143,19 @@
 
 ## F-014 — ノート移調の参照実装準拠ヘルパー
 
-**状態:** 実装と合成テストを追加。CI は未確認。
+**状態:** 実装・合成テスト・文書レベル展開への統合を追加。GitHub Actions build #160 の成功を確認。
 
 - ValleyBell/MidiConverters の RCP2 ハンドラーを参照し、トラック移調バイトの bit 7 が立つ場合はリズムチャンネル扱いとして移調を抑止する。通常トラックでは bit 6 を符号ビットとする signed 7-bit トラック移調に、文書ヘッダーの signed 8-bit 移調を加算する。
 - 最終ノート番号は参照実装と同様に `& 0x7f` で 7-bit 範囲へ折り返す。入力ノート自体が 0x7f を超える場合は拒否する。
 - テストでは負のトラック移調、負の文書移調、リズムチャンネルでの抑止、7-bit 折返し、範囲外ノート拒否を検査する。
 - 参照: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)。文書レベルのタイムライン展開でも、ノートイベントにこの移調処理を適用する。
+
+## F-015 — ノート duration と gate の参照実装上の扱い
+
+**状態:** ValleyBell/MidiConverters の参照コードを閲覧して確認。S-MU2000 側での note-off 展開・実再生は未実装/未確認。
+
+- RCP2 の通常ノートレコードは、`code` をノート番号、`p0` を開始までの delay、`p1` を duration、`p2` を velocity として参照実装が読む。
+- duration が 0 のノートは参照実装では発音イベントとして出力しない。
+- 発音するノートはノートオンを出し、duration に基づいて running-note 管理からノートオフを発行する。同じチャンネル/ノートが既に鳴っている場合は既存ノートの終了時刻を更新する特別扱いがあるため、単純に各ノートへ独立した note-off を足すだけでは完全互換にならない。
+- 根拠: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) の通常ノート処理と `AddRunningNote` / `CheckRunningNotes` 呼び出し。
+- 次の実装では、まず duration=0 の扱いと note-off tick の境界を合成テスト化し、同一音高の再発音・重複時の仕様を独立に設計する。これらを検証するまでは、duration を保持している現状を「gate 展開済み」とは扱わない。
