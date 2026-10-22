@@ -141,3 +141,11 @@
 - NEXT_STEPS.md で note gate と直接写像可能な MIDI コマンドの decoder を次候補として優先付けした（[3d0eae8](https://github.com/pikachu364/S-MU2000/commit/3d0eae8541eedbc207b47e3a2864ea7e55a07cb9)）。
 - `e55a842` の Actions build #162 は記録時点で queued。CI 結果はまだ成功扱いにしない。
 - 参照コード: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+## 2026-10-22 — EB/EC/EE MIDI チャンネルコマンドの小規模展開
+
+- 参照実装の EB/EC/EE handler を照合し、EB Control Change、EC の標準 Program Change（p1 < 0x80）、EE Pitch Bend のデータ形式を追加した。いずれもイベントは現在 tick に出力し、p0 の delay で次イベント位置を進める。
+- EC p1 >= 0x80 は MT-32 向け特殊インストゥルメント処理に使われるため、標準 Program Change として誤解釈せず、現段階ではエラーにする。EB/EE の data byte が 7-bit 範囲外の場合も拒否する。
+- 実装: [6c9045e](https://github.com/pikachu364/S-MU2000/commit/6c9045ec61af8226d77dffc7abb094e5fba4f660)（イベント表現）、[c4fd8de](https://github.com/pikachu364/S-MU2000/commit/c4fd8de43040cbff2d6bd74b7eb08c7420384a72)（decoder/展開）、[693ed61](https://github.com/pikachu364/S-MU2000/commit/693ed61cbdb6eb15ab869f03362983b4f9b9196f)（テスト）、[4502c5d](https://github.com/pikachu364/S-MU2000/commit/4502c5d31307ef9178b56806e1bc87d0fc78ed65)（verifier 状態と改行修正）、[a8230a5](https://github.com/pikachu364/S-MU2000/commit/a8230a51cc05d16cfbd45e898cc3b0b8c3cb078d)（baseline）。
+- 合成テストでは各イベントの tick と値、特殊 EC の拒否、7-bit 範囲外の拒否を検査する。テスト実行結果は GitHub Actions の確定後に追記する。
+- 制約: MIDI 出力層への接続、MIDI チャンネルの status byte 化、特殊 MT-32/SysEx 経路は未実装。次は note duration と note-off の running-note 挙動をテスト化する。
