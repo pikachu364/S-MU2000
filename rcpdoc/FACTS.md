@@ -172,3 +172,23 @@
 - EB/EE のデータバイトが 7-bit 範囲外の場合は拒否する。文書レベル展開で各イベントは現在 tick に配置し、p0 分だけ次イベントの tick を進める。
 - 根拠: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c) の EB/EC/EE case handlers。
 - 制約: MIDI status byte のチャンネル付与や実際の MIDI 出力層への接続、EC の特殊 MT-32/SysEx 経路は未実装。
+
+## F-017 — トラック MIDI ポート・チャンネル割り当てと CI #189
+
+**状態:** 実装コミットを GitHub で確認。CI 合格は作業者報告に基づく。実 RCP2 楽曲の再生は未確認。
+
+- 最新コードコミット: [27b583a — Map RCP2 track headers to MIDI ports and channels](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)。
+- `track_midi_mapping` と `map_track_midi_outputs(...)` を追加し、RCP2 track header の MIDI channel byte を分解する。
+- ValleyBell/MidiConverters `rcp2mid.c` の参照挙動に合わせ、raw byte の下位 nibble を MIDI channel、上位 nibble を MIDI device/port として扱い、bit 7 が立つ dummy track は disabled とする。
+- マッピングを受け取る MIDI event encoder overload を追加し、disabled track のイベントを除外する。既存 overload は維持する。
+- `src/verify.cpp` と `tests/verify.txt` に port/channel 分離と dummy track 除外の回帰ケースを追加した。
+- [GitHub Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808) は作業者が合格と報告。詳細な全ジョブログを独立再取得したわけではないため、根拠の種類を区別して記録する。
+- 制約: 実際の SMF serialization、既存 player への RCP2 直接接続、実ファイルでの音出し確認は未実施。
+
+## F-018 — 既存 SMF player の接続境界をコード確認
+
+**状態:** GitHub 上のソースコードを確認。実再生テストは未実施。
+
+- `src/smf.h` / `src/smf.cpp` は SMF format 0/1 の読み込みを行い、`smf::event` を秒単位の時刻・MIDI byte 列・port として表現する。
+- `src/ui/player.cpp` は `smf::load(...)` / `smf::load_from_memory(...)` を使って SMF を読み込む。RCP2 の中間イベントを直接受け取る接続は確認できなかった。
+- 次の作業は、既存の `smf::event` と player/bridge の契約を踏まえ、RCP2 から安全にイベント列を生成する境界を決めること。SMF ファイル書き出しを作るか、内部 event 列への直接変換を作るかは既存設計をさらに確認して決める。
