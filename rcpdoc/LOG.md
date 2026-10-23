@@ -158,3 +158,13 @@
 - note-off は開始イベントの移調後音高を引き継ぐ。gate 展開を符号付きトラック開始オフセットの前に行い、note-on/note-off の tick に同じ offset/clamp 規則を適用する。
 - src/verify.cpp と tests/verify.txt に、duration=0、同音高の終了更新、note-off tick/音高、複数トラック統合、オフセットとの相互作用を追加・更新した。
 - 今回のコミットと GitHub Actions の最終結果は、このログ更新時点では未確認。実 RCP2 ファイルの再生、SMF 出力への接続は未実施。
+
+
+## 2026-10-23 — MIDI ポート/チャンネル割り当てと CI #189
+
+- [27b583a — Map RCP2 track headers to MIDI ports and channels](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e) を feature ブランチの最新コードコミットとして確認した。
+- RCP2 track header の MIDI channel byte を下位 nibble（channel）と上位 nibble（port/device）に分け、bit 7 が立つ dummy track を無効化する `map_track_midi_outputs(...)` を追加した。対応する MIDI event encoder overload は disabled track のイベントを除外する。
+- `src/verify.cpp` と `tests/verify.txt` に port/channel 分離と dummy track 除外の regression case が含まれる。
+- 作業者から GitHub Actions #189 合格の報告を受けた：[Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808)。本ログでは作業者報告に基づく記録とし、実 RCP2 楽曲の再生確認とは区別する。
+- 既存 SMF player のコードを確認した。`smf::event` は秒・MIDI byte 列・port を持ち、`src/ui/player.cpp` は `smf::load` / `smf::load_from_memory` を使用する。RCP2 event の直接接続、SMF serialization、実ファイル再生は未実装/未確認。
+- 次は既存 player の時間・port・seek/chase 契約を調べ、RCP2 event adapter と SMF serialization のどちらが安全か決める。CI 合格を実再生互換性と混同しない。
