@@ -1265,8 +1265,21 @@ static void check_rcp_tempo_timeline()
         timeline[3].tick == 12 && timeline[3].kind == rcp::timeline_event_kind::note &&
         timeline[3].note.note == 62 && err.empty();
 
-    sequence[1] = event(0xf6, 7, 32, 0);
-    const bool unsupported_rejected =
+    // F6 comment and following F7 continuation records are metadata: they
+    // neither emit timeline events nor advance the tick counter.
+    sequence = {event(60, 5, 4, 90), event(0xf6, 7, 32, 0),
+                event(0xf7, 1, 2, 3), event(62, 3, 4, 80),
+                event(0xfe, 0, 0, 0)};
+    const bool comments_ignored =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 0 && timeline[0].note.note == 60 &&
+        timeline[1].kind == rcp::timeline_event_kind::note &&
+        timeline[1].tick == 5 && timeline[1].note.note == 62 && err.empty();
+
+    sequence = {event(0xf7, 0, 0, 0), event(0xfe, 0, 0, 0)};
+    const bool orphan_comment_continuation_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
@@ -1302,9 +1315,10 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・未知コマンド拒否 %s・scale 0 拒否 %s・p2 値保持 %s・FE 終端/後続未知無視 %s・FE なし/空入力拒否 %s\n",
+    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・F6/F7 コメント処理 %s・scale 0 拒否 %s・p2 値保持 %s・FE 終端/後続未知無視 %s・FE なし/空入力拒否 %s\n",
         timing_ok ? "合" : "NG", same_tick_order_ok ? "合" : "NG",
-        unsupported_rejected ? "合" : "NG", invalid_tempo_rejected ? "合" : "NG",
+        comments_ignored && orphan_comment_continuation_rejected ? "合" : "NG",
+        invalid_tempo_rejected ? "合" : "NG",
         gradual_retained ? "合" : "NG", end_terminates_ok ? "合" : "NG",
         missing_end_rejected && empty_missing_end_rejected ? "合" : "NG");
 }
