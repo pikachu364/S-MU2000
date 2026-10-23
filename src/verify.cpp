@@ -145,6 +145,42 @@ static void check_smf_player()
 // 文字ファイルを読めるかの確かめ（ui/font_check.h、issue #135）。表の並びだけの小さな書体を作って試す:
 // glyf の書体・CFF の書体は通り、CFF2 だけの書体（可変フォント）・cmap に Unicode の表が無い書体・
 // 束（TTC）の無い番号・ごみは通らない
+static void check_rcp_player_loader()
+{
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 8;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[0x1c0] = 0xe0; // PPQ 480, low byte
+    data[0x1c1] = 120;   // initial BPM
+    data[0x1e6] = 1;     // one track
+    data[0x1e7] = 1;     // PPQ 480, high byte
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    data[at + 2] = 1;    // track ID
+    data[at + 4] = 0x12; // MIDI channel 2, port 1
+    data[at + track_header_size] = 60;
+    data[at + track_header_size + 1] = 0;
+    data[at + track_header_size + 2] = 12;
+    data[at + track_header_size + 3] = 90;
+    data[at + track_header_size + 4] = 0xfe;
+
+    ui::player player;
+    std::string err;
+    const bool loaded = player.add_from_memory(data.data(), data.size(), "test.rcp", err);
+    const std::vector<ui::player::entry> entries = player.list();
+    const bool routed = loaded && entries.size() == 1 && entries[0].evs.size() == 2 &&
+        entries[0].evs[0].bytes == std::vector<u8>({0x92, 60, 90}) &&
+        entries[0].evs[0].port == 1 &&
+        entries[0].evs[1].bytes == std::vector<u8>({0x82, 60, 0}) &&
+        entries[0].evs[1].port == 1 && err.empty();
+    std::printf("RCP2 プレイヤー接続: メモリ読み込み/ノートオン・オフ/ポート・チャンネル %s\\n",
+        routed ? "合" : "NG");
+}
+
 static void check_font_parses()
 {
 	auto be16 = [](std::vector<u8> &v, u32 x) { v.push_back(u8(x >> 8)); v.push_back(u8(x)); };
@@ -1321,6 +1357,7 @@ int main()
 
 	check_bend_thinner();
 	check_smf_player();
+	check_rcp_player_loader();
 	check_rcp_header();
 	check_rcp_sequence();
 	check_rcp_note_decode();
