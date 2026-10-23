@@ -545,10 +545,26 @@ bool expand_note_key_signature_tempo_timeline(
 
     u32 current_tick = 0;
     bool found_end = false;
-    for (const sequence_event &raw : sequence) {
+    for (size_t record_index = 0; record_index < sequence.size(); ++record_index) {
+        const sequence_event &raw = sequence[record_index];
         if (raw.code == 0xfe) {
             found_end = true;
             break;
+        }
+
+        // F6 starts a comment and immediately following F7 records continue it.
+        // Comment bytes are metadata, not timed MIDI events. A standalone F7 is
+        // rejected so malformed/unknown command records are not silently ignored.
+        if (raw.code == 0xf6) {
+            while (record_index + 1 < sequence.size() &&
+                   sequence[record_index + 1].code == 0xf7)
+                ++record_index;
+            continue;
+        }
+        if (raw.code == 0xf7) {
+            out.clear();
+            err = "RCP F7 コメント継続レコードの前に F6 がありません";
+            return false;
         }
 
         timed_event timed;
