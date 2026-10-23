@@ -113,4 +113,18 @@
 | ノート移調 | 実装あり | 参照コンバーター式を独立テストし、文書タイムラインへの適用も合成テスト |
 | 未対応イベント・段階的テンポ変化 | 未対応/制約あり | 完全な RCP2 互換性を意味しない |
 
-**最新の確認事項:** [a9d5a61](https://github.com/pikachu364/S-MU2000/commit/a9d5a61e17223a0428257441f82054122ad30e6b) で verifier 出力の改行を修正し、ユーザー共有の Actions 一覧で build #129・#130 の成功を確認。32-bit 境界を直接検証するヘルパーとテストを追加中のため、その CI 結果はまだ未確認。
+**最新の確認事項（2026-10-23）:** ノート移調、note gate/note-off、EB/EC/EE 部分対応、tick→秒変換、MIDI メッセージ化補助、トラック MIDI ポート/チャンネル割り当てが追加されている。Actions #189 は作業者から合格報告あり。下の項目は「コードの存在」「合成テスト」「CI合格」「実際の楽曲再生」を混同せず追跡する。
+
+## 10. MIDI 出力接続・ポート割り当て（2026-10-23）
+
+| 項目 | 実装状況 | テスト/制約 |
+|---|---|---|
+| トラックの MIDI channel/port byte | 実装あり | raw byte の下位 nibble を channel、上位 nibble を port/device として分離 |
+| dummy/unrouted track | 実装あり | bit 7 が立つトラックを disabled とし、イベント出力から除外 |
+| tick→秒変換 | 実装あり | PPQ/BPM/tempo event を検証。E7 の段階的テンポ変化は未対応 |
+| MIDI channel message のバイト列化 | 部分実装あり | Note On/Off、CC、Program Change、Pitch Bend の範囲検証あり。実プレイヤー接続とは別 |
+| MIDI Port Prefix / SMF track serialization | 未完了 | 実際の SMF ファイルを生成して読み込む処理は未実装 |
+| 既存 player への RCP2 接続 | 未完了 | player は現在 SMF の読み込み経路を使用。RCP2 を直接受ける経路は未実装 |
+| 実 RCP2 楽曲の再生検証 | 未実施 | CI 合格だけでは実再生互換性を保証しない |
+
+参照実装の MIDI channel/port 解釈は ValleyBell/MidiConverters の `rcp2mid.c` と照合した。これは S-MU2000 実機での再生試験を意味しない。
