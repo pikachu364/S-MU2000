@@ -923,6 +923,62 @@ bool convert_timeline_to_seconds(const document_header &header,
 }
 
 
+bool map_track_midi_outputs(const intermediate_document &document,
+                            std::vector<track_midi_mapping> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    out.reserve(document.tracks.size());
+    for (const intermediate_track &track : document.tracks) {
+        const u8 raw = track.header.midi_channel;
+        track_midi_mapping mapping;
+        if (raw & 0x80) {
+            // The reference converter treats this as a dummy channel and omits
+            // its MIDI events instead of routing them to channel zero.
+            mapping.enabled = false;
+        } else {
+            mapping.channel = raw & 0x0f;
+            mapping.port = raw >> 4;
+        }
+        out.push_back(mapping);
+    }
+    return true;
+}
+
+bool encode_timeline_to_midi_events(
+    const std::vector<timed_seconds_event> &timeline,
+    const std::vector<track_midi_mapping> &mapping,
+    std::vector<midi_output_event> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    double previous_time = 0.0;
+    out.reserve(timeline.size());
+    for (const timed_seconds_event &source : timeline) {
+        if (!(source.time >= 0.0) || source.time < previous_time) {
+            out.clear(); err = "RCP2 MIDI 出力イベントの時刻が負値または逆順です"; return false;
+        }
+        previous_time = source.time;
+        const auto kind = source.source.event.kind;
+        if (kind == timeline_event_kind::tempo || kind == timeline_event_kind::key_signature)
+            continue;
+        const size_t track = source.source.track_index;
+        if (track >= mapping.size()) {
+            out.clear(); err = "RCP2 MIDI 出力のトラック割り当てが不足しています"; return false;
+        }
+        if (!mapping[track].enabled)
+            continue;
+        std::vector<u8> bytes;
+        if (!encode_midi_message(source.source.event, mapping[track].channel, bytes, err)) {
+            out.clear();
+            err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
+            return false;
+        }
+        out.push_back({source.time, std::move(bytes), mapping[track].port});
+    }
+    return true;
+}
+
 bool encode_timeline_to_midi_events(
     const std::vector<timed_seconds_event> &timeline,
     const std::vector<u8> &channel_by_track, const std::vector<u8> &port_by_track,

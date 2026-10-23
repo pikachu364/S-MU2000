@@ -262,9 +262,20 @@ bool convert_timeline_to_seconds(const document_header &header,
 // Encoded channel events for the seconds-based playback path. Mapping is explicit
 // until RCP track channel/port semantics are verified.
 struct midi_output_event { double time = 0.0; std::vector<u8> bytes; u8 port = 0; };
+
+// Track-header MIDI routing decoded from the RCP2 channel byte.
+// Low nibble is MIDI channel, high nibble is MIDI port/device.
+// Bit 7 marks a dummy/unrouted track in the reference converter.
+struct track_midi_mapping { u8 channel = 0; u8 port = 0; bool enabled = true; };
+bool map_track_midi_outputs(const intermediate_document &document,
+                            std::vector<track_midi_mapping> &out, std::string &err);
 bool encode_timeline_to_midi_events(
     const std::vector<timed_seconds_event> &timeline,
     const std::vector<u8> &channel_by_track, const std::vector<u8> &port_by_track,
+    std::vector<midi_output_event> &out, std::string &err);
+bool encode_timeline_to_midi_events(
+    const std::vector<timed_seconds_event> &timeline,
+    const std::vector<track_midi_mapping> &mapping,
     std::vector<midi_output_event> &out, std::string &err);
 
 bool build_intermediate(const u8 *data, size_t size,

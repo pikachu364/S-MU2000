@@ -982,6 +982,38 @@ static void check_rcp_timeline_output_encoding()
         ok?"合":"NG",missing?"合":"NG",reversed?"合":"NG");
 }
 
+
+static void check_rcp_track_midi_mapping()
+{
+    rcp::intermediate_document document;
+    document.tracks.resize(3);
+    document.tracks[0].header.midi_channel = 0x23; // port 2, channel 3
+    document.tracks[1].header.midi_channel = 0x41; // port 4, channel 1
+    document.tracks[2].header.midi_channel = 0x80; // dummy/unrouted
+    std::vector<rcp::track_midi_mapping> mapping;
+    std::string err;
+    const bool mapped = rcp::map_track_midi_outputs(document, mapping, err) &&
+        mapping.size() == 3 && mapping[0].enabled && mapping[0].channel == 3 && mapping[0].port == 2 &&
+        mapping[1].enabled && mapping[1].channel == 1 && mapping[1].port == 4 &&
+        !mapping[2].enabled && err.empty();
+
+    std::vector<rcp::timed_seconds_event> timeline(3);
+    for (size_t i = 0; i < timeline.size(); ++i) {
+        timeline[i].time = double(i) * 0.25;
+        timeline[i].source.track_index = i;
+        timeline[i].source.event.kind = rcp::timeline_event_kind::note;
+        timeline[i].source.event.note.note = u8(60 + i);
+        timeline[i].source.event.note.velocity = 90;
+    }
+    std::vector<rcp::midi_output_event> output;
+    const bool routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
+        output.size() == 2 && output[0].bytes == std::vector<u8>({0x93, 60, 90}) &&
+        output[0].port == 2 && output[1].bytes == std::vector<u8>({0x91, 61, 90}) &&
+        output[1].port == 4 && err.empty();
+    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・ダミートラック除外 %s\n",
+        mapped ? "合" : "NG", routed ? "合" : "NG");
+}
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -1301,6 +1333,7 @@ int main()
 	check_rcp_midi_encoding();
 	check_rcp_tick_to_seconds();
 	check_rcp_timeline_output_encoding();
+	check_rcp_track_midi_mapping();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();
