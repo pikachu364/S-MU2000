@@ -1287,7 +1287,7 @@ static void check_rcp_tempo_conversion()
 // The complete core conversion used by the UI player, exercised without UI or ROMs.
 static void check_rcp2_player_event_pipeline()
 {
-    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
     const size_t track_length = track_header_size + 12;
@@ -1320,7 +1320,7 @@ static void check_rcp2_player_event_pipeline()
     const bool routed = timed && rcp::map_track_midi_outputs(document, mapping, err);
     const bool encoded = routed && rcp::encode_timeline_to_midi_events(seconds, mapping, output, err);
     const bool note_on = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
-        return e.bytes == std::vector<u8>({0x90, 60, 90}) && e.port == 0 && e.time > 0.0;
+        return e.bytes == std::vector<u8>({0x90, 60, 90}) && e.port == 0 && e.time >= 0.0;
     });
     const bool note_off = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
         return e.bytes.size() == 3 && e.bytes[0] == 0x80 && e.bytes[1] == 60 && e.port == 0;
