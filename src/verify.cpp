@@ -177,7 +177,7 @@ static void check_rcp_player_loader()
         entries[0].evs[0].port == 1 &&
         entries[0].evs[1].bytes == std::vector<u8>({0x82, 60, 0}) &&
         entries[0].evs[1].port == 1 && err.empty();
-    std::printf("RCP2 プレイヤー接続: メモリ読み込み/ノートオン・オフ/ポート・チャンネル %s\\n",
+    std::printf("RCP2 プレイヤー接続: メモリ読み込み/ノートオン・オフ/ポート・チャンネル %s\n",
         routed ? "合" : "NG");
 }
 
