@@ -13,8 +13,15 @@ permissions:
 
 on: [push, pull_request]
 
+# 同じブランチで新しいコミットが来たら、古い実行を止めて結果の混在を防ぐ。
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   macos:
+    # Linux のビルド・基本テスト成功後に実行（各 OS はその後並列）。
+    needs: linux
     # macOS needs nothing beyond Xcode: SDL is Linux-only, CoreAudio and
     # friends ship with the OS. auv3/clap are not in `all`, so they build
     # explicitly (AUV3_ROMS=none: no ROMs in the bundle; running anything
@@ -77,6 +84,8 @@ jobs:
           SDL_VIDEODRIVER=dummy make test
 
   windows:
+    # Linux のビルド・基本テスト成功後に実行（各 OS はその後並列）。
+    needs: linux
     # The owner's own setup (MSYS2 mingw64): native build, texts, and the
     # ROM-free test steps, exactly as verified locally before merging.
     runs-on: windows-latest
@@ -99,6 +108,8 @@ jobs:
       - run: make test
 
   windows-cmake-msvc:
+    # Linux のビルド・基本テスト成功後に実行（各 OS はその後並列）。
+    needs: linux
     # CMake with MSVC, on both -A profiles. Everything above compiles with
     # MinGW only, and MinGW is forgiving about exactly the things MSVC is not:
     # headers its windows.h pulls in where a lean one does not, __builtin_*
@@ -118,6 +129,8 @@ jobs:
       - run: .\build-msvc-${{ matrix.platform }}\bin\${{ matrix.platform }}\Release\verify.exe
 
   readme:
+    # Linux のビルド・基本テスト成功後に実行（各 OS はその後並列）。
+    needs: linux
     # **README は英語が表**（README.md）で、日本語が README.ja.md。
     # 片方だけ直すと、もう片方が静かに古くなる。**止めはしないが知らせる**
     # （英語のつづり直しのような、片方で足りる変更も普通にあるため）。
@@ -145,6 +158,8 @@ jobs:
           fi
 
   windows-32bit:
+    # Linux のビルド・基本テスト成功後に実行（各 OS はその後並列）。
+    needs: linux
     # 32 bit (MSYS2 mingw32). It has its own arm of the MEG JIT and its own
     # linker flags, and it is the path that broke unnoticed in #48 because
     # only x86-64 gets compiled on the maintainer's machine. Build only:
