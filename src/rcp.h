@@ -144,7 +144,7 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
 // Experimental legacy timeline accepting notes and F5 only. F5 is emitted at
 // the current tick and must not advance it; other commands (including E7) are rejected.
-enum class timeline_event_kind { note, note_off, key_signature, tempo, control_change, program_change, pitch_bend };
+enum class timeline_event_kind { note, note_off, key_signature, tempo, control_change, program_change, pitch_bend, channel_aftertouch, poly_aftertouch };
 struct midi_channel_event {
     u8 delay = 0;
     u8 data1 = 0;
@@ -160,9 +160,9 @@ struct timed_event {
     midi_channel_event channel;
 };
 
-// Experimental decoder for EB Control Change, EC standard Program Change,
-// and EE Pitch Bend. EC values >= 0x80 use a special instrument encoding and
-// are rejected here rather than misrepresented as a standard MIDI program.
+// Experimental decoder for EA Channel Aftertouch, EB Control Change, EC standard
+// Program Change, ED Polyphonic Aftertouch, and EE Pitch Bend. EC values >= 0x80
+// use a special instrument encoding and are rejected rather than misrepresented.
 bool decode_midi_channel_event(const sequence_event &raw,
                               midi_channel_event &out,
                               timeline_event_kind &kind,
