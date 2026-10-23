@@ -2,9 +2,12 @@
 
 #include "player.h"
 #include "bend_thinner.h"
+#include "../rcp.h"
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <cstring>
 #include <random>
 
 // timeBeginPeriod() only exists on Windows, as the way to ask the scheduler for
@@ -39,6 +42,105 @@ std::string file_name(const std::string &path)
 {
 	const size_t slash = path.find_last_of("/\\");
 	return slash == std::string::npos ? path : path.substr(slash + 1);
+}
+
+// RCP2 と SMF を同じ秒ベースのプレイヤーイベント列に変換する。
+// RCP2 は現時点で実装済みコマンドだけを受け付け、未対応コマンドはエラーにする。
+bool load_events_from_memory(const u8 *data, size_t size,
+                             std::vector<smf::event> &events, std::string &err,
+                             smf::song_meta *meta)
+{
+    events.clear();
+    err.clear();
+    if (size >= 4 && std::memcmp(data, "MThd", 4) == 0)
+        return smf::load_from_memory(data, size, events, err, meta);
+
+    rcp::header_info info;
+    std::string inspect_error;
+    if (!rcp::inspect_header(data, size, info, inspect_error) ||
+        info.type != rcp::format::rcp2)
+        return smf::load_from_memory(data, size, events, err, meta);
+
+    rcp::intermediate_document document;
+    if (!rcp::build_intermediate(data, size, document, err))
+        return false;
+    std::vector<rcp::timed_track_event> timeline;
+    if (!rcp::expand_intermediate_timeline(document, timeline, err))
+        return false;
+    std::vector<rcp::timed_seconds_event> seconds;
+    if (!rcp::convert_timeline_to_seconds(document.header, timeline, seconds, err))
+        return false;
+    std::vector<rcp::track_midi_mapping> mapping;
+    if (!rcp::map_track_midi_outputs(document, mapping, err))
+        return false;
+    std::vector<rcp::midi_output_event> encoded;
+    if (!rcp::encode_timeline_to_midi_events(seconds, mapping, encoded, err))
+        return false;
+
+    if (meta) {
+        *meta = smf::song_meta{};
+        meta->ppq = document.header.ticks_per_quarter;
+        if (document.header.tempo_bpm == 0) {
+            err = "RCP2 初期テンポが 0 です";
+            return false;
+        }
+        meta->tempo.push_back({0.0, 0, double(document.header.tempo_bpm)});
+        for (const rcp::timed_seconds_event &event : seconds) {
+            if (event.source.event.kind != rcp::timeline_event_kind::tempo)
+                continue;
+            const u32 us = event.source.event.tempo.microseconds_per_quarter;
+            if (!us)
+                continue;
+            const double bpm = 60000000.0 / double(us);
+            if (!meta->tempo.empty() && meta->tempo.back().tick == event.source.event.tick)
+                meta->tempo.back() = {event.time, event.source.event.tick, bpm};
+            else
+                meta->tempo.push_back({event.time, event.source.event.tick, bpm});
+        }
+    }
+    events.reserve(encoded.size());
+    for (const rcp::midi_output_event &event : encoded)
+        events.push_back({event.time, event.bytes, event.port});
+    return true;
+}
+
+bool load_file_events(const std::string &path, std::vector<smf::event> &events,
+                      std::string &err, smf::song_meta *meta)
+{
+    std::FILE *file = nullptr;
+#if defined(_WIN32)
+    const int n = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+    if (n > 0) {
+        std::wstring wide(size_t(n), L'\\0');
+        MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide.data(), n);
+        file = _wfopen(wide.c_str(), L"rb");
+    }
+#else
+    file = std::fopen(path.c_str(), "rb");
+#endif
+    if (!file) {
+        err = "ファイルを開けません: " + path;
+        return false;
+    }
+    if (std::fseek(file, 0, SEEK_END) != 0) {
+        std::fclose(file);
+        err = "ファイルサイズを取得できません: " + path;
+        return false;
+    }
+    const long length = std::ftell(file);
+    if (length < 0 || std::fseek(file, 0, SEEK_SET) != 0) {
+        std::fclose(file);
+        err = "ファイルサイズを取得できません: " + path;
+        return false;
+    }
+    std::vector<u8> data(size_t(length));
+    if (std::fread(data.data(), 1, data.size(), file) != data.size()) {
+        std::fclose(file);
+        err = "ファイルを読み込めません: " + path;
+        return false;
+    }
+    std::fclose(file);
+    return load_events_from_memory(data.data(), data.size(), events, err, meta);
 }
 
 // 曲の終わりから次の曲までの間（音の尾を少し待つ）
@@ -93,7 +195,7 @@ bool player::add(const std::string &path, std::string &err, int *index)
 	}
 	std::vector<smf::event> evs;
 	smf::song_meta meta;
-	if (!smf::load(path, evs, err, &meta))
+	if (!load_file_events(path, evs, err, &meta))
 		return false;
 	if (evs.empty()) {
 		err = "中身が空";
@@ -113,7 +215,7 @@ bool player::add_from_memory(const u8 *data, size_t size, const std::string &nam
 {
 	std::vector<smf::event> evs;
 	smf::song_meta meta;
-	if (!smf::load_from_memory(data, size, evs, err, &meta))
+	if (!load_events_from_memory(data, size, evs, err, &meta))
 		return false;
 	if (evs.empty()) {
 		err = "中身が空";
@@ -356,7 +458,7 @@ void player::run(bridge &br)
 			events = e.evs;   // ファイルでない曲（iOS の選択、wasm）は最初から入っている
 		}
 		std::string err;
-		const bool ok = (events.empty() ? smf::load(path, events, err, &meta)
+		const bool ok = (events.empty() ? load_file_events(path, events, err, &meta)
 		                                : true) && !events.empty();
 		int ports = 1;
 		for (const smf::event &e : events)
