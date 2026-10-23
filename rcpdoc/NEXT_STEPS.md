@@ -1,60 +1,46 @@
 # 次の作業
 
-更新日：2026-10-23  
+更新日：2026-10-24  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-最新 HEAD：[27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)
+確認 HEAD：[5160464](https://github.com/pikachu364/S-MU2000/commit/51604642a46f9653c64e2e512f5935b61b7af81b)
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
-## T-001 — CI #189 の記録を同期する
+## T-001 — MinGW/MSYS2 CI の安定化
 
-**状態:** 作業者から合格報告あり。
+**状態:** 当面の回避策を確認済み。根本原因の調査は保留。
 
-- [x] #189 が合格したとの報告を受領。
-- [x] 最新 HEAD と CI のリンクを記録する。
-- [ ] 必要に応じて Actions の全ジョブ詳細を取得し、各 job の最終結論を追記する。
+- [x] `.github/workflows/build.yml` の Windows MSYS2 セットアップを `update: false` に変更。
+- [x] [GitHub Actions #225](https://github.com/pikachu364/S-MU2000/actions/runs/40017822466) の全7ジョブが成功したことを確認。
+- [ ] MSYS2 の推奨環境を維持したまま、更新時に発生した `__mingw_fe_dfl_env` のリンクエラーを将来調査する。
 
-[GitHub Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808)
+注意: 現設定は MSYS2 を外すものではなく、CI の全面更新を避ける回避策。根本原因が解決したことを意味しない。
 
-## T-002 — RCP2 の MIDI 出力接続境界を設計する
+## T-002 — RCP2 から既存プレイヤーへのイベント接続
 
-**優先度:** 最優先  
-**状態:** 調査開始。直接接続は未実装。
+**状態:** 実装あり。CI #225 成功。実ファイル再生は未確認。
 
-確認済みの構造:
-- `rcp::timed_event` / `timed_seconds_event` は RCP2 のイベント・時刻変換に使われる。
-- MIDI message encoder と track port/channel mapping は存在する。
-- `smf::event` は秒・MIDI byte 列・port を持つ。
-- `src/ui/player.cpp` は現在 `smf::load` / `smf::load_from_memory` を使う。RCP2 event の直接再生経路は未確認。
+- [x] `src/ui/player.cpp` のメモリ読み込み経路で RCP2 を識別し、SMF 読み込みと分岐する。
+- [x] RCP2 を中間表現へ解析し、対応イベントを展開、tick→秒変換、track port/channel 割当、MIDI byte 列へ変換する。
+- [x] `smf::event`（秒・MIDI byte 列・port）へ詰め替え、既存プレイヤーのイベント経路へ渡す。
+- [x] 合成データで解析→展開→秒変換→割当→MIDI 変換の経路を検査する。
+- [ ] `player::add_from_memory` からの実際の RCP2 読み込みとエラー伝播を、プレイヤー API レベルで独立検証する。
+- [ ] 実際の RCP2 ファイルで比較・再生検証する。
 
-次に行うこと:
-- [ ] player のイベント順序、port mapping、tempo/seek/chase の扱いを読む。
-- [ ] RCP2 の tempo metadata と秒単位 event の変換契約を照合する。
-- [ ] 直接 `smf::event` 相当へ変換する方式と、SMF serialization を挟む方式を比較する。
-- [ ] 未対応 event がある場合に部分出力で成功扱いにならないエラー設計にする。
+制約: CI と合成パイプラインの成功は、すべての RCP2 コマンドへの対応や実曲の互換性を保証しない。
 
-**完了条件:** 既存の再生経路を壊さずに接続する方式が決まり、API とテスト方針が明文化される。
+## T-003 — 対応コマンドと未対応コマンドの境界を明確化
 
-## T-003 — 最小の内部 event adapter と回帰テスト
+**優先度:** 高
 
-**優先度:** 高  
-**状態:** T-002 の設計後に実装。
+現在の文書レベル展開は、通常ノート、F5 キー署名、E7 テンポ、EA/EB/EC/ED/EE の対応サブセットを扱う。段階的テンポ変化、特殊 EC、ループ、その他のコマンドは完全対応ではない。
 
-- [ ] Note On/Off、CC、Program Change、Pitch Bend の既存 encoder を使って MIDI byte 列を生成する。
-- [ ] RCP2 track header の channel/port mapping を adapter に適用する。
-- [ ] tick / 秒の単調性、同 tick の安定順序、dummy track 除外をテストする。
-- [ ] tempo metadata を player が必要とする形式へ変換する。段階的 E7 tempo curve は未対応として明示する。
-- [ ] 不正チャンネル・ポート・イベント値、未対応 command の拒否を検証する。
-- [ ] `src/verify.cpp` と `tests/verify.txt` を更新し、CI の全ジョブが完了するまで合格扱いにしない。
+- [ ] `rcpdoc/CHECKLIST.md` を現コード・テストと照合し、対応済みと未対応をコード／合成テスト別に記録する。
+- [ ] 未対応コマンドが混在する入力を、部分的なイベント出力のまま成功扱いにしないことをテストする。
+- [ ] F8/F9/FC ループの参照資料・挙動を再確認し、実装前に安全なループ展開仕様と循環防止を設計する。
+- [ ] 0x98、F8 の step=0、特殊 EC、E7 gradual tempo の未解決点を `HYPOTHESES.md` に維持する。
 
-## T-004 — RCP2 仕様チェックリストの同期
-
-- [ ] `CHECKLIST.md` でヘッダー、transpose、delay、mute、note gate、EB/EC/EE、tempo、port/channel mapping をコード・テスト別に追跡する。
-- [ ] `FACTS.md` に根拠となるコードとテストの参照を記録する。
-- [ ] `HYPOTHESES.md` に未解決の 0x98、0xFC loop、E7 gradual tempo、特殊 EC、実ファイル再生を残す。
-- [ ] 古い「CI 未確認」記述は、歴史的記録として残す箇所を除き、現在状態と矛盾しないよう更新する。
-
-## T-005 — 実 RCP2 サンプルとの比較・再生検証
+## T-004 — 実 RCP2 サンプルとの比較・再生検証
 
 **状態:** 未実施。
 
@@ -65,7 +51,7 @@
 
 `/r/roms` はアップロードしない。
 
-## T-006 — ローカル作業環境との差分確認
+## T-005 — ローカル作業環境との差分確認
 
 **状態:** 未確認。
 
