@@ -325,10 +325,10 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err)
         return false;
     }
 
-    // Match the reference converter's integer formula without rounding:
-    // 60,000,000 * scale / (BPM * 64). Use u64 for the numerator.
-    const u32 denominator = static_cast<u32>(bpm) * 64u;
-    out = static_cast<u32>((60000000ull * static_cast<u64>(scale)) / denominator);
+    // Match ValleyBell/MidiConverters' Tempo2Mid integer formula without rounding:
+    // 60,000,000 * 64 / (BPM * scale). Use u64 for the numerator.
+    const u64 denominator = static_cast<u64>(bpm) * static_cast<u64>(scale);
+    out = static_cast<u32>((60000000ull * 64ull) / denominator);
     return true;
 }
 
