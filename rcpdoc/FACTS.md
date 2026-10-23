@@ -185,10 +185,12 @@
 - [GitHub Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808) は作業者が合格と報告。詳細な全ジョブログを独立再取得したわけではないため、根拠の種類を区別して記録する。
 - 制約: 実際の SMF serialization、既存 player への RCP2 直接接続、実ファイルでの音出し確認は未実施。
 
-## F-018 — 既存 SMF player の接続境界をコード確認
+## F-018 — 既存 SMF player の接続境界と RCP2 経路
 
-**状態:** GitHub 上のソースコードを確認。実再生テストは未実施。
+**状態:** GitHub 上のコード確認済み。合成パイプラインのテストがあり、Actions #225 は全ジョブ成功。実 RCP2 ファイルでの再生は未確認。
 
 - `src/smf.h` / `src/smf.cpp` は SMF format 0/1 の読み込みを行い、`smf::event` を秒単位の時刻・MIDI byte 列・port として表現する。
-- `src/ui/player.cpp` は `smf::load(...)` / `smf::load_from_memory(...)` を使って SMF を読み込む。RCP2 の中間イベントを直接受け取る接続は確認できなかった。
-- 次の作業は、既存の `smf::event` と player/bridge の契約を踏まえ、RCP2 から安全にイベント列を生成する境界を決めること。SMF ファイル書き出しを作るか、内部 event 列への直接変換を作るかは既存設計をさらに確認して決める。
+- `src/ui/player.cpp` の `load_events_from_memory(...)` は、先頭が `MThd` なら SMF 読み込みへ、RCP2 シグネチャなら `rcp::build_intermediate` → `rcp::expand_intermediate_timeline` → `rcp::convert_timeline_to_seconds` → `rcp::map_track_midi_outputs` → `rcp::encode_timeline_to_midi_events` の順で処理し、結果を `smf::event` へ詰め替える。
+- RCP2 のタイトル、PPQ、初期テンポ、対応する E7 テンポイベントを `smf::song_meta` に反映する。既存 player の秒単位イベント再生経路を利用するため、RCP2 専用の SMF ファイル書き出しは不要。
+- `src/verify.cpp` の `check_rcp2_player_event_pipeline()` は合成データで解析から MIDI イベント化までを検査する。Actions #225 では Linux、Windows MinGW 64/32-bit、MSVC x64/Win32、macOS、README の全7ジョブが成功した。
+- **制約:** このテストは内部変換パイプラインの検査であり、`player::add_from_memory` の API レベル動作や実際の RCP2 ファイルの音出しを証明しない。E7 gradual tempo、特殊 EC、ループ、未対応コマンドなどの制約も残る。
