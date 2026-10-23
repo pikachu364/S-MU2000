@@ -82,3 +82,20 @@ JMPlayer 資料では `0xF5`、`0xF6`/`0xF7`、`0xF8`/`0xF9`、`0xFD` などに�
 - `0x98` は意味を推測して `0xFC` と同じ処理にしない。
 
 **完了条件:** 各コマンドの観測・期待結果・根拠が記録され、未解決の部分は未解決のまま残されている。
+
+
+## H-008 — RCP2 のイベント列を既存 player へ接続する方式
+
+**状態:** 設計検討中。実装未完了。
+
+`src/ui/player.cpp` は現在 SMF を読み込む経路で、RCP2 の document/timeline event を直接再生する経路は確認できていない。一方、RCP2 側には秒単位への変換と MIDI message byte 化、track port/channel mapping の補助処理が存在する。
+
+**検討する案:**
+- RCP2 event を `smf::event` 相当の内部列に直接変換して player の再生ループに渡す。
+- SMF serializer を実装し、既存の SMF loader に戻して再生する。
+
+**判断基準:**
+- 現在の `player` / `bridge` の所有権・タイミング・port mapping を壊さない。
+- 同 tick のイベント順、tempo event、port/channel mapping、dummy track の除外を維持する。
+- 未対応イベントを黙って落とさず、明示的に拒否する。
+- 合成テストと CI を通し、実 RCP2 ファイルでの再生確認とは別に記録する。
