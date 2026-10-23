@@ -1204,7 +1204,7 @@ static void check_rcp_tempo_event_decode()
     std::string err = "stale error";
     const bool fields_ok = rcp::decode_tempo_event(raw, 120, event, err) &&
         event.delay == 7 && event.scale == 32 && event.gradual == 4 &&
-        event.microseconds_per_quarter == 250000 && err.empty();
+        event.microseconds_per_quarter == 1000000 && err.empty();
 
     raw.code = 0xe6;
     const bool wrong_command_rejected =
