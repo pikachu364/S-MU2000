@@ -888,7 +888,7 @@ static void check_rcp_aftertouch_commands()
         timeline[1].tick == 2 && timeline[1].kind == rcp::timeline_event_kind::poly_aftertouch &&
         err.empty();
 
-    std::printf("RCP2 EA/ED アフタータッチ: Channel/Poly decode %s・MIDI符号化 %s・時間展開 %s・7-bit 範囲外拒否 %s\\n",
+    std::printf("RCP2 EA/ED アフタータッチ: Channel/Poly decode %s・MIDI符号化 %s・時間展開 %s・7-bit 範囲外拒否 %s\n",
         channel_decode && poly_decode ? "合" : "NG",
         channel_encode && poly_encode ? "合" : "NG",
         timeline_ok ? "合" : "NG",
