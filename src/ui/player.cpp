@@ -133,7 +133,7 @@ bool load_file_events(const std::string &path, std::vector<smf::event> &events,
         err = "ファイルサイズを取得できません: " + path;
         return false;
     }
-    std::vector<u8> data(size_t(length));
+    std::vector<u8> data(static_cast<size_t>(length), u8(0));
     if (std::fread(data.data(), 1, data.size(), file) != data.size()) {
         std::fclose(file);
         err = "ファイルを読み込めません: " + path;
