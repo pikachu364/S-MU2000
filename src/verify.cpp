@@ -1284,6 +1284,52 @@ static void check_rcp_tempo_conversion()
 }
 
 
+// The complete core conversion used by the UI player, exercised without UI or ROMs.
+static void check_rcp2_player_event_pipeline()
+{
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\\r\\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 12;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[0x1c0] = 0xe0;
+    data[0x1c1] = 100;
+    data[0x1e6] = 1;
+    data[0x1e7] = 1;
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    data[at + 2] = 0;
+    data[at + 4] = 0;
+    data[at + track_header_size] = 60;
+    data[at + track_header_size + 1] = 12;
+    data[at + track_header_size + 2] = 100;
+    data[at + track_header_size + 3] = 90;
+    data[at + track_header_size + 4] = 0xfe;
+
+    rcp::intermediate_document document;
+    std::vector<rcp::timed_track_event> timeline;
+    std::vector<rcp::timed_seconds_event> seconds;
+    std::vector<rcp::track_midi_mapping> mapping;
+    std::vector<rcp::midi_output_event> output;
+    std::string err;
+    const bool built = rcp::build_intermediate(data.data(), data.size(), document, err);
+    const bool expanded = built && rcp::expand_intermediate_timeline(document, timeline, err);
+    const bool timed = expanded && rcp::convert_timeline_to_seconds(document.header, timeline, seconds, err);
+    const bool routed = timed && rcp::map_track_midi_outputs(document, mapping, err);
+    const bool encoded = routed && rcp::encode_timeline_to_midi_events(seconds, mapping, output, err);
+    const bool note_on = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
+        return e.bytes == std::vector<u8>({0x90, 60, 90}) && e.port == 0 && e.time > 0.0;
+    });
+    const bool note_off = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
+        return e.bytes.size() == 3 && e.bytes[0] == 0x80 && e.bytes[1] == 60 && e.port == 0;
+    });
+    std::printf("RCP2 プレイヤー経路（解析→秒→MIDI）: 変換 %s・Note On %s・Note Off %s\\n",
+        encoded ? "合" : "NG", note_on ? "合" : "NG", note_off ? "合" : "NG");
+}
+
+
 int main()
 {
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -1336,6 +1382,7 @@ int main()
 	check_rcp_track_midi_mapping();
 	check_rcp_tracks();
 	check_rcp_intermediate();
+	check_rcp2_player_event_pipeline();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
