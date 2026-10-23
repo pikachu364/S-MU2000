@@ -843,6 +843,58 @@ static void check_rcp_document_timeline()
 }
 
 
+static void check_rcp_aftertouch_commands()
+{
+    auto raw_event = [](u8 code, u8 p0, u8 p1, u8 p2) {
+        rcp::sequence_event e;
+        e.code = code; e.p0 = p0; e.p1 = p1; e.p2 = p2;
+        return e;
+    };
+    std::string err;
+    rcp::midi_channel_event channel_event;
+    rcp::timeline_event_kind kind;
+    const bool channel_decode = rcp::decode_midi_channel_event(
+        raw_event(0xea, 3, 91, 0), channel_event, kind, err) &&
+        kind == rcp::timeline_event_kind::channel_aftertouch &&
+        channel_event.delay == 3 && channel_event.data1 == 91 && channel_event.data2 == 0 && err.empty();
+    const bool poly_decode = rcp::decode_midi_channel_event(
+        raw_event(0xed, 4, 60, 77), channel_event, kind, err) &&
+        kind == rcp::timeline_event_kind::poly_aftertouch &&
+        channel_event.delay == 4 && channel_event.data1 == 60 && channel_event.data2 == 77 && err.empty();
+    const bool bad_channel_value = !rcp::decode_midi_channel_event(
+        raw_event(0xea, 0, 0x80, 0), channel_event, kind, err) && !err.empty();
+    const bool bad_poly_value = !rcp::decode_midi_channel_event(
+        raw_event(0xed, 0, 60, 0x80), channel_event, kind, err) && !err.empty();
+
+    rcp::timed_event event;
+    event.kind = rcp::timeline_event_kind::channel_aftertouch;
+    event.channel.data1 = 91;
+    std::vector<u8> bytes;
+    const bool channel_encode = rcp::encode_midi_message(event, 2, bytes, err) &&
+        bytes == std::vector<u8>({0xd2, 91}) && err.empty();
+    event.kind = rcp::timeline_event_kind::poly_aftertouch;
+    event.channel.data1 = 60;
+    event.channel.data2 = 77;
+    const bool poly_encode = rcp::encode_midi_message(event, 2, bytes, err) &&
+        bytes == std::vector<u8>({0xa2, 60, 77}) && err.empty();
+
+    std::vector<rcp::timed_event> timeline;
+    const std::vector<rcp::sequence_event> sequence = {
+        raw_event(0xea, 2, 91, 0), raw_event(0xed, 3, 60, 77), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool timeline_ok = rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 2 && timeline[0].tick == 0 &&
+        timeline[0].kind == rcp::timeline_event_kind::channel_aftertouch &&
+        timeline[1].tick == 2 && timeline[1].kind == rcp::timeline_event_kind::poly_aftertouch &&
+        err.empty();
+
+    std::printf("RCP2 EA/ED アフタータッチ: Channel/Poly decode %s・MIDI符号化 %s・時間展開 %s・7-bit 範囲外拒否 %s\\n",
+        channel_decode && poly_decode ? "合" : "NG",
+        channel_encode && poly_encode ? "合" : "NG",
+        timeline_ok ? "合" : "NG",
+        bad_channel_value && bad_poly_value ? "合" : "NG");
+}
+
 static void check_rcp_midi_encoding()
 {
     std::string err;
@@ -1378,6 +1430,7 @@ int main()
 	check_rcp_tempo_timeline();
 	check_rcp_track_merge();
 	check_rcp_document_timeline();
+	check_rcp_aftertouch_commands();
 	check_rcp_midi_encoding();
 	check_rcp_tick_to_seconds();
 	check_rcp_timeline_output_encoding();
