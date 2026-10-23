@@ -138,8 +138,8 @@ struct tempo_event {
 bool decode_tempo_event(const sequence_event &raw, u16 bpm,
                         tempo_event &out, std::string &err);
 
-// Experimental conversion matching ValleyBell/MidiConverters' Tempo2Mid formula.
-// Returns MIDI microseconds per quarter note; rejects zero BPM/scale.
+// Conversion matching ValleyBell/MidiConverters' Tempo2Mid integer formula:
+// 60,000,000 * 64 / (BPM * scale). Returns microseconds per quarter note; rejects zero BPM/scale.
 bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
 // Experimental legacy timeline accepting notes and F5 only. F5 is emitted at
