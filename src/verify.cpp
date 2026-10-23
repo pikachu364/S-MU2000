@@ -1248,7 +1248,7 @@ static void check_rcp_tempo_timeline()
         timeline[0].tick == 0 && timeline[0].note.note == 60 &&
         timeline[1].kind == rcp::timeline_event_kind::tempo &&
         timeline[1].tick == 5 && timeline[1].tempo.delay == 7 &&
-        timeline[1].tempo.microseconds_per_quarter == 250000 &&
+        timeline[1].tempo.microseconds_per_quarter == 1000000 &&
         timeline[2].kind == rcp::timeline_event_kind::note &&
         timeline[2].tick == 12 && timeline[2].note.note == 62 && err.empty();
 
@@ -1281,7 +1281,7 @@ static void check_rcp_tempo_timeline()
     const bool gradual_retained =
         rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.size() == 1 && timeline[0].kind == rcp::timeline_event_kind::tempo &&
-        timeline[0].tempo.gradual == 4 && timeline[0].tempo.microseconds_per_quarter == 250000 &&
+        timeline[0].tempo.gradual == 4 && timeline[0].tempo.microseconds_per_quarter == 1000000 &&
         err.empty();
 
     // FE 以降の未知コマンドも無視し、FE より前のノートだけを展開する。
@@ -1319,7 +1319,7 @@ static void check_rcp_tempo_conversion()
         tempo == 500000 && err.empty();
     const bool half_scale_ok =
         rcp::rcp2_tempo_us_per_quarter(120, 32, tempo, err) &&
-        tempo == 250000 && err.empty();
+        tempo == 1000000 && err.empty();
 
     tempo = 123;
     const bool zero_bpm_rejected =
