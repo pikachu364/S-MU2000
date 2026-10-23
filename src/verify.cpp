@@ -959,6 +959,29 @@ static void check_rcp_tick_to_seconds()
         zero_tempo_rejected ? "合" : "NG");
 }
 
+
+static void check_rcp_timeline_output_encoding()
+{
+    std::vector<rcp::timed_seconds_event> t(3);
+    t[0].time=0.0; t[0].source.track_index=0;
+    t[0].source.event.kind=rcp::timeline_event_kind::note;
+    t[0].source.event.note.note=60; t[0].source.event.note.velocity=100;
+    t[1].time=0.25; t[1].source.track_index=1;
+    t[1].source.event.kind=rcp::timeline_event_kind::tempo;
+    t[2].time=0.5; t[2].source.track_index=1;
+    t[2].source.event.kind=rcp::timeline_event_kind::program_change;
+    t[2].source.event.channel.data1=10;
+    std::vector<rcp::midi_output_event> out; std::string err;
+    const bool ok=rcp::encode_timeline_to_midi_events(t,{2,5},{1,3},out,err) &&
+        out.size()==2 && out[0].bytes==std::vector<u8>({0x92,60,100}) && out[0].port==1 &&
+        out[1].bytes==std::vector<u8>({0xc5,10}) && out[1].port==3 && err.empty();
+    const bool missing=!rcp::encode_timeline_to_midi_events(t,{2},{1},out,err) && out.empty() && !err.empty();
+    t[0].time=0.6;
+    const bool reversed=!rcp::encode_timeline_to_midi_events(t,{2,5},{1,3},out,err) && out.empty() && !err.empty();
+    std::printf("RCP2 秒イベント→MIDI出力: 割当/メタデータ除外 %s・割当不足拒否 %s・逆順時刻拒否 %s\\n",
+        ok?"合":"NG",missing?"合":"NG",reversed?"合":"NG");
+}
+
 static void check_rcp_tracks()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -1277,6 +1300,7 @@ int main()
 	check_rcp_document_timeline();
 	check_rcp_midi_encoding();
 	check_rcp_tick_to_seconds();
+	check_rcp_timeline_output_encoding();
 	check_rcp_tracks();
 	check_rcp_intermediate();
 	check_font_parses();

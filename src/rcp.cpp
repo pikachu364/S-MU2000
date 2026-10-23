@@ -923,4 +923,36 @@ bool convert_timeline_to_seconds(const document_header &header,
 }
 
 
+bool encode_timeline_to_midi_events(
+    const std::vector<timed_seconds_event> &timeline,
+    const std::vector<u8> &channel_by_track, const std::vector<u8> &port_by_track,
+    std::vector<midi_output_event> &out, std::string &err)
+{
+    out.clear(); err.clear();
+    double previous_time = 0.0;
+    out.reserve(timeline.size());
+    for (const timed_seconds_event &source : timeline) {
+        if (!(source.time >= 0.0) || source.time < previous_time) {
+            out.clear(); err = "RCP2 MIDI 出力イベントの時刻が負値または逆順です"; return false;
+        }
+        previous_time = source.time;
+        const auto kind = source.source.event.kind;
+        if (kind == timeline_event_kind::tempo || kind == timeline_event_kind::key_signature)
+            continue;
+        const size_t track = source.source.track_index;
+        if (track >= channel_by_track.size() || track >= port_by_track.size()) {
+            out.clear(); err = "RCP2 MIDI 出力のトラック割り当てが不足しています"; return false;
+        }
+        std::vector<u8> bytes;
+        if (!encode_midi_message(source.source.event, channel_by_track[track], bytes, err)) {
+            out.clear();
+            err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
+            return false;
+        }
+        out.push_back({source.time, std::move(bytes), port_by_track[track]});
+    }
+    return true;
+}
+
+
 } // namespace rcp

@@ -259,6 +259,14 @@ bool convert_timeline_to_seconds(const document_header &header,
                                  std::vector<timed_seconds_event> &out,
                                  std::string &err);
 
+// Encoded channel events for the seconds-based playback path. Mapping is explicit
+// until RCP track channel/port semantics are verified.
+struct midi_output_event { double time = 0.0; std::vector<u8> bytes; u8 port = 0; };
+bool encode_timeline_to_midi_events(
+    const std::vector<timed_seconds_event> &timeline,
+    const std::vector<u8> &channel_by_track, const std::vector<u8> &port_by_track,
+    std::vector<midi_output_event> &out, std::string &err);
+
 bool build_intermediate(const u8 *data, size_t size,
                         intermediate_document &out, std::string &err);
 
