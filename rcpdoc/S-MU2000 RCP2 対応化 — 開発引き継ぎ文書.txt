@@ -1,157 +1,68 @@
 # S-MU2000 RCP2 対応化 — 開発引き継ぎ文書
 
-作成日：2026-10-22  
+更新日：2026-10-23  
 対象リポジトリ：`pikachu364/S-MU2000`  
-開発ブランチ：`feature/rcp2-parser-skeleton`
+開発ブランチ：`feature/rcp2-parser-skeleton`  
+最新コードコミット：[27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)
 
-## 1. 次のチャットで最初に守ること
+## 1. 最初に守ること
 
 - `main` ブランチは変更しない。
-- 開発作業は `feature/rcp2-parser-skeleton` で続ける。
-- 別ブランチ `feature/rcp2-playback` にある未コミット作業を上書き・リセットしない。
-- `/r/roms` は絶対にアップロードしない。
-- テストや CI は実際に確認できた結果だけを合格とする。
-- コミット SHA、ブランチの最新状態、Actions の結果を推測しない。
-- 実装に入る前に、GitHub 上の最新ファイルと SHA を取得する。
-- README、PROGRESS、`rcpdoc/` の調査報告書も確認対象に含める。
+- 作業は `feature/rcp2-parser-skeleton` で続ける。
+- `feature/rcp2-playback` の未コミット作業を上書き・reset しない。
+- `/r/roms` はアップロードしない。
+- 最新 HEAD、ファイル、CI 結果を推測せず、必要に応じて GitHub から再取得する。
+- テストや CI は実際に確認した根拠を明記する。
+- JMPlayer / ValleyBell のコードは参考資料として照合し、コピーしない。
+- `rcpdoc/` の README、NEXT_STEPS、CHECKLIST、FACTS、HYPOTHESES、LOG と過去レポートを読む。過去レポートは当時の記録なので、古い状態を黙って現在の事実にしない。
 
-ユーザーは「進め」「かなり進めていいよ」と継続作業を許可している。毎回細かい確認を挟まずに進めてよいが、破壊的変更やブランチをまたぐ操作は避ける。
+## 2. 最新 CI
 
-## 2. 直近の CI 結果
+ユーザー報告では GitHub Actions **#189 合格**。リンク：[Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808)。
 
-| GitHub Actions | 結果 | 内容 |
-|---|---|---|
-| [#175](https://github.com/pikachu364/S-MU2000/actions/runs/39773163749) | 失敗 | ノート長展開後のイベント順序と、既存のオフセット境界テストの期待値が不一致 |
-| [#176](https://github.com/pikachu364/S-MU2000/actions/runs/39773317312) | **成功** | #175 のテスト修正後、全ジョブ合格 |
+- 対象コードコミット: [27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e) — `Map RCP2 track headers to MIDI ports and channels`
+- 合格の根拠はユーザー報告。ここでは #189 の全ジョブログを独立再取得したとは主張しない。
+- CI 合格は、実際の RCP2 楽曲ファイルが再生できることを証明しない。
 
-#176 の SHA は `3e0007e`。全ジョブ成功を確認済みで、これを現在の作業の合格基準とする。
+## 3. 実装状況
 
-関連コミット：
+### 解析・タイムライン
+- 固定ヘッダー、44-byte track header、4-byte event の解析基盤。
+- FE 終端、コメントデータ抽出、中間表現、複数トラックの tick 順統合。
+- 文書レベルの時間展開は対応済みイベントのサブセットのみ。未対応コマンドは拒否する。
+- 符号付き track offset、負 tick の 0 クランプ、32-bit 範囲超過の拒否。
+- ノート移調、gate/note-off 展開。同一トラック・同一移調後音高の再発音時は既存 note-off tick を更新する。
+- F5 key signature、E7 tempo の一部、EB Control Change、EC 標準 Program Change、EE Pitch Bend。
+- tick から秒への変換補助処理。
 
-- [0a4d132 — feat: expand RCP2 note gates to note-off events](https://github.com/pikachu364/S-MU2000/commit/0a4d13239484e9e95ceb767aed7c86c78947e527)
-- [3e0007e — test: preserve note-on before clamped note-off](https://github.com/pikachu364/S-MU2000/commit/3e0007ec20ec00605b59d5b3e4140f1203d2c3cf)
+### MIDI 出力準備
+- MIDI message encoder が Note On/Off、CC、Program Change、Pitch Bend のバイト列を生成する。
+- `map_track_midi_outputs(...)` が raw track header byte から channel/port mapping を生成する。下位 nibble=channel、上位 nibble=port/device、bit 7=dummy/unrouted track。
+- disabled track のイベントを除外する encoder overload と regression test がある。
+- 最新変更：[27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)。
 
-#175 の失敗は、note-on と note-off が同じ tick にクランプされた場合の順序をテストが正しく期待していなかったことによる。#176 では修正が確認された。
+### 未実装・未確認
+- RCP2 event を既存 player に直接渡す adapter。
+- SMF ファイル serialization（SMF loader はあるが、RCP2→SMF writer はない）。
+- 実際の RCP2 楽曲での再生互換性。
+- E7 の段階的 tempo curve。
+- EC の特殊 MT-32/SysEx 経路。
+- 0xFC loop、0x98 など未解決コマンド。
+- 全コマンドの RCP2 互換性と参照コンバーターとの実データ比較。
 
-## 3. これまでに実装した機能
+## 4. 次の作業
 
-### RCP2 の解析基盤
+1. `src/smf.h` / `src/smf.cpp` / `src/ui/player.h` / `src/ui/player.cpp` を確認し、既存 player の event/time/port/seek/chase 契約を把握する。
+2. RCP2 の秒単位イベントと MIDI byte encoder、channel/port mapping を既存 player に接続する方式を設計する。
+3. 直接 `smf::event` 相当の列を作る案と SMF serialization を実装する案を比較し、既存設計に沿う小さい方を選ぶ。
+4. 合成テストを追加し、イベント時刻、同 tick 順序、channel/port、dummy track、未対応コマンドのエラーを検証する。
+5. feature ブランチにコミットし、Actions の全ジョブが完了するまで CI 合格扱いにしない。
+6. 使用許可のあるサンプルで参照出力と比較し、実機/アプリ再生は別項目として記録する。
 
-- 固定ヘッダー、トラックヘッダー、4-byte シーケンスレコードの解析。
-- FE（Track End）までのシーケンス解析。
-- 未知コマンドを生データとして保持する中間表現。
-- F6/F7 コメントデータの抽出。
-- トラック識別を維持した複数トラックの tick 順統合。
+## 5. 作業手順と安全策
 
-### 時間展開と移調
-
-- ノート、F5 key signature、E7 tempo の時間展開。
-- EB Control Change、EC 標準 Program Change、EE Pitch Bend の部分対応。
-- 符号付きトラック開始オフセットの適用。
-- 負の tick は 0 にクランプし、32-bit 範囲超過はエラーにする。
-- ValleyBell の参照実装に合わせたトラック移調・文書移調・リズムチャンネル判定・7-bit ノート折返し。
-- ノート duration から note-off を生成する文書レベルの時間展開。
-
-### ノート gate / note-off の仕様
-
-現在の実装では、次の挙動を扱う。
-
-1. duration=0 のノートは発音イベントとして出さない。
-2. duration が正なら開始 tick + duration に note-off を配置する。
-3. 同一トラック内で同じ移調後音高が既に鳴っている場合、新しい note-on を追加せず、既存 note-off の tick を更新する。
-4. note-off は対応するノートの移調後音高を引き継ぎ、内部表現では velocity=0 とする。
-5. gate 展開後に符号付き開始オフセットを適用するため、note-on と note-off の両方に同じオフセット規則が適用される。
-
-参照資料：
-
-- [ValleyBell/MidiConverters — rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)
-
-### EB / EC / EE の制約
-
-- EB：p1 を controller、p2 を value として扱う。データは 7-bit 範囲内。
-- EC：p1 が `0x80` 未満の場合のみ標準 Program Change として扱う。
-- EC の `0x80` 以上は特殊インストゥルメント処理として明示的に拒否する。
-- EE：p1/p2 を 7-bit データとして保持する。
-- MIDI status byte への変換や実際の出力層への接続は未実装。
-
-## 4. 調査資料・進捗ファイル
-
-開発ブランチの次のファイルを必ず参照する。
-
-- `rcpdoc/FACTS.md` — 参照実装や形式調査の事実・根拠
-- `rcpdoc/NEXT_STEPS.md` — 次の作業候補と完了状況
-- `rcpdoc/LOG.md` — 調査・実装履歴
-- `rcpdoc/CHECKLIST.md` — 仕様確認と検証チェックリスト
-- `README.md` — プロジェクト全体の説明
-
-GitHub：
-
-https://github.com/pikachu364/S-MU2000/tree/feature/rcp2-parser-skeleton/rcpdoc
-
-注意：ドキュメントには古い「CI 未確認」の記述が残っている可能性がある。#176 の合格を確認したうえで、必要な箇所を同期する。
-
-## 5. 未実装・未確認の重要事項
-
-- 実際の RCP2 ファイルを使った再生互換性の検証。
-- 文書レベルのイベントを実際の MIDI 出力経路へ接続すること。
-- note-on / note-off / CC / Program Change / Pitch Bend の MIDI 出力形式への変換。
-- MIDI チャンネルの status byte の付与。
-- EC の特殊 MT-32 インストゥルメント処理。
-- E7 の段階的テンポ変化。
-- 未対応コマンドの仕様調査と時間展開。
-- 参照コンバーターとの実データ比較。
-
-現在の「時間展開」は、完全な RCP2 コンバーターや再生互換性が完成したという意味ではない。
-
-## 6. 次に進める作業
-
-### 優先 1：実際の MIDI 出力経路を調べる
-
-`src/rcp.h`、`src/rcp.cpp` の内部表現を確認し、既存の MIDI 出力・イベント送信・ファイル読込経路を調査する。
-
-まず確認すること：
-
-- 既存の MIDI イベント表現はどこにあるか。
-- ノートオン・ノートオフをどの層で生成しているか。
-- SMF の読み込みや出力と、音源へのイベント送信がどう接続されているか。
-- 新しい `rcp::timed_event` を既存経路に接続できるか。
-- チャンネル番号と同 tick のイベント順序をどこで決めるか。
-
-既存実装に合わせて設計し、RCP2 専用の出力経路を無理に独立させない。ファイル名や API を推測せず、最新ブランチのコードを確認する。
-
-### 優先 2：接続に必要な最小変換を実装する
-
-既存経路を確認した後、必要な範囲に絞って以下を実装する。
-
-- ノートオンとノートオフの変換
-- MIDI チャンネル番号の付与
-- EB / EC / EE のイベント変換
-- tick とイベント順序の維持
-- 未対応イベントの明示的なエラー処理
-
-実装と同時に `src/verify.cpp` と `tests/verify.txt` を更新し、CI を実行する。
-
-### 優先 3：実データで比較する
-
-合成テストに合格したら、使用許可のある小さな RCP2 サンプルを使い、参照コンバーターの出力と比較する。テスト用データの出所、期待結果、実行環境を記録する。
-
-`/r/roms` はアップロードしない。
-
-## 7. 開発手順
-
-1. GitHub から最新の `feature/rcp2-parser-skeleton` の SHA と対象ファイルを取得。
-2. `rcpdoc/NEXT_STEPS.md` と `rcpdoc/CHECKLIST.md` を確認。
-3. 既存の MIDI 出力経路を調査。
-4. 小さい単位で実装し、回帰テストと baseline を更新。
-5. 必要に応じて `FACTS.md` と `LOG.md` を更新。
-6. feature ブランチにコミット。
-7. GitHub Actions の最新 run を確認し、すべての必要なジョブの結論が `success` になるまで完了扱いにしない。
-8. 失敗した場合はログを取得して原因を修正し、再実行結果を確認する。
-
-## 8. 次のチャットの最初の指示
-
-この引き継ぎを読み、まず `feature/rcp2-parser-skeleton` の最新 SHA、`src/rcp.h` / `src/rcp.cpp`、MIDI 出力関連コード、`rcpdoc/NEXT_STEPS.md` を確認してください。
-
-#176 が合格済みであることを前提に、最初は既存の MIDI 出力経路を調査し、RCP2 の文書レベル時系列イベントを実際の出力へつなぐ最小の設計・実装を進めてください。
-
-`main` は変更せず、`feature/rcp2-playback` の未コミット作業も保護してください。テスト・CI の結果は実際に確認したものだけを報告してください。
+- 最新ブランチ SHA と対象ファイルを確認する。
+- 小さい変更単位で実装し、`src/verify.cpp` と `tests/verify.txt` を更新する。
+- `rcpdoc/FACTS.md` は根拠付きの事実、`HYPOTHESES.md` は未解決事項、`LOG.md` は日付順履歴、`NEXT_STEPS.md` は現状に基づくタスクを記録する。
+- 過去の失敗を消さず、修正後の合格を追記する。
+- ローカルの未コミット変更を破棄・上書きしない。PC が使えるときはローカルと GitHub の差分を確認してから必要な変更だけを統合する。
