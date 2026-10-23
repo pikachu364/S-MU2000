@@ -36,7 +36,7 @@
 
 ## 現在の状況（2026-10-23 更新）
 
-- 最新ブランチ HEAD: [27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)。
+- 最新コードコミット: [27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)。
 - トラックごとの時系列展開・複数トラック統合、署名付きトラック開始オフセット、ノート移調、ノート gate/note-off 展開、EB Control Change・EC 標準 Program Change・EE Pitch Bend の部分対応を追加済み。
 - tick 時刻から秒単位への変換と MIDI バイト列イベント化の補助処理、および RCP2 トラックヘッダーから MIDI ポート・チャンネルへの割り当て処理を追加済み。
 - [GitHub Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808) は、作業者から合格の報告あり。CI 合格は合成テストを含む CI の結果であり、実際の RCP2 楽曲の再生確認を意味しない。
