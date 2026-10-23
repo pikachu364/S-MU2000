@@ -978,7 +978,7 @@ static void check_rcp_timeline_output_encoding()
     const bool missing=!rcp::encode_timeline_to_midi_events(t,{2},{1},out,err) && out.empty() && !err.empty();
     t[0].time=0.6;
     const bool reversed=!rcp::encode_timeline_to_midi_events(t,{2,5},{1,3},out,err) && out.empty() && !err.empty();
-    std::printf("RCP2 秒イベント→MIDI出力: 割当/メタデータ除外 %s・割当不足拒否 %s・逆順時刻拒否 %s\\n",
+    std::printf("RCP2 秒イベント→MIDI出力: 割当/メタデータ除外 %s・割当不足拒否 %s・逆順時刻拒否 %s\n",
         ok?"合":"NG",missing?"合":"NG",reversed?"合":"NG");
 }
 
