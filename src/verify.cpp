@@ -1325,8 +1325,10 @@ static void check_rcp2_player_event_pipeline()
     const bool note_off = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
         return e.bytes.size() == 3 && e.bytes[0] == 0x80 && e.bytes[1] == 60 && e.port == 0;
     });
-    std::printf("RCP2 プレイヤー経路（解析→秒→MIDI）: 変換 %s・Note On %s・Note Off %s\\n",
+    std::printf("RCP2 プレイヤー経路（解析→秒→MIDI）: 解析 %s・展開 %s・時刻 %s・割当 %s・変換 %s・Note On %s・Note Off %s\n",
+        built ? "合" : "NG", expanded ? "合" : "NG", timed ? "合" : "NG", routed ? "合" : "NG",
         encoded ? "合" : "NG", note_on ? "合" : "NG", note_off ? "合" : "NG");
+    if (!encoded) std::printf("RCP2 player pipeline error: %s\n", err.c_str());
 }
 
 
