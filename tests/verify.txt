@@ -12,7 +12,6 @@ a64 emitter selftest: 0 mismatch(es)
   4.6 秒: 小節 3・拍 1・テンポ 60
 頭出しの追いかけ（2.0 秒へ）: 音符 0・SysEx 1・音色 2（最後 10）・ボリューム 1 個（値 80）・ベンド 1・バンクが音色より先 合
 頭（0 秒）へ: 0 個
-RCP2 プレイヤー接続: メモリ読み込み/ノートオン・オフ/ポート・チャンネル 合
 RCP2 mute flag 0x00: OK (parsed=0x00)
 RCP2 mute flag 0x01: OK (parsed=0x01)
 RCP2 mute flag 0x02: OK (parsed=0x02)
