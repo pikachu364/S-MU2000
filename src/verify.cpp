@@ -1305,6 +1305,14 @@ static void check_rcp_tempo_timeline()
         timeline.size() == 1 && timeline[0].tick == 0 &&
         timeline[0].note.note == 60 && err.empty();
 
+    // An unsupported command after a valid note must fail the whole expansion;
+    // the earlier note must not leak out as a partial successful result.
+    sequence = {event(60, 1, 4, 90), event(0xf9, 0, 0, 0),
+                event(0xfe, 0, 0, 0)};
+    const bool unsupported_mixed_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
     sequence = {event(60, 1, 4, 90)};
     const bool missing_end_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
@@ -1315,11 +1323,12 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・F6/F7 コメント処理 %s・scale 0 拒否 %s・p2 値保持 %s・FE 終端/後続未知無視 %s・FE なし/空入力拒否 %s\n",
+    std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・F6/F7 コメント処理 %s・scale 0 拒否 %s・p2 値保持 %s・FE 終端/後続未知無視 %s・未対応コマンド混在拒否 %s・FE なし/空入力拒否 %s\n",
         timing_ok ? "合" : "NG", same_tick_order_ok ? "合" : "NG",
         comments_ignored && orphan_comment_continuation_rejected ? "合" : "NG",
         invalid_tempo_rejected ? "合" : "NG",
         gradual_retained ? "合" : "NG", end_terminates_ok ? "合" : "NG",
+        unsupported_mixed_rejected ? "合" : "NG",
         missing_end_rejected && empty_missing_end_rejected ? "合" : "NG");
 }
 
