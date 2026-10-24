@@ -39,7 +39,7 @@ RCP2 文書時間展開: 複数トラック統合/トラック識別 合・符�
 RCP2 ミュートトラック: イベント除外/未対応コマンド無視 合
 RCP2 EA/ED アフタータッチ: Channel/Poly decode 合・MIDI符号化 合・時間展開 合・7-bit 範囲外拒否 合
 RCP2 D0/D2/D3 MIDI alias: decode 合・時間展開 合
-RCP2 E1/E2 MIDI command: Bank Select/Bank+Program and timeline 合・範囲外拒否 合
+RCP2 E1/E2 MIDI command: XG/GS bank+program and timeline 合・範囲外拒否 合
 RCP2 MIDIメッセージ符号化: Note On 合・Note Off 合・CC 合・Program Change 合・Pitch Bend 合・不正チャンネル拒否 合・メタデータ分離 合
 RCP2 tick→秒変換: テンポ変更前後 合・PPQ 0 拒否 合・初期 BPM 0 拒否 合・逆順 tick 拒否 合・テンポ値 0 拒否 合
 RCP2 秒イベント→MIDI出力: 割当/メタデータ除外 合・割当不足拒否 合・逆順時刻拒否 合
