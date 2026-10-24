@@ -242,8 +242,28 @@ static void check_rcp_header()
 	const bool legacy_zero_count_ok =
 	    rcp::parse_header(data.data(), data.size(), legacy_header, err) &&
 	    legacy_header.track_count == 18;
+	std::vector<u8> legacy_data(0x586 + 18 * 0x30, 0);
+	std::memcpy(legacy_data.data(), signature, sizeof(signature) - 1);
+	legacy_data[30] = 0;
+	legacy_data[31] = 0;
+	for (size_t i = 0; i < 18; ++i) {
+		const size_t offset = 0x586 + i * 0x30;
+		legacy_data[offset] = 0x30;
+		legacy_data[offset + 1] = 0;
+		legacy_data[offset + 2] = static_cast<u8>(i + 1);
+		legacy_data[offset + 44] = 0xfe;
+	}
+	std::vector<rcp::track> legacy_tracks;
+	const bool legacy_tracks_ok =
+	    rcp::parse_tracks(legacy_data.data(), legacy_data.size(), legacy_tracks, err) &&
+	    legacy_tracks.size() == 18 &&
+	    std::all_of(legacy_tracks.begin(), legacy_tracks.end(),
+	                [](const rcp::track &track) {
+		                return track.sequence.size() == 1 &&
+		                       track.sequence[0].code == 0xfe;
+	                });
 	data[0x1e6] = 0x24;
-	const bool fields_ok = parsed_fields_ok && legacy_zero_count_ok;
+	const bool fields_ok = parsed_fields_ok && legacy_zero_count_ok && legacy_tracks_ok;
 	const bool short_prefix_ok = !rcp::inspect_header(data.data(), 0x1f, info, err);
 	const bool short_header_ok = !rcp::parse_header(data.data(), 0x585, header, err);
 	std::vector<u8> junk(0x586, 0x55);
