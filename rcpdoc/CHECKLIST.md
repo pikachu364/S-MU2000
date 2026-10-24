@@ -198,3 +198,10 @@
 - [ ] Actions の CI を確認する（#352 は変更前）。
 - [ ] Gearmulator PR #303 と比較し、FC/F8/F9 ループ境界にまたがる F7 継続ケースを検証する。
 - [ ] 実 RCP2 ファイルで C++ 実行・再生比較を行う。
+
+
+### 2026-10-25 — 0x98 loop regression follow-up
+
+- [x] F8/F9 loop body containing `0x98` and its F7 continuation emits one SysEx per expanded iteration at the expected tick.
+- [x] Invalid high-bit continuation data rejects the conversion atomically.
+- [ ] CI after this follow-up is pending; real RCP2 playback remains unverified.
