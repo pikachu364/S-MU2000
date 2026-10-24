@@ -1328,6 +1328,16 @@ static void check_rcp_tempo_timeline()
         timeline[2].kind == rcp::timeline_event_kind::note && timeline[2].note.note == 62 &&
         err.empty();
 
+    // FD marks a bar boundary; its step byte must not advance the timeline.
+    sequence = {event(60, 5, 4, 90), event(0xfd, 99, 0, 0),
+                event(62, 3, 4, 80), event(0xfe, 0, 0, 0)};
+    const bool measure_end_zero_time =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::note && timeline[0].tick == 0 &&
+        timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].tick == 5 &&
+        err.empty();
+
     sequence = {event(60, 5, 4, 90), event(0xe7, 7, 0, 0),
                 event(0xfe, 0, 0, 0)};
     const bool invalid_tempo_rejected =
@@ -1370,7 +1380,7 @@ static void check_rcp_tempo_timeline()
 
     std::printf("RCP2 E7 時間展開（実験）: テンポ位置/次ノート tick %s・F5 同 tick/順序 %s・F6/F7 コメント処理 %s・scale 0 拒否 %s・p2 値保持 %s・FE 終端/後続未知無視 %s・未対応コマンド混在拒否 %s・FE なし/空入力拒否 %s\n",
         timing_ok ? "合" : "NG", same_tick_order_ok ? "合" : "NG",
-        comments_ignored && comments_after_loop_expansion_ignored && orphan_comment_continuation_rejected ? "合" : "NG",
+        comments_ignored && comments_after_loop_expansion_ignored && measure_end_zero_time && orphan_comment_continuation_rejected ? "合" : "NG",
         invalid_tempo_rejected ? "合" : "NG",
         gradual_retained ? "合" : "NG", end_terminates_ok ? "合" : "NG",
         unsupported_mixed_rejected ? "合" : "NG",
