@@ -954,6 +954,37 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 D0/D2/D3 MIDI alias: decode %s・時間展開 %s\n",
         d0_pitch_bend && d2_control_change && d3_program_change ? "合" : "NG",
         aliases_timeline ? "合" : "NG");
+
+    // E1 emits CC0=velocity. E2 emits CC0=velocity, CC32=0, then
+    // Program Change=gate at one tick, while its step advances time once.
+    const std::vector<rcp::sequence_event> bank_sequence = {
+        raw_event(0xe1, 2, 0, 65), raw_event(0xe2, 3, 40, 80),
+        raw_event(60, 4, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool bank_commands_timeline =
+        rcp::expand_note_key_signature_tempo_timeline(bank_sequence, 120, timeline, err) &&
+        timeline.size() == 5 &&
+        timeline[0].tick == 0 && timeline[0].kind == rcp::timeline_event_kind::control_change &&
+        timeline[0].channel.data1 == 0 && timeline[0].channel.data2 == 65 &&
+        timeline[1].tick == 2 && timeline[1].kind == rcp::timeline_event_kind::control_change &&
+        timeline[1].channel.data1 == 0 && timeline[1].channel.data2 == 80 &&
+        timeline[2].tick == 2 && timeline[2].kind == rcp::timeline_event_kind::control_change &&
+        timeline[2].channel.data1 == 32 && timeline[2].channel.data2 == 0 &&
+        timeline[3].tick == 2 && timeline[3].kind == rcp::timeline_event_kind::program_change &&
+        timeline[3].channel.data1 == 40 &&
+        timeline[4].tick == 5 && timeline[4].kind == rcp::timeline_event_kind::note &&
+        timeline[4].note.note == 60 && err.empty();
+
+    const std::vector<rcp::sequence_event> invalid_bank_sequence = {
+        raw_event(0xe2, 0, 0x80, 80), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool invalid_bank_value_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(invalid_bank_sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 E1/E2 MIDI command: Bank Select/Bank+Program and timeline %s・範囲外拒否 %s\n",
+        bank_commands_timeline ? "合" : "NG",
+        invalid_bank_value_rejected ? "合" : "NG");
 }
 
 static void check_rcp_midi_encoding()
