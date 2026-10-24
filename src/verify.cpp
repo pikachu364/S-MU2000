@@ -1185,20 +1185,24 @@ static void check_rcp_track_midi_mapping()
         mapping[1].enabled && mapping[1].channel == 1 && mapping[1].port == 4 &&
         !mapping[2].enabled && err.empty();
 
-    std::vector<rcp::timed_seconds_event> timeline(3);
-    for (size_t i = 0; i < timeline.size(); ++i) {
-        timeline[i].time = double(i) * 0.25;
-        timeline[i].source.track_index = i;
-        timeline[i].source.event.kind = rcp::timeline_event_kind::note;
-        timeline[i].source.event.note.note = u8(60 + i);
-        timeline[i].source.event.note.velocity = 90;
-    }
+    std::vector<rcp::timed_seconds_event> timeline(4);
+    timeline[0].time=0.0; timeline[0].source.track_index=0;
+    timeline[0].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[0].source.event.route={4, 3, true};
+    timeline[1].time=0.1; timeline[1].source.track_index=0;
+    timeline[1].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[1].source.event.note.note=60; timeline[1].source.event.note.velocity=90;
+    timeline[2].time=0.2; timeline[2].source.track_index=0;
+    timeline[2].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[2].source.event.route={0, 0, false};
+    timeline[3].time=0.3; timeline[3].source.track_index=0;
+    timeline[3].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[3].source.event.note.note=62; timeline[3].source.event.note.velocity=90;
     std::vector<rcp::midi_output_event> output;
     const bool routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
-        output.size() == 2 && output[0].bytes == std::vector<u8>({0x93, 60, 90}) &&
-        output[0].port == 2 && output[1].bytes == std::vector<u8>({0x91, 61, 90}) &&
-        output[1].port == 4 && err.empty();
-    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・ダミートラック除外 %s\n",
+        output.size() == 1 && output[0].bytes == std::vector<u8>({0x94, 60, 90}) &&
+        output[0].port == 3 && err.empty();
+    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s\\n",
         mapped ? "合" : "NG", routed ? "合" : "NG");
 }
 
