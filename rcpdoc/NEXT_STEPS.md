@@ -2,7 +2,7 @@
 
 更新日：2026-10-24  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-確認 HEAD：[5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)
+確認 HEAD：[110c5ea](https://github.com/pikachu364/S-MU2000/commit/110c5ea3da651cf6d263f844b7b8814722058cca)
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -24,7 +24,8 @@
 - [x] RCP2 を中間表現へ解析し、対応イベントを展開、tick→秒変換、track port/channel 割当、MIDI byte 列へ変換する。
 - [x] `smf::event`（秒・MIDI byte 列・port）へ詰め替え、既存プレイヤーのイベント経路へ渡す。
 - [x] 合成データで解析→展開→秒変換→割当→MIDI 変換の経路を検査する。
-- [ ] `player::add_from_memory` からの実際の RCP2 読み込みとエラー伝播を、プレイヤー API レベルで独立検証する。
+- [x] `player::add_from_memory` からの正常な RCP2 読み込みと、未対応コマンド時に部分追加しないことを API レベルの合成テストで検証。CI #274 成功。
+- [ ] 実際の RCP2 ファイルでの API 読み込みとエラー伝播を確認する。
 - [ ] 実際の RCP2 ファイルで比較・再生検証する。
 
 制約: CI と合成パイプラインの成功は、すべての RCP2 コマンドへの対応や実曲の互換性を保証しない。
@@ -42,6 +43,7 @@
 - [ ] F8 step=0 と 0x7f 以上の仕様/互換性を引き続き調査する。現在は安全のため拒否。
 - [x] FC の参照範囲・端点・連鎖・循環について正常/不正の合成テストを追加。CI #256 成功。
 - [x] FC展開後にF8/F9が続く連携テストを追加。CI #260 成功。
+- [ ] FC の参照展開に対し、展開予算超過・深い連鎖などの境界テストを追加し、出力が安全に破棄されることを確認する。
 - [ ] FCの端点規則を実RCP2データや独立した参照出力と照合し、互換性を確認する。
 - [x] FC/F8/F9を含む文書レベル展開パイプラインの合成回帰テストを追加。CI #262 成功。
 - [ ] 既存プレイヤーAPI経由の読み込み・失敗伝播を独立テストする。
@@ -80,3 +82,10 @@
 - HEAD: [5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)。
 - [Actions #262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056) は Linux、Windows、Windows 32-bit、MSVC Win32/x64、README、macOS の全7ジョブ成功。
 - F8/F9 の1回反復境界と、FC展開後のF8/F9連携テストを追加済み。合成テストの成功であり、実曲再生の検証ではない。
+
+## 2026-10-24 追記 — ループ展開予算と player API
+
+- [Actions #274](https://github.com/pikachu364/S-MU2000/actions/runs/40069003704) は全7ジョブ成功。Windows verify の `timeBeginPeriod` / `timeEndPeriod` 未解決シンボルは `-lwinmm` 追加で修正し、`L'\\0'` の誤った文字リテラルも `L'\0'` に修正した。
+- `player::add_from_memory` の合成 API テストを追加し、正常データの追加、未対応コマンドの拒否、失敗時に部分的な曲を追加しないことを確認した。
+- [Actions #275](https://github.com/pikachu364/S-MU2000/actions/runs/40072000688) はユーザー報告により合格確認。3重の126回ループで100万レコードの展開予算を超過させ、失敗・出力クリア・エラー設定を確認するテストを追加した。
+- 次は FC 展開予算の境界テストと、実ファイルの比較・再生検証へ向けた fixture/参照出力の整備を優先する。実 RCP2 楽曲の再生互換性は未確認。
