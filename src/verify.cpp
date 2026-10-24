@@ -1009,7 +1009,7 @@ static void check_rcp_aftertouch_commands()
     const bool invalid_gs_value_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(invalid_gs_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
-    std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\\n",
+    std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
 }
