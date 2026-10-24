@@ -273,3 +273,13 @@
 - E6 を route-change timeline event として追加。参照実装に従い raw p1 を 1 減らし、bit 7 が立つ値（減算後）は dummy/unrouted、その他は上位 nibble を port、下位 nibble を channel として扱う。
 - MIDI 出力でトラック別の有効ルートを更新し、E6 後のイベントに適用する。合成テストは通常ルート切替、dummy 切替、tick 進行を対象とする。
 - この追加変更の CI は未確認。実 RCP2 ファイルの C++ 実行・実機再生は未確認。参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+
+## 2026-10-24 — Actions #338 合格と次の SysEx 調査
+
+- ユーザー報告により Actions #338 の合格を確認。E6 の動的 MIDI ルーティング（port/channel 切替、dummy/unrouted 切替、tick 進行）を含む変更までの CI 成功として記録する。
+- `rcpdoc/NEXT_STEPS.md` と `rcpdoc/CHECKLIST.md` を現コードに合わせて更新し、E6 を実装・合成テスト済みとして記録した。今回の文書変更自体の CI は未確認。
+- 次の候補を `0x90–0x97` のヘッダー定義ユーザー SysEx に定めた。参照実装では `0x90–0x97` が8個のユーザー SysEx スロットを呼び出し、テンプレート中の置換値を処理する。ヘッダー内のスロット配置・テンプレート終端・置換規則をコード化する前に確認する。
+- `0x98` は可変長 SysEx データを読み込むため、現行の固定4-byte `parse_sequence` では直接処理できない。単純な4-byte commandとして実装せず、可変長レコードの境界と FC/F8/F9 ループ展開との関係を設計課題として残す。
+- E5 は参照実装で明示的な command handler を確認できていないため、根拠なく意味を割り当てない。
+- 実 RCP2 ファイルを C++ パーサー／出力経路に通した検証と実機再生は引き続き未実施。
