@@ -2,6 +2,15 @@
 
 日付順の短い記録です。テストを実行したかどうか、何を根拠に判断したかを必ず区別します。
 
+## 2026-10-25 — Actions #388 合格、0x99 外部コマンド調査
+
+- 作業者から Actions #388 合格の報告を受けた。直近に追加した FC 展開予算超過テストを含む変更の CI 合格として記録した。
+- ValleyBell の `rcp2mid.c` では `0x98` を `GetMultiCmdDataSize` / `ReadMultiCmdData` で読み取る一方、`0x99` の external command case はコメントアウトされている。
+- QB64-Phoenix-Edition の Recomposer `RCP.cpp` でも `case 0x99: // Execute external command` はコメントのまま。これらは 0x99 の意味や F7 継続規則を確定する根拠にはならない。
+- よって 0x99 を 0x98 と同じ SysEx として実装することは保留。次は Glosa / Gearmulator のソースを直接確認し、実サンプルに 0x99 があるかを調査する。
+- 参照: [ValleyBell/MidiConverters rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)、[QB64-Phoenix-Edition Recomposer RCP.cpp](https://github.com/QB64-Phoenix-Edition/QB64pe/blob/442faf03972acdb88780ffaf8bbfbbeb344ae2fa/internal/c/parts/audio/extras/libmidi/Recomposer/RCP.cpp)
+- 今回は引き継ぎ文書の更新のみ。ソースコード変更や追加テストは行っていない。
+
 ## 2026-10-15 — RCP2 作業状況の整理
 
 - RCP2 を最初の対象とし、将来の RCP3 を見据えて解析と MIDI イベント展開を分離する方針を記録した。
