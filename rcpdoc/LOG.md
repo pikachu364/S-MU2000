@@ -257,3 +257,11 @@
 - E1 は XG 音色選択（CC32=`p2`、Program Change=`p1`）、E2 は GS 音色選択（CC0=`p2`、Program Change=`p1`）。両イベントは同 tick に出し、`p0` の時間進行は一度だけとする。
 - 合成テストと期待出力、NEXT_STEPS/CHECKLIST の説明を訂正した。#313 はこの修正より前の成功であり、修正後 CI は未確認。
 - 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+
+## 2026-10-24 — Actions #320 合格後の DD/DE/DF 対応
+
+- ユーザー報告により Actions #320 の合格を確認。E1/E2 改訂後の CI 成功として記録する。
+- `DD` / `DF` の状態をトラック内の時間展開中に保持し、`DE` で Roland GS DT1 SysEx を生成する処理を追加。初期 device/model/address は参照コード同様にゼロ。チェックサムはアドレスとデータの4 byteを加算して 7-bit 化する。
+- `timeline_event_kind::sysex` を追加し、秒ベース MIDI 出力経路で F0...F7 のバイト列をそのまま送出する。合成テストと `tests/verify.txt` を同期。
+- 追加変更の CI は未確認。実データ比較・再生は未確認。参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
