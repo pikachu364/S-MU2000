@@ -45,7 +45,7 @@
 | コマンド | 資料の記述 | コード | テスト |
 |---|---|---|---|
 | `0x80`–`0x87` | ユーザーSysExを送信 | [ ] | [ ] |
-| `0x90`–`0x97` | ヘッダー定義ユーザーSysEx内の置換バイトを gate/velocity/channel 等で置換 | [ ] | [ ] |
+| `0x90`–`0x97` | ヘッダー定義ユーザーSysEx内の置換バイトを p1/p2/channel/checksum 等へ置換 | コードあり | 合成テスト追加 | 8スロット（0x406、各0x30 byte）を解析。F0/F7とdummy抑止を検査。最新CI未確認 |
 | `0xDD` / `0xDE` / `0xDF` | GSパラメータ書き込みを構成 | [ ] | [ ] |
 | `0xE1` | XG 音色選択（CC32 = p2、Program Change = p1） | コードあり | 合成テスト追加 | CC32 → Program Change に展開。最新 CI は未確認 |
 | `0xE2` | GS 音色選択（CC0 = p2、Program Change = p1） | コードあり | 合成テスト追加 | 同 tick で CC0 → Program Change。step は一度だけ加算。最新 CI は未確認 |
@@ -86,7 +86,7 @@
 | E1/E2 bank/program | あり | あり | XG/GS bank select と Program Change を同 tick に出力 |
 | DD/DE/DF GS SysEx | あり | あり | DT1 SysEx生成を合成テスト。実機再生は未確認 |
 | E6 動的ルート変更 | あり | あり | channel/port/dummy切替を検査。Actions #338 合格（ユーザー報告） |
-| 0x90–0x97 ユーザーSysEx | 未対応 | 未対応 | ヘッダー内テンプレートと置換規則の調査が次段階 |
+| 0x90–0x97 ユーザーSysEx | あり | あり | ヘッダーテンプレート抽出、p1/p2/channel、Roland checksum、F0/F7、dummy抑止を合成テスト。最新CI未確認 |
 | 0x98 可変長SysEx | 未対応 | 未対応 | 固定4-byteレコード parser と衝突するため設計が必要 |
 | F5キー署名 | あり | あり | 時間を進めず、同tickの順序を検査 |
 | F6/F7コメント | 実験的にあり | あり | F6と直後のF7継続を除外。完全な仕様確定を意味しない |
@@ -187,4 +187,4 @@
 
 - ユーザー報告により Actions #338 の合格を確認。E6 の route-change timeline event、channel/port 切替、dummy/unrouted 切替の合成テストを含む変更までの CI 成功として記録する。
 - 実 RCP2 ファイルの C++ 実行・再生互換性は未確認。
-- 次の実装候補は `0x90–0x97` のヘッダー定義ユーザー SysEx。`0x98` は可変長データを伴うため、固定4-byteレコード前提の `parse_sequence` と FC/F8/F9 展開の相互作用を先に設計する。
+- 0x90–0x97 のヘッダー定義ユーザー SysEx を実装し、合成テストを追加した（最新CI未確認）。`0x98` は可変長データを伴うため、固定4-byteレコード前提の `parse_sequence` と FC/F8/F9 展開の相互作用を先に設計する。
