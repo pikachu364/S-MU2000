@@ -304,3 +304,11 @@
 - `src/verify.cpp` と `tests/verify.txt` に、複数 F7 の結合、置換、checksum、tick、孤立 F7 拒否の合成テストを追加。
 - 今回の変更後の CI と実 RCP2 データの C++ 実行は未確認。Gearmulator PR #303 との詳細比較も継続する。
 - 参照: https://github.com/hsshss/glosa/blob/main/src/Glosa.Core/Rcp/RcpConverter.cs と https://github.com/dsp56300/gearmulator/pull/303
+
+
+## 2026-10-25 — #358 合格後の 0x98 ループ境界テスト
+
+- ユーザー報告により Actions #358 の合格を確認。
+- `0x98` + `F7` 継続レコードの組が F8/F9 のループ本体にある場合、展開後の各反復で独立した SysEx として出力され、イベント tick が一回分ずつ進む回帰テストを追加。
+- 不正な high-bit 継続データに対し、失敗時に出力タイムラインが空になることも追加検査。
+- この変更後の CI は未確認。実 RCP2 ファイルでの C++ 実行・再生互換性も引き続き未確認。
