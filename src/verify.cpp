@@ -951,7 +951,7 @@ static void check_rcp_aftertouch_commands()
         channel_encode && poly_encode ? "合" : "NG",
         timeline_ok ? "合" : "NG",
         bad_channel_value && bad_poly_value ? "合" : "NG");
-    std::printf("RCP2 D0/D2/D3 MIDI alias: decode %s・時間展開 %s\\n",
+    std::printf("RCP2 D0/D2/D3 MIDI alias: decode %s・時間展開 %s\n",
         d0_pitch_bend && d2_control_change && d3_program_change ? "合" : "NG",
         aliases_timeline ? "合" : "NG");
 }
