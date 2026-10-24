@@ -112,7 +112,7 @@ bool load_file_events(const std::string &path, std::vector<smf::event> &events,
 #if defined(_WIN32)
     const int n = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
     if (n > 0) {
-        std::wstring wide(size_t(n), L'\\0');
+        std::wstring wide(size_t(n), L'\0');
         MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide.data(), n);
         file = _wfopen(wide.c_str(), L"rb");
     }
