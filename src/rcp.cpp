@@ -753,8 +753,8 @@ bool expand_note_key_signature_tempo_timeline(
         // Comment bytes are metadata, not timed MIDI events. A standalone F7 is
         // rejected so malformed/unknown command records are not silently ignored.
         if (raw.code == 0xf6) {
-            while (record_index + 1 < sequence.size() &&
-                   sequence[record_index + 1].code == 0xf7)
+            while (record_index + 1 < expanded_sequence.size() &&
+                   expanded_sequence[record_index + 1].code == 0xf7)
                 ++record_index;
             continue;
         }
