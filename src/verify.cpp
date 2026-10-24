@@ -1070,7 +1070,7 @@ static void check_rcp_aftertouch_commands()
         !rcp::expand_note_key_signature_tempo_timeline(
             invalid_user_sysex_sequence, 120, timeline, err, &user_sysex, 0) &&
         timeline.empty() && !err.empty();
-    std::printf("RCP2 90..97 ユーザー SysEx: header/置換/チェックサム/tick %s・dummy 抑止 %s・7-bit 拒否 %s\\n",
+    std::printf("RCP2 90..97 ユーザー SysEx: header/置換/チェックサム/tick %s・dummy 抑止 %s・7-bit 拒否 %s\n",
         user_sysex_ok ? "合" : "NG",
         dummy_user_sysex_suppressed ? "合" : "NG",
         invalid_user_sysex_parameter_rejected ? "合" : "NG");
