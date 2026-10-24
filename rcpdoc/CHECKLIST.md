@@ -87,7 +87,7 @@
 | DD/DE/DF GS SysEx | あり | あり | DT1 SysEx生成を合成テスト。実機再生は未確認 |
 | E6 動的ルート変更 | あり | あり | channel/port/dummy切替を検査。Actions #338 合格（ユーザー報告） |
 | 0x90–0x97 ユーザーSysEx | あり | あり | ヘッダーテンプレート抽出、p1/p2/channel、Roland checksum、F0/F7、dummy抑止を合成テスト。最新CI未確認 |
-| 0x98 可変長SysEx | 未対応 | 未対応 | 固定4-byteレコード parser と衝突するため設計が必要 |
+| 0x98 Track SysEx | あり | あり | F7継続レコードの結合、テンプレート置換、checksum、tick、孤立F7拒否を合成テスト追加。Actions #352 はこの変更前、今回の CI 未確認 |
 | F5キー署名 | あり | あり | 時間を進めず、同tickの順序を検査 |
 | F6/F7コメント | 実験的にあり | あり | F6と直後のF7継続を除外。完全な仕様確定を意味しない |
 | EA/EB/EC/ED/EE | 一部あり | あり | 標準MIDI化できるサブセット。特殊ECは拒否 |
@@ -188,3 +188,13 @@
 - ユーザー報告により Actions #338 の合格を確認。E6 の route-change timeline event、channel/port 切替、dummy/unrouted 切替の合成テストを含む変更までの CI 成功として記録する。
 - 実 RCP2 ファイルの C++ 実行・再生互換性は未確認。
 - 0x90–0x97 のヘッダー定義ユーザー SysEx を実装し、合成テストを追加した（最新CI未確認）。`0x98` は可変長データを伴うため、固定4-byteレコード前提の `parse_sequence` と FC/F8/F9 展開の相互作用を先に設計する。
+
+
+## 2026-10-25 追記 — Track SysEx 0x98
+
+- [x] 0x98 の直後に続く F7 レコードの p1/p2 を順に連結し、末尾 F7 padding を除去する。
+- [x] ユーザー SysEx と共通の置換規則、checksum、E6 dummy route、p0 の tick 進行を実装。
+- [x] 複数継続レコード、置換、checksum、次イベント tick、孤立 F7 の合成テストを追加。
+- [ ] Actions の CI を確認する（#352 は変更前）。
+- [ ] Gearmulator PR #303 と比較し、FC/F8/F9 ループ境界にまたがる F7 継続ケースを検証する。
+- [ ] 実 RCP2 ファイルで C++ 実行・再生比較を行う。
