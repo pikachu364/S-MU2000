@@ -265,3 +265,11 @@
 - `DD` / `DF` の状態をトラック内の時間展開中に保持し、`DE` で Roland GS DT1 SysEx を生成する処理を追加。初期 device/model/address は参照コード同様にゼロ。チェックサムはアドレスとデータの4 byteを加算して 7-bit 化する。
 - `timeline_event_kind::sysex` を追加し、秒ベース MIDI 出力経路で F0...F7 のバイト列をそのまま送出する。合成テストと `tests/verify.txt` を同期。
 - 追加変更の CI は未確認。実データ比較・再生は未確認。参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+
+## 2026-10-24 — Actions #328 合格後の E6 対応
+
+- ユーザー報告により Actions #328 の合格を確認。直前の DD/DE/DF 対応まで成功。
+- E6 を route-change timeline event として追加。参照実装に従い raw p1 を 1 減らし、bit 7 が立つ値（減算後）は dummy/unrouted、その他は上位 nibble を port、下位 nibble を channel として扱う。
+- MIDI 出力でトラック別の有効ルートを更新し、E6 後のイベントに適用する。合成テストは通常ルート切替、dummy 切替、tick 進行を対象とする。
+- この追加変更の CI は未確認。実 RCP2 ファイルの C++ 実行・実機再生は未確認。参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
