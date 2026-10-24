@@ -223,3 +223,12 @@
 - `src/verify.cpp` に、FDのstep byteが大きくても次ノートのtickを進めない合成テストを追加。コミット: [270f7d0](https://github.com/pikachu364/S-MU2000/commit/270f7d097f54174306316abc65cdf3524f068de4)、[c4041c0](https://github.com/pikachu364/S-MU2000/commit/c4041c03eb485871a1e1932ef0fa0a0ab1565acf)。
 - 参照資料: [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md)。これは外部資料に基づく説明で、S-MU2000での互換性は合成テストと実データ比較を通じて別途検証する。
 - 最新CI結果はまだ未確認。
+
+
+## 2026-10-24 — Actions #299 合格と D0/D2/D3 対応
+
+- ユーザー報告により Actions #299 の合格を確認。これは当該コミット時点のCI成功であり、以降の変更を含む最新CIの結果ではない。
+- RCPコマンド表にある D0 / D2 / D3 を追加対応した。既存デコーダーの Pitch Bend / Control Change / Program Change 経路を再利用し、7-bit値の検証と tick 展開を行う。
+- `src/verify.cpp` に各コマンドのデコードと、D2→D3→D0 の時刻累積を検査する合成テストを追加した。
+- コード変更コミット: [002c796](https://github.com/pikachu364/S-MU2000/commit/002c796f6099dad901c9b52e29b70ce79827d8fe)、テスト: [a546112](https://github.com/pikachu364/S-MU2000/commit/a546112f311e2331324ed1c6688ae5cf68aeabe5)。関連文書も更新。
+- 追加変更のCIは未確認。実データ12曲をC++パーサーへ直接通した検証・実再生も未実施。
