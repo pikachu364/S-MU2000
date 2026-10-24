@@ -168,6 +168,6 @@
 
 ## 2026-10-24 追記 — E1/E2
 
-- `E1` は CC0=velocity、`E2` は CC0=velocity、CC32=0、Program Change=gate の順で展開する実装と合成テストを追加。
-- E2 の3イベントは同一 tick に安定順序で出し、step は1回のみ時間へ加算する。7-bit 範囲外の gate/velocity は文書全体の展開を拒否する。
-- この変更を含む GitHub Actions は未確認。実ファイルとの比較・再生も未確認。
+- `E1` は XG 音色選択（CC32=p2、Program Change=p1）、`E2` は GS 音色選択（CC0=p2、Program Change=p1）として同 tick に展開する。
+- `DD` は GS アドレス、`DF` はデバイス/モデル ID を保持し、`DE` は Roland DT1 SysEx（チェックサムを含む）を出力する。DD/DF は状態更新のみで、各コマンドの p0 は時間へ一度だけ加算する。
+- E1/E2 の改訂と DD/DE/DF の合成テストを追加。最新の CI は未確認。実ファイルとの比較・再生も未確認。
