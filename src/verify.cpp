@@ -1446,6 +1446,11 @@ static void check_rcp_fc_repeats()
         timeline[0].note.note == 60 && timeline[0].tick == 0 &&
         timeline[1].note.note == 60 && timeline[1].tick == 1 &&
         timeline[2].note.note == 64 && timeline[2].tick == 2 && err.empty();
+    if (!tail_call_ok) {
+        std::fprintf(stderr, "FC chain diagnostic: size=%zu err='%s'\\n", timeline.size(), err.c_str());
+        for (size_t i = 0; i < timeline.size(); ++i)
+            std::fprintf(stderr, "  [%zu] kind=%d note=%u tick=%u\\n", i, int(timeline[i].kind), unsigned(timeline[i].note.note), unsigned(timeline[i].tick));
+    }
 
     // A later FC marks the end of the referenced span and returns to the
     // record immediately after the initiating FC.
