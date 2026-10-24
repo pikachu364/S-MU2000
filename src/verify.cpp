@@ -232,11 +232,18 @@ static void check_rcp_header()
 	                         info.type == rcp::format::rcp2;
 	rcp::document_header header;
 	const bool parse_ok = rcp::parse_header(data.data(), data.size(), header, err);
-	const bool fields_ok = parse_ok && header.title == "Synthetic test" &&
-	                       header.comment == "Generated header" &&
-	                       header.ticks_per_quarter == 352 && header.tempo_bpm == 120 &&
-	                       header.beat_numerator == 4 && header.beat_denominator == 4 &&
-	                       header.track_count == 0x24;
+	const bool parsed_fields_ok = parse_ok && header.title == "Synthetic test" &&
+	                             header.comment == "Generated header" &&
+	                             header.ticks_per_quarter == 352 && header.tempo_bpm == 120 &&
+	                             header.beat_numerator == 4 && header.beat_denominator == 4 &&
+	                             header.track_count == 0x24;
+	data[0x1e6] = 0; // Legacy RCP2 header: zero means the standard 18 tracks.
+	rcp::document_header legacy_header;
+	const bool legacy_zero_count_ok =
+	    rcp::parse_header(data.data(), data.size(), legacy_header, err) &&
+	    legacy_header.track_count == 18;
+	data[0x1e6] = 0x24;
+	const bool fields_ok = parsed_fields_ok && legacy_zero_count_ok;
 	const bool short_prefix_ok = !rcp::inspect_header(data.data(), 0x1f, info, err);
 	const bool short_header_ok = !rcp::parse_header(data.data(), 0x585, header, err);
 	std::vector<u8> junk(0x586, 0x55);
