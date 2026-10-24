@@ -529,7 +529,8 @@ bool encode_midi_message(const timed_event &event, u8 channel,
         return true;
     case timeline_event_kind::key_signature:
     case timeline_event_kind::tempo:
-        err = "MIDI メタデータイベントはチャンネルメッセージではありません";
+    case timeline_event_kind::sysex:
+        err = "MIDI メタデータイベントまたは SysEx はチャンネルメッセージではありません";
         return false;
     }
     err = "未対応の MIDI イベント種別です";
@@ -741,6 +742,8 @@ bool expand_note_key_signature_tempo_timeline(
     }
 
     u32 current_tick = 0;
+    // Reference rcp2mid.c initializes all six GS parameter bytes to zero.
+    u8 gs_device = 0, gs_model = 0, gs_address_high = 0, gs_address_low = 0;
     bool found_end = false;
     for (size_t record_index = 0; record_index < expanded_sequence.size(); ++record_index) {
         const sequence_event &raw = expanded_sequence[record_index];
@@ -765,6 +768,39 @@ bool expand_note_key_signature_tempo_timeline(
             out.clear();
             err = "RCP F7 コメント継続レコードの前に F6 がありません";
             return false;
+        }
+
+        // GS parameter state commands, matching the reference converter.
+        if (raw.code == 0xdd || raw.code == 0xde || raw.code == 0xdf) {
+            if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
+                out.clear();
+                err = "RCP DD/DE/DF の SysEx 値が 7 bit 範囲外です";
+                return false;
+            }
+            if (raw.code == 0xdd) {
+                gs_address_high = raw.p1;
+                gs_address_low = raw.p2;
+            } else if (raw.code == 0xdf) {
+                gs_device = raw.p1;
+                gs_model = raw.p2;
+            } else {
+                timed_event sysex;
+                sysex.tick = current_tick;
+                sysex.kind = timeline_event_kind::sysex;
+                const u8 checksum = static_cast<u8>((0x80u -
+                    ((static_cast<unsigned>(gs_address_high) + gs_address_low +
+                      raw.p1 + raw.p2) & 0x7fu)) & 0x7fu);
+                sysex.sysex = {0xf0, 0x41, gs_device, gs_model, 0x12,
+                    gs_address_high, gs_address_low, raw.p1, raw.p2, checksum, 0xf7};
+                out.push_back(std::move(sysex));
+            }
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
         }
 
         // Reference rcp2mid.c: E1 selects an XG instrument (CC32 = p2,
@@ -1255,6 +1291,14 @@ bool encode_timeline_to_midi_events(
         if (!mapping[track].enabled)
             continue;
         std::vector<u8> bytes;
+        if (kind == timeline_event_kind::sysex) {
+            bytes = source.source.event.sysex;
+            if (bytes.size() < 2 || bytes.front() != 0xf0 || bytes.back() != 0xf7) {
+                out.clear(); err = "RCP SysEx イベントの開始/終端が不正です"; return false;
+            }
+            out.push_back({source.time, std::move(bytes), mapping[track].port});
+            continue;
+        }
         if (!encode_midi_message(source.source.event, mapping[track].channel, bytes, err)) {
             out.clear();
             err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
@@ -1286,6 +1330,14 @@ bool encode_timeline_to_midi_events(
             out.clear(); err = "RCP2 MIDI 出力のトラック割り当てが不足しています"; return false;
         }
         std::vector<u8> bytes;
+        if (kind == timeline_event_kind::sysex) {
+            bytes = source.source.event.sysex;
+            if (bytes.size() < 2 || bytes.front() != 0xf0 || bytes.back() != 0xf7) {
+                out.clear(); err = "RCP SysEx イベントの開始/終端が不正です"; return false;
+            }
+            out.push_back({source.time, std::move(bytes), port_by_track[track]});
+            continue;
+        }
         if (!encode_midi_message(source.source.event, channel_by_track[track], bytes, err)) {
             out.clear();
             err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
