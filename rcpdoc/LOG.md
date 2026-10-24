@@ -189,3 +189,12 @@
 - ユーザー報告により [Actions #275](https://github.com/pikachu364/S-MU2000/actions/runs/40072000688) 合格を確認。
 - `rcpdoc/README.md`、`NEXT_STEPS.md`、`CHECKLIST.md` を更新し、API テストと展開予算テストの結果、制約、次の作業を記録。
 - 制約: API/ループのテストは合成データに対する CI 検証。実 RCP2 ファイルの再生互換性は未確認。次は FC 展開予算の境界と参照チェーンを検証する。
+
+
+## 2026-10-24 — ドキュメント整合性確認と CI #279
+
+- ユーザー報告を受け、[Actions #279](https://github.com/pikachu364/S-MU2000/actions/runs/40073550348) の状態をGitHub APIで確認。全7ジョブが `success`。
+- `rcpdoc/README.md` に残っていた古い HEAD と「player接続未完了」の記述を現行コード・#274のAPI合成テスト結果に合わせて修正。
+- `rcpdoc/NEXT_STEPS.md` の HEAD、APIテスト状態、FC固有の予算テスト課題を更新。
+- リポジトリのファイルツリーを確認した範囲では、テスト用の `.rcp` / `.mid` ファイルは見当たらない。実ファイル互換性は引き続き未確認で、次の比較には許可されたサンプルまたは独立参照出力が必要。
+- #279 は文書変更後のCI成功であり、実曲再生テストの成功ではない。
