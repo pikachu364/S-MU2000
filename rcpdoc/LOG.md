@@ -168,3 +168,13 @@
 - 作業者から GitHub Actions #189 合格の報告を受けた：[Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808)。本ログでは作業者報告に基づく記録とし、実 RCP2 楽曲の再生確認とは区別する。
 - 既存 SMF player のコードを確認した。`smf::event` は秒・MIDI byte 列・port を持ち、`src/ui/player.cpp` は `smf::load` / `smf::load_from_memory` を使用する。RCP2 event の直接接続、SMF serialization、実ファイル再生は未実装/未確認。
 - 次は既存 player の時間・port・seek/chase 契約を調べ、RCP2 event adapter と SMF serialization のどちらが安全か決める。CI 合格を実再生互換性と混同しない。
+
+
+## 2026-10-24 — FC/F8/F9 境界テストと CI 成功
+
+- FC の参照展開で、FC連鎖・参照終端からの復帰・ヘッダー内/未整列/範囲外・FE参照・循環の合成テストが成功。 [Actions #256](https://github.com/pikachu364/S-MU2000/actions/runs/40059724255)。
+- FC展開後にF8/F9のカウント付きループが続くケースを追加。テストコードの lambda capture と出力改行、`tests/verify.txt` の期待値を修正した。最終的に [Actions #260](https://github.com/pikachu364/S-MU2000/actions/runs/40061803563) が成功。
+- F8の反復回数1の境界テストを追加し、期待出力を更新。[Actions #262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056) は全7ジョブ成功。
+- 失敗した #257/#258 とキャンセルされた #259/#261 は履歴として残す。修正後の成功を確認済み。
+- 現 HEAD: [5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)。
+- 制約: CIは合成テストとビルドの結果。実RCP2ファイルの再生互換性は未確認。
