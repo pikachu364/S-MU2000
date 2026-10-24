@@ -49,9 +49,9 @@
 | `0xDD` / `0xDE` / `0xDF` | GSパラメータ書き込みを構成 | [ ] | [ ] |
 | `0xE1` / `0xE2` | バンク選択 / バンク＋プログラム変更 | [ ] | [ ] |
 | `0xE6` / `0xE7` | チャンネル変更 / 基本テンポ比によるテンポ変更 | [ ] | [ ] |
-| `0xEA` / `0xEB` / `0xD2` | Control Change | [ ] | [ ] |
-| `0xEC` / `0xD3` | Program Change | [ ] | [ ] |
-| `0xEE` / `0xD0` | Pitch Bend | [ ] | [ ] |
+| `0xEA` / `0xEB` / `0xD2` | Control Change | D2 alias implemented | synthetic test added |
+| `0xEC` / `0xD3` | Program Change | D3 alias implemented | synthetic test added |
+| `0xEE` / `0xD0` | Pitch Bend | D0 alias implemented | synthetic test added |
 | `0xF5` | Key signature。時間を進めない | コードあり | 合成テストあり | tick維持と同tick順序を検査 |
 | `0xF6` / `0xF7` | コメント。資料では3バイトとも文字で時間を進めない | 実験的コードあり | 合成テストあり | F6後続のF7継続を除外、孤立F7は拒否。完全な仕様確定とは別 |
 | `0xF8` | ループ終端。stepは時間ではなく反復回数 | 実装あり | 合成テストあり | 有限反復1〜126。0と0x7f以上は安全側で拒否 |
@@ -155,3 +155,10 @@
 - リポジトリのファイルツリー確認では、テスト用 `.rcp` / `.mid` サンプルは見当たらない。許可された実データまたは独立参照出力が必要。
 - これらは合成データの回帰テストであり、実 RCP2 ファイルの読み込み・再生互換性の証明ではない。
 - 次のテスト候補: FC 展開予算超過、参照チェーンの深さ/循環境界、実データまたは独立参照出力との比較。
+
+
+## 2026-10-24 追記 — D0/D2/D3 別名対応
+
+- `D0` / `D2` / `D3` を既存の Pitch Bend / Control Change / Program Change のデコーダーへ接続した。
+- `src/verify.cpp` にデコードと時間展開の合成テストを追加。CI 実行結果は次の Actions を確認してから記録する。
+- 実 RCP2 ファイルでのコマンド別名の出現・再生互換性は未確認。
