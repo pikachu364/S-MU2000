@@ -852,6 +852,66 @@ bool expand_note_key_signature_tempo_timeline(
             continue;
         }
 
+        // 0x98 carries a SysEx template in the p1/p2 bytes of following F7
+        // continuation records. Gather those records after loop expansion so a
+        // loop repeats the complete SysEx payload, then trim trailing F7 padding.
+        if (raw.code == 0x98) {
+            if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
+                out.clear();
+                err = "RCP 98 SysEx パラメーターが 7 bit 範囲外です";
+                return false;
+            }
+            std::vector<u8> payload;
+            while (record_index + 1 < expanded_sequence.size() &&
+                   expanded_sequence[record_index + 1].code == 0xf7) {
+                const sequence_event &continuation = expanded_sequence[++record_index];
+                payload.push_back(continuation.p1);
+                payload.push_back(continuation.p2);
+            }
+            while (!payload.empty() && payload.back() == 0xf7)
+                payload.pop_back();
+
+            if (current_route_enabled && !payload.empty()) {
+                timed_event sysex;
+                sysex.tick = current_tick;
+                sysex.kind = timeline_event_kind::sysex;
+                sysex.sysex.push_back(0xf0);
+                u8 checksum = 0;
+                auto append_data = [&](u8 value) {
+                    sysex.sysex.push_back(value);
+                    checksum = static_cast<u8>((checksum + value) & 0x7f);
+                };
+                for (u8 byte : payload) {
+                    u8 value = byte;
+                    if (byte == 0x80) value = raw.p1;
+                    else if (byte == 0x81) value = raw.p2;
+                    else if (byte == 0x82) value = current_midi_channel;
+                    else if (byte == 0x83) { checksum = 0; continue; }
+                    else if (byte == 0x84) value = static_cast<u8>((0x80u - checksum) & 0x7f);
+                    else if (byte == 0xf7) {
+                        sysex.sysex.push_back(0xf7);
+                        break;
+                    } else if ((byte & 0x80) != 0) {
+                        out.clear();
+                        err = "RCP 98 SysEx に未知の置換コードがあります";
+                        return false;
+                    }
+                    append_data(value);
+                }
+                if (sysex.sysex.back() != 0xf7)
+                    sysex.sysex.push_back(0xf7);
+                if (sysex.sysex.size() > 2)
+                    out.push_back(std::move(sysex));
+            }
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
         // User SysEx slots 1..8 are stored in the RCP2 fixed header at 0x406.
         // Their template bytes are processed with the same substitution rules as 0x98.
         if (raw.code >= 0x90 && raw.code <= 0x97) {
