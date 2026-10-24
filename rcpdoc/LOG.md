@@ -178,3 +178,14 @@
 - 失敗した #257/#258 とキャンセルされた #259/#261 は履歴として残す。修正後の成功を確認済み。
 - 現 HEAD: [5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)。
 - 制約: CIは合成テストとビルドの結果。実RCP2ファイルの再生互換性は未確認。
+
+
+## 2026-10-24 — Windows verify 修正、player API と展開予算テスト
+
+- [52d7a82](https://github.com/pikachu364/S-MU2000/commit/52d7a8268b2f83022272e8f4449fb7af7446b18d) で Windows の verify リンクに `-lwinmm` を追加。Windows の `timeBeginPeriod` / `timeEndPeriod` 未解決シンボルを修正。
+- [b957456](https://github.com/pikachu364/S-MU2000/commit/b957456898fc628b68893ef8badca90a7ac128eb) で `src/ui/player.cpp` の `L'\\\\0'` を正しい wide null 文字 `L'\\0'` に修正。
+- ユーザー報告により [Actions #274](https://github.com/pikachu364/S-MU2000/actions/runs/40069003704) 合格を確認。
+- [4a13956](https://github.com/pikachu364/S-MU2000/commit/4a1395680da9213f502960f450fe63c5f104a091) で F8/F9 の展開予算テストを追加。3重ネストの126回ループで100万レコード上限を超えさせ、処理失敗・timeline出力クリア・エラー設定を検査する。
+- ユーザー報告により [Actions #275](https://github.com/pikachu364/S-MU2000/actions/runs/40072000688) 合格を確認。
+- `rcpdoc/README.md`、`NEXT_STEPS.md`、`CHECKLIST.md` を更新し、API テストと展開予算テストの結果、制約、次の作業を記録。
+- 制約: API/ループのテストは合成データに対する CI 検証。実 RCP2 ファイルの再生互換性は未確認。次は FC 展開予算の境界と参照チェーンを検証する。
