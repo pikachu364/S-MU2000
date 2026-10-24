@@ -1439,7 +1439,10 @@ static void check_rcp2_player_event_pipeline()
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
-    const size_t track_length = track_header_size + 12;
+    // One initial note followed by a two-pass F9/F8 loop. The loop note's
+    // gate is shorter than its step, so the full pipeline must emit two strikes
+    // and two note-offs rather than treating them as a same-pitch tie.
+    const size_t track_length = track_header_size + 20;
     std::vector<u8> data(header_size + track_length, 0);
     std::memcpy(data.data(), signature, sizeof(signature) - 1);
     data[0x1c0] = 0xe0;
@@ -1451,11 +1454,12 @@ static void check_rcp2_player_event_pipeline()
     data[at + 1] = u8(track_length >> 8);
     data[at + 2] = 0;
     data[at + 4] = 0;
-    data[at + track_header_size] = 60;
-    data[at + track_header_size + 1] = 12;
-    data[at + track_header_size + 2] = 100;
-    data[at + track_header_size + 3] = 90;
-    data[at + track_header_size + 4] = 0xfe;
+    const size_t seq = at + track_header_size;
+    data[seq + 0] = 60;  data[seq + 1] = 12; data[seq + 2] = 8; data[seq + 3] = 90;
+    data[seq + 4] = 0xf9;
+    data[seq + 8] = 62;  data[seq + 9] = 12; data[seq + 10] = 8; data[seq + 11] = 80;
+    data[seq + 12] = 0xf8; data[seq + 13] = 2;
+    data[seq + 16] = 0xfe;
 
     rcp::intermediate_document document;
     std::vector<rcp::timed_track_event> timeline;
@@ -1474,9 +1478,26 @@ static void check_rcp2_player_event_pipeline()
     const bool note_off = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
         return e.bytes.size() == 3 && e.bytes[0] == 0x80 && e.bytes[1] == 60 && e.port == 0;
     });
-    std::printf("RCP2 プレイヤー経路（解析→秒→MIDI）: 解析 %s・展開 %s・時刻 %s・割当 %s・変換 %s・Note On %s・Note Off %s\n",
+    size_t loop_note_ons = 0, loop_note_offs = 0;
+    bool loop_times_ok = true;
+    for (const rcp::midi_output_event &e : output) {
+        if (e.bytes == std::vector<u8>({0x90, 62, 80}) && e.port == 0) {
+            ++loop_note_ons;
+            const double expected = loop_note_ons == 1 ? 0.015 : 0.030;
+            if (e.time < expected - 0.000001 || e.time > expected + 0.000001)
+                loop_times_ok = false;
+        }
+        if (e.bytes == std::vector<u8>({0x80, 62, 0}) && e.port == 0) {
+            ++loop_note_offs;
+            const double expected = loop_note_offs == 1 ? 0.025 : 0.040;
+            if (e.time < expected - 0.000001 || e.time > expected + 0.000001)
+                loop_times_ok = false;
+        }
+    }
+    const bool loop_pipeline_ok = loop_note_ons == 2 && loop_note_offs == 2 && loop_times_ok;
+    std::printf("RCP2 プレイヤー経路（解析→秒→MIDI）: 解析 %s・展開 %s・時刻 %s・割当 %s・変換 %s・Note On/Off %s・F8/F9 順序/時刻 %s\n",
         built ? "合" : "NG", expanded ? "合" : "NG", timed ? "合" : "NG", routed ? "合" : "NG",
-        encoded ? "合" : "NG", note_on ? "合" : "NG", note_off ? "合" : "NG");
+        encoded ? "合" : "NG", (note_on && note_off) ? "合" : "NG", loop_pipeline_ok ? "合" : "NG");
     if (!encoded) std::printf("RCP2 player pipeline error: %s\n", err.c_str());
 }
 
