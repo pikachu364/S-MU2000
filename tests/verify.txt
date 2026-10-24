@@ -41,6 +41,7 @@ RCP2 EA/ED アフタータッチ: Channel/Poly decode 合・MIDI符号化 合・
 RCP2 D0/D2/D3 MIDI alias: decode 合・時間展開 合
 RCP2 E1/E2 MIDI command: XG/GS bank+program and timeline 合・範囲外拒否 合
 RCP2 E6 MIDI route: port/channel 切替・dummy 切替・tick 進行 合
+RCP2 90..97 ユーザー SysEx: header/置換/チェックサム/tick 合・dummy 抑止 合・7-bit 拒否 合
 RCP2 DD/DE/DF GS SysEx: state/checksum/tick 合・7-bit 範囲外拒否 合
 RCP2 MIDIメッセージ符号化: Note On 合・Note Off 合・CC 合・Program Change 合・Pitch Bend 合・不正チャンネル拒否 合・メタデータ分離 合
 RCP2 tick→秒変換: テンポ変更前後 合・PPQ 0 拒否 合・初期 BPM 0 拒否 合・逆順 tick 拒否 合・テンポ値 0 拒否 合
