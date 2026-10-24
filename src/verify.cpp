@@ -1001,7 +1001,7 @@ static void check_rcp_aftertouch_commands()
         timeline[2].kind == rcp::timeline_event_kind::route_change && timeline[2].tick == 5 &&
         !timeline[2].route.enabled &&
         timeline[3].kind == rcp::timeline_event_kind::note && timeline[3].tick == 6 && err.empty();
-    std::printf("RCP2 E6 MIDI route: port/channel 切替・dummy 切替・tick 進行 %s\\n",
+    std::printf("RCP2 E6 MIDI route: port/channel 切替・dummy 切替・tick 進行 %s\n",
         route_timeline ? "合" : "NG");
 
     // DD sets GS address, DF sets device/model, and DE emits Roland DT1 SysEx.
@@ -1202,7 +1202,7 @@ static void check_rcp_track_midi_mapping()
     const bool routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
         output.size() == 1 && output[0].bytes == std::vector<u8>({0x94, 60, 90}) &&
         output[0].port == 3 && err.empty();
-    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s\\n",
+    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s\n",
         mapped ? "合" : "NG", routed ? "合" : "NG");
 }
 
