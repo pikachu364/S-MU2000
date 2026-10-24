@@ -1103,7 +1103,7 @@ static void check_rcp_aftertouch_commands()
         rcp::expand_note_key_signature_tempo_timeline(
             orphan_continuation_sequence, 120, timeline, err) &&
         timeline.empty() && err.empty();
-    std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7スキップ %s\\n",
+    std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7スキップ %s\n",
         track_sysex_continuation_ok ? "合" : "NG",
         orphan_track_continuation_skipped ? "合" : "NG");
 
@@ -1144,7 +1144,7 @@ static void check_rcp_aftertouch_commands()
         timeline.size() == 1 &&
         timeline[0].kind == rcp::timeline_event_kind::note &&
         timeline[0].tick == 2 && err.empty();
-    std::printf("RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない %s\\n",
+    std::printf("RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない %s\n",
         track_sysex_continuation_outside_loop_ok ? "合" : "NG");
 
     // A continuation with an invalid high-bit value is rejected atomically.
@@ -1753,7 +1753,7 @@ static void check_rcp_counted_loops()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
     if (!rcp_loop_budget_test_ok)
-        std::printf("RCP2 F8/F9 expansion budget was not enforced safely\\n");
+        std::printf("RCP2 F8/F9 expansion budget was not enforced safely\n");
 
     std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・1回境界 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
         simple_loop_ok ? "合" : "NG", nested_loop_ok ? "合" : "NG",
