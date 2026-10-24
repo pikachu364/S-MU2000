@@ -249,3 +249,11 @@
 - 7-bit 範囲外の値を拒否する合成テストを追加。期待出力 `tests/verify.txt` も同期した。
 - 関連コミット: [実装](https://github.com/pikachu364/S-MU2000/commit/7788e6fa63e7623843595cdc078d528ce54e2e56)、[テスト](https://github.com/pikachu364/S-MU2000/commit/aa74cf217de259f50dc339bd40bc37f2d90be43c)、[期待出力](https://github.com/pikachu364/S-MU2000/commit/e5478490ddf1d286e2016e2d447c078642ee3508)。
 - 参照仕様: [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md)。この変更は実 RCP ファイルでの実行・再生を検証したものではない。
+
+
+## 2026-10-24 — E1/E2 参照実装との照合修正
+
+- ValleyBell/MidiConverters の `rcp2mid.c` の `case 0xE1` / `case 0xE2` を確認した結果、先行実装の E1/E2 の意味付けが誤っていたため修正した。
+- E1 は XG 音色選択（CC32=`p2`、Program Change=`p1`）、E2 は GS 音色選択（CC0=`p2`、Program Change=`p1`）。両イベントは同 tick に出し、`p0` の時間進行は一度だけとする。
+- 合成テストと期待出力、NEXT_STEPS/CHECKLIST の説明を訂正した。#313 はこの修正より前の成功であり、修正後 CI は未確認。
+- 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
