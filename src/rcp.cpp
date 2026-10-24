@@ -875,6 +875,7 @@ bool expand_note_key_signature_tempo_timeline(
                 timed_event sysex;
                 sysex.tick = current_tick;
                 sysex.kind = timeline_event_kind::sysex;
+                sysex.sysex.push_back(0xf0);
                 u8 checksum = 0;
                 bool ended = false;
                 auto append_data = [&](u8 value) {
