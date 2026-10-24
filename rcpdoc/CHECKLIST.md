@@ -171,3 +171,7 @@
 - `E1` は XG 音色選択（CC32=p2、Program Change=p1）、`E2` は GS 音色選択（CC0=p2、Program Change=p1）として同 tick に展開する。
 - `DD` は GS アドレス、`DF` はデバイス/モデル ID を保持し、`DE` は Roland DT1 SysEx（チェックサムを含む）を出力する。DD/DF は状態更新のみで、各コマンドの p0 は時間へ一度だけ加算する。
 - E1/E2 の改訂と DD/DE/DF の合成テストを追加。最新の CI は未確認。実ファイルとの比較・再生も未確認。
+
+- [x] E6 の 1-based MIDI route 値を port/channel に分解し、トラック内の後続 MIDI イベントへ動的に適用する。dummy 切替と tick 進行を合成テスト。
+- [ ] E6 追加変更の GitHub Actions を確認する。
+- [ ] 実 RCP2 サンプルを C++ パーサー／出力経路で検証し、チャンネル切替・SysEx の実機再生を確認する。
