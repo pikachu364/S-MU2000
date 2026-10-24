@@ -1842,13 +1842,22 @@ static void check_rcp_fc_repeats()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・FC 連鎖 %s・参照終端から復帰 %s・ヘッダー内/未整列/範囲外拒否 %s・FE 参照拒否 %s・循環拒否 %s\n",
+    // FC's traversal budget must fail closed on an oversized sequence,
+    // without returning a partial timeline. This is separate from F8/F9 budget coverage.
+    sequence.assign(1000001, event(60, 0, 1, 90));
+    sequence.push_back(event(0xfe, 0, 0, 0));
+    const bool fc_budget_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・FC 連鎖 %s・参照終端から復帰 %s・ヘッダー内/未整列/範囲外拒否 %s・FE 参照拒否 %s・循環拒否 %s・展開予算超過拒否 %s\n",
         valid_repeat_ok ? "合" : "NG",
         tail_call_ok ? "合" : "NG",
         endpoint_return_ok ? "合" : "NG",
         (header_target_rejected && unaligned_target_rejected && outside_target_rejected) ? "合" : "NG",
         fe_target_rejected ? "合" : "NG",
-        cycle_rejected ? "合" : "NG");
+        cycle_rejected ? "合" : "NG",
+        fc_budget_rejected ? "合" : "NG");
 }
 
 static void check_rcp_tempo_conversion()
