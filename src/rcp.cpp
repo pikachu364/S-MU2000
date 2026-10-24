@@ -767,6 +767,48 @@ bool expand_note_key_signature_tempo_timeline(
             return false;
         }
 
+        // E1 selects bank MSB (CC 0 = velocity); E2 emits bank MSB,
+        // bank LSB 0, and program (gate) in that order at the same tick.
+        // Both records advance time only once by their step byte.
+        if (raw.code == 0xe1 || raw.code == 0xe2) {
+            if ((raw.code == 0xe1 && raw.p2 > 0x7f) ||
+                (raw.code == 0xe2 && (raw.p1 > 0x7f || raw.p2 > 0x7f))) {
+                out.clear();
+                err = "RCP E1/E2 の MIDI 値が 7 bit 範囲外です";
+                return false;
+            }
+
+            timed_event bank_msb;
+            bank_msb.tick = current_tick;
+            bank_msb.kind = timeline_event_kind::control_change;
+            bank_msb.channel.data1 = 0;
+            bank_msb.channel.data2 = raw.p2;
+            out.push_back(bank_msb);
+
+            if (raw.code == 0xe2) {
+                timed_event bank_lsb;
+                bank_lsb.tick = current_tick;
+                bank_lsb.kind = timeline_event_kind::control_change;
+                bank_lsb.channel.data1 = 32;
+                bank_lsb.channel.data2 = 0;
+                out.push_back(bank_lsb);
+
+                timed_event program;
+                program.tick = current_tick;
+                program.kind = timeline_event_kind::program_change;
+                program.channel.data1 = raw.p1;
+                out.push_back(program);
+            }
+
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
         timed_event timed;
         timed.tick = current_tick;
         u32 delay_advance = 0;
