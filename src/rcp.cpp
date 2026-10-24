@@ -767,38 +767,28 @@ bool expand_note_key_signature_tempo_timeline(
             return false;
         }
 
-        // E1 selects bank MSB (CC 0 = velocity); E2 emits bank MSB,
-        // bank LSB 0, and program (gate) in that order at the same tick.
-        // Both records advance time only once by their step byte.
+        // Reference rcp2mid.c: E1 selects an XG instrument (CC32 = p2,
+        // Program Change = p1); E2 selects a GS instrument (CC0 = p2,
+        // Program Change = p1). p0 is the step/delay for either command.
         if (raw.code == 0xe1 || raw.code == 0xe2) {
-            if ((raw.code == 0xe1 && raw.p2 > 0x7f) ||
-                (raw.code == 0xe2 && (raw.p1 > 0x7f || raw.p2 > 0x7f))) {
+            if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
                 out.clear();
                 err = "RCP E1/E2 の MIDI 値が 7 bit 範囲外です";
                 return false;
             }
 
-            timed_event bank_msb;
-            bank_msb.tick = current_tick;
-            bank_msb.kind = timeline_event_kind::control_change;
-            bank_msb.channel.data1 = 0;
-            bank_msb.channel.data2 = raw.p2;
-            out.push_back(bank_msb);
+            timed_event bank;
+            bank.tick = current_tick;
+            bank.kind = timeline_event_kind::control_change;
+            bank.channel.data1 = raw.code == 0xe1 ? 32 : 0;
+            bank.channel.data2 = raw.p2;
+            out.push_back(bank);
 
-            if (raw.code == 0xe2) {
-                timed_event bank_lsb;
-                bank_lsb.tick = current_tick;
-                bank_lsb.kind = timeline_event_kind::control_change;
-                bank_lsb.channel.data1 = 32;
-                bank_lsb.channel.data2 = 0;
-                out.push_back(bank_lsb);
-
-                timed_event program;
-                program.tick = current_tick;
-                program.kind = timeline_event_kind::program_change;
-                program.channel.data1 = raw.p1;
-                out.push_back(program);
-            }
+            timed_event program;
+            program.tick = current_tick;
+            program.kind = timeline_event_kind::program_change;
+            program.channel.data1 = raw.p1;
+            out.push_back(program);
 
             if (raw.p0 > 0xffffffffu - current_tick) {
                 out.clear();
