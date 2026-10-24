@@ -1338,7 +1338,7 @@ bool encode_timeline_to_midi_events(
             err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
             return false;
         }
-        out.push_back({source.time, std::move(bytes), mapping[track].port});
+        out.push_back({source.time, std::move(bytes), active_mapping[track].port});
     }
     return true;
 }
