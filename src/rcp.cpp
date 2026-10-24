@@ -414,7 +414,7 @@ bool decode_midi_channel_event(const sequence_event &raw,
         return true;
     }
 
-    if (raw.code == 0xeb) {
+    if (raw.code == 0xeb || raw.code == 0xd2) {
         if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
             err = "RCP EB Control Change のデータ値が 7 bit 範囲外です";
             return false;
@@ -426,7 +426,7 @@ bool decode_midi_channel_event(const sequence_event &raw,
         return true;
     }
 
-    if (raw.code == 0xec) {
+    if (raw.code == 0xec || raw.code == 0xd3) {
         if (raw.p1 >= 0x80) {
             err = "RCP EC の特殊インストゥルメント値は未対応です";
             return false;
@@ -450,7 +450,7 @@ bool decode_midi_channel_event(const sequence_event &raw,
         return true;
     }
 
-    if (raw.code == 0xee) {
+    if (raw.code == 0xee || raw.code == 0xd0) {
         if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
             err = "RCP EE Pitch Bend のデータ値が 7 bit 範囲外です";
             return false;
@@ -785,7 +785,7 @@ bool expand_note_key_signature_tempo_timeline(
             }
             timed.kind = timeline_event_kind::tempo;
             delay_advance = timed.tempo.delay;
-        } else if (raw.code == 0xea || raw.code == 0xeb || raw.code == 0xec || raw.code == 0xed || raw.code == 0xee) {
+        } else if (raw.code == 0xd0 || raw.code == 0xd2 || raw.code == 0xd3 || raw.code == 0xea || raw.code == 0xeb || raw.code == 0xec || raw.code == 0xed || raw.code == 0xee) {
             if (!decode_midi_channel_event(raw, timed.channel, timed.kind, err)) {
                 out.clear();
                 return false;
@@ -800,7 +800,7 @@ bool expand_note_key_signature_tempo_timeline(
             delay_advance = timed.note.delay;
         } else {
             out.clear();
-            err = "時間展開ではノート・EA・EB・EC・ED・EE・F5・E7 以外のコマンドを扱えません";
+            err = "時間展開ではノート・D0/D2/D3・EA/EB/EC/ED/EE・F5・E7 以外のコマンドを扱えません";
             return false;
         }
 
