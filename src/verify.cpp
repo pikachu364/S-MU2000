@@ -987,6 +987,23 @@ static void check_rcp_aftertouch_commands()
         bank_commands_timeline ? "合" : "NG",
         invalid_bank_value_rejected ? "合" : "NG");
 
+    const std::vector<rcp::sequence_event> route_sequence = {
+        raw_event(0xe6, 2, 0x25, 0), raw_event(60, 3, 2, 90),
+        raw_event(0xe6, 1, 0x81, 0), raw_event(62, 4, 2, 90),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const bool route_timeline =
+        rcp::expand_note_key_signature_tempo_timeline(route_sequence, 120, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].kind == rcp::timeline_event_kind::route_change && timeline[0].tick == 0 &&
+        timeline[0].route.enabled && timeline[0].route.port == 2 && timeline[0].route.channel == 4 &&
+        timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].tick == 2 &&
+        timeline[2].kind == rcp::timeline_event_kind::route_change && timeline[2].tick == 5 &&
+        !timeline[2].route.enabled &&
+        timeline[3].kind == rcp::timeline_event_kind::note && timeline[3].tick == 6 && err.empty();
+    std::printf("RCP2 E6 MIDI route: port/channel 切替・dummy 切替・tick 進行 %s\\n",
+        route_timeline ? "合" : "NG");
+
     // DD sets GS address, DF sets device/model, and DE emits Roland DT1 SysEx.
     const std::vector<rcp::sequence_event> gs_sequence = {
         raw_event(0xdf, 1, 0x10, 0x42), raw_event(0xdd, 2, 0x40, 0x00),
