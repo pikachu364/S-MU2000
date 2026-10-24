@@ -240,3 +240,12 @@
 - 出力を読みやすくするため、D0/D2/D3 テストの末尾が文字列 `\\n` を表示していた誤りも改め、通常の改行に修正した。
 - `tests/verify.txt` に新しいテスト行を追加し、意図した回帰テスト出力として指紋を更新した。コード: [8124802](https://github.com/pikachu364/S-MU2000/commit/81248022b9ce75a47da6b5146ac2389e371b3b12)、スナップショット: [6ff6972](https://github.com/pikachu364/S-MU2000/commit/6ff69722024be7d4245106bf1077afa140187005)。
 - 修正後の CI は未確認。`verify` の期待値を無条件で再生成したのではなく、今回追加した行だけを追加した。実 RCP2 曲の C++ パーサー実行・再生は未確認。
+
+
+## 2026-10-24 — Actions #307 合格後の E1/E2 対応
+
+- ユーザー報告により Actions #307 の合格を確認。新しい E1/E2 変更の CI 合格を意味するものではない。
+- JMPlayer の RCP2 コマンド表を照合し、E1 は CC0=velocity、E2 は CC0=velocity・CC32=0・Program Change=gate として展開する処理を追加した。E2 の3イベントは同 tick にファイル記述順で出力し、RCP step は一度だけ加算する。
+- 7-bit 範囲外の値を拒否する合成テストを追加。期待出力 `tests/verify.txt` も同期した。
+- 関連コミット: [実装](https://github.com/pikachu364/S-MU2000/commit/7788e6fa63e7623843595cdc078d528ce54e2e56)、[テスト](https://github.com/pikachu364/S-MU2000/commit/aa74cf217de259f50dc339bd40bc37f2d90be43c)、[期待出力](https://github.com/pikachu364/S-MU2000/commit/e5478490ddf1d286e2016e2d447c078642ee3508)。
+- 参照仕様: [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md)。この変更は実 RCP ファイルでの実行・再生を検証したものではない。
