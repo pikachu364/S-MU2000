@@ -877,24 +877,27 @@ bool expand_note_key_signature_tempo_timeline(
                 sysex.kind = timeline_event_kind::sysex;
                 u8 checksum = 0;
                 bool ended = false;
+                auto append_data = [&](u8 value) {
+                    sysex.sysex.push_back(value);
+                    checksum = static_cast<u8>(checksum + value);
+                };
                 for (u8 byte : slot.data) {
                     if (byte == 0x80) {
-                        sysex.sysex.push_back(raw.p1);
+                        append_data(raw.p1);
                     } else if (byte == 0x81) {
-                        sysex.sysex.push_back(raw.p2);
+                        append_data(raw.p2);
                     } else if (byte == 0x82) {
-                        sysex.sysex.push_back(current_midi_channel);
+                        append_data(current_midi_channel);
                     } else if (byte == 0x83) {
                         checksum = 0;
                     } else if (byte == 0x84) {
-                        sysex.sysex.push_back(static_cast<u8>((0x100u - checksum) & 0x7fu));
+                        append_data(static_cast<u8>((0x100u - checksum) & 0x7fu));
                     } else if (byte == 0xf7) {
                         sysex.sysex.push_back(0xf7);
                         ended = true;
                         break;
                     } else if ((byte & 0x80) == 0) {
-                        sysex.sysex.push_back(byte);
-                        checksum = static_cast<u8>(checksum + byte);
+                        append_data(byte);
                     } else {
                         out.clear();
                         err = "RCP 90..97 ユーザー SysEx に未知の置換コードがあります";
