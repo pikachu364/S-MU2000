@@ -1442,9 +1442,10 @@ static void check_rcp_fc_repeats()
     };
     const bool tail_call_ok =
         rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
-        timeline.size() == 2 &&
+        timeline.size() == 3 &&
         timeline[0].note.note == 60 && timeline[0].tick == 0 &&
-        timeline[1].note.note == 64 && timeline[1].tick == 1 && err.empty();
+        timeline[1].note.note == 60 && timeline[1].tick == 1 &&
+        timeline[2].note.note == 64 && timeline[2].tick == 2 && err.empty();
 
     // A later FC marks the end of the referenced span and returns to the
     // record immediately after the initiating FC.
