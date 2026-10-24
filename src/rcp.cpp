@@ -83,7 +83,8 @@ bool parse_header(const u8 *data, size_t size, document_header &out, std::string
 	out.beat_denominator = data[0x1c3];
 	out.key_signature = data[0x1c4];
 	out.play_bias = data[0x1c5];
-	out.track_count = data[0x1e6];
+	// Legacy RCP2 files store zero here and still contain the standard 18 tracks.
+	out.track_count = data[0x1e6] == 0 ? 18 : data[0x1e6];
 	return true;
 }
 
