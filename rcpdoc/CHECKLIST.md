@@ -205,3 +205,10 @@
 - [x] F8/F9 loop body containing `0x98` and its F7 continuation emits one SysEx per expanded iteration at the expected tick.
 - [x] Invalid high-bit continuation data rejects the conversion atomically.
 - [ ] CI after this follow-up is pending; real RCP2 playback remains unverified.
+
+
+### 2026-10-25 — 0x98 empty-payload follow-up
+
+- [x] F7 padding-only continuation data emits no empty SysEx.
+- [x] The 0x98 step still advances the following event's tick.
+- [ ] CI after this follow-up is pending; real RCP2 playback remains unverified.
