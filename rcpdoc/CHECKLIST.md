@@ -47,8 +47,10 @@
 | `0x80`–`0x87` | ユーザーSysExを送信 | [ ] | [ ] |
 | `0x90`–`0x97` | SysEx内の置換バイトをgate/velocityで置換 | [ ] | [ ] |
 | `0xDD` / `0xDE` / `0xDF` | GSパラメータ書き込みを構成 | [ ] | [ ] |
-| `0xE1` / `0xE2` | バンク選択 / バンク＋プログラム変更 | [ ] | [ ] |
-| `0xE6` / `0xE7` | チャンネル変更 / 基本テンポ比によるテンポ変更 | [ ] | [ ] |
+| `0xE1` | バンク選択（CC0 = velocity） | コードあり | 合成テスト追加 | CC0 に展開。最新 CI は未確認 |
+| `0xE2` | バンク＋プログラム（CC0 = velocity、CC32 = 0、program = gate） | コードあり | 合成テスト追加 | 同 tick で CC0 → CC32 → Program Change。step は一度だけ加算。最新 CI は未確認 |
+| `0xE6` | チャンネル変更（gate = 1〜16） | [ ] | [ ] | トラック途中のチャンネル変更を既存の静的割当へどう反映するか未設計 |
+| `0xE7` | 基本テンポ比によるテンポ変更 | コードあり | 合成テストあり | gradual 曲線は未対応 |
 | `0xEA` / `0xEB` / `0xD2` | Control Change | D2 alias implemented | synthetic test added |
 | `0xEC` / `0xD3` | Program Change | D3 alias implemented | synthetic test added |
 | `0xEE` / `0xD0` | Pitch Bend | D0 alias implemented | synthetic test added |
@@ -162,3 +164,10 @@
 - `D0` / `D2` / `D3` を既存の Pitch Bend / Control Change / Program Change のデコーダーへ接続した。
 - `src/verify.cpp` にデコードと時間展開の合成テストを追加。CI 実行結果は次の Actions を確認してから記録する。
 - 実 RCP2 ファイルでのコマンド別名の出現・再生互換性は未確認。
+
+
+## 2026-10-24 追記 — E1/E2
+
+- `E1` は CC0=velocity、`E2` は CC0=velocity、CC32=0、Program Change=gate の順で展開する実装と合成テストを追加。
+- E2 の3イベントは同一 tick に安定順序で出し、step は1回のみ時間へ加算する。7-bit 範囲外の gate/velocity は文書全体の展開を拒否する。
+- この変更を含む GitHub Actions は未確認。実ファイルとの比較・再生も未確認。
