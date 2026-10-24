@@ -47,8 +47,8 @@
 | `0x80`–`0x87` | ユーザーSysExを送信 | [ ] | [ ] |
 | `0x90`–`0x97` | SysEx内の置換バイトをgate/velocityで置換 | [ ] | [ ] |
 | `0xDD` / `0xDE` / `0xDF` | GSパラメータ書き込みを構成 | [ ] | [ ] |
-| `0xE1` | バンク選択（CC0 = velocity） | コードあり | 合成テスト追加 | CC0 に展開。最新 CI は未確認 |
-| `0xE2` | バンク＋プログラム（CC0 = velocity、CC32 = 0、program = gate） | コードあり | 合成テスト追加 | 同 tick で CC0 → CC32 → Program Change。step は一度だけ加算。最新 CI は未確認 |
+| `0xE1` | XG 音色選択（CC32 = p2、Program Change = p1） | コードあり | 合成テスト追加 | CC32 → Program Change に展開。最新 CI は未確認 |
+| `0xE2` | GS 音色選択（CC0 = p2、Program Change = p1） | コードあり | 合成テスト追加 | 同 tick で CC0 → Program Change。step は一度だけ加算。最新 CI は未確認 |
 | `0xE6` | チャンネル変更（gate = 1〜16） | [ ] | [ ] | トラック途中のチャンネル変更を既存の静的割当へどう反映するか未設計 |
 | `0xE7` | 基本テンポ比によるテンポ変更 | コードあり | 合成テストあり | gradual 曲線は未対応 |
 | `0xEA` / `0xEB` / `0xD2` | Control Change | D2 alias implemented | synthetic test added |
