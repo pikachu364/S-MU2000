@@ -218,3 +218,12 @@
 
 - [x] Correct the empty-payload test's expected note start tick from 5 to 2: `p0` advances time after the current record, so the note immediately after `0x98 p0=2` starts at tick 2.
 - [ ] Confirm CI after the correction; actual RCP2 parsing/playback remains unverified.
+
+
+### 2026-10-25 — 0x98 continuation loop-boundary follow-up
+
+- [x] Expand `0x98` and its immediately following `F7` continuation records as one group, so continuations outside an `F8` loop cannot attach to the last repeated event.
+- [x] Match reference behavior by skipping an orphan `F7` continuation.
+- [x] Add a regression test for an `F7` record located after the loop terminator.
+- [ ] Confirm Actions after this follow-up; actual RCP2 parsing/playback remains unverified.
+- [ ] Implement and verify `0x99` external-command continuation semantics.
