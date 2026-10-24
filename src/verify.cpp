@@ -13,6 +13,7 @@ static bool rcp_loop_budget_test_ok = true;
 #include "smf.h"
 #include "rcp.h"
 #include "ui/font_check.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <initializer_list>
