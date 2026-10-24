@@ -207,3 +207,11 @@
 - 合成テストを拡張し、ヘッダーのトラック数0から18を返すこと、および18個の短いトラック（各トラックはFE終端）を `parse_tracks` が解析することを検査する。
 - コミット: [b40c0df](https://github.com/pikachu364/S-MU2000/commit/b40c0dfd90e298352fe186a4d6ec4ed8f77e5687)、[e8a286b](https://github.com/pikachu364/S-MU2000/commit/e8a286b32ab8c6d620245f65066a912979020f1a)、[b00d17c](https://github.com/pikachu364/S-MU2000/commit/b00d17cdb834298ded55b226c228ecf54703dd09)、[9cccd64](https://github.com/pikachu364/S-MU2000/commit/9cccd6412d6932c5709c41e47197b35fe7afe934)。
 - この時点で新しいテストの GitHub Actions は実行中/待機中。成功は未確認。プライベート実データを使った `parse_tracks`・イベント展開・再生テストも未実施であり、今後の検証課題として残す。
+
+## 2026-10-24 — 実サンプルのループ構造確認とコメント展開バグ修正
+
+- プライベートの12曲について、バイナリの18トラック境界・各トラックのFE終端を独立スクリプトで照合し、すべてのトラック領域を最後まで走査できることを確認した。これはC++パーサーの実行結果ではない。
+- FC参照先の形式を現行実装の規則で検査したところ、12ファイルの全トラックがFC参照展開を通過した。一方、F8/F9展開では MIND track 11 と WINGS_55 track 5 に F9/F8 対応不一致が現れた。参照仕様と実ファイルを照合するまで、この2トラックの互換性は未解決として扱う。
+- 実装レビューで、F6コメント処理がループ展開後の `expanded_sequence` ではなく元の `sequence` を参照している問題を発見。ループ展開でインデックスが変わるとF7継続レコードを誤拒否し得るため、`src/rcp.cpp` を修正した。
+- `src/verify.cpp` に、F8/F9ループ展開後にF6/F7コメントがある合成回帰テストを追加。コード: [92b6d49](https://github.com/pikachu364/S-MU2000/commit/92b6d49cc013c224e19c49fca1b6d0e995da0dd5)、[9209688](https://github.com/pikachu364/S-MU2000/commit/92096888b24911b40b76fbe5affe696d1ccca945)、[5e35b4e](https://github.com/pikachu364/S-MU2000/commit/5e35b4e70bfc385db1c87cbdce91c791e7cc6575)。
+- CI #293 は確認時点で pending。修正後のCI成功と、実ファイルをC++実装に通した結果はまだ未確認。
