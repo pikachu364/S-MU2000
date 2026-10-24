@@ -1381,7 +1381,7 @@ static void check_rcp_counted_loops()
     // FC expansion runs before F8/F9 expansion. Check that a completed FC
     // reference returns to the caller and the following counted loop still
     // expands with the expected event order and ticks.
-    auto fc_to = [](size_t target_index) {
+    auto fc_to = [&](size_t target_index) {
         const size_t offset = size_t(0x2c) + target_index * 4;
         return event(0xfc, 0, u8(offset & 0xff), u8((offset >> 8) & 0xff));
     };
