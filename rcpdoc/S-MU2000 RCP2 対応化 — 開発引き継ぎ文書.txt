@@ -1,68 +1,65 @@
 # S-MU2000 RCP2 対応化 — 開発引き継ぎ文書
 
-更新日：2026-10-23  
+更新日：2026-10-24  
 対象リポジトリ：`pikachu364/S-MU2000`  
 開発ブランチ：`feature/rcp2-parser-skeleton`  
-最新コードコミット：[27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)
+確認 HEAD：[5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)  
+最新 CI：[Actions #262 — 全7ジョブ成功](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056)
 
 ## 1. 最初に守ること
 
 - `main` ブランチは変更しない。
 - 作業は `feature/rcp2-parser-skeleton` で続ける。
 - `feature/rcp2-playback` の未コミット作業を上書き・reset しない。
-- `/r/roms` はアップロードしない。
-- 最新 HEAD、ファイル、CI 結果を推測せず、必要に応じて GitHub から再取得する。
-- テストや CI は実際に確認した根拠を明記する。
-- JMPlayer / ValleyBell のコードは参考資料として照合し、コピーしない。
-- `rcpdoc/` の README、NEXT_STEPS、CHECKLIST、FACTS、HYPOTHESES、LOG と過去レポートを読む。過去レポートは当時の記録なので、古い状態を黙って現在の事実にしない。
+- `/r/roms` や Yamaha ROM をアップロードしない。テストは自作の合成データを使う。
+- 最新 HEAD、対象ファイル、CI 結果を GitHub から確認し、推測で合格扱いにしない。
+- JMPlayer / ValleyBell は仕様比較の参考とし、コードをコピーしない。
+- `rcpdoc/` の NEXT_STEPS、CHECKLIST、FACTS、HYPOTHESES、LOG、LOOP_EXPANSION_DESIGN と過去レポートを参照する。
+- 過去の失敗・キャンセルは履歴として残し、後続の修正後成功と区別する。
 
-## 2. 最新 CI
+## 2. 最新 CI と今回の変更
 
-ユーザー報告では GitHub Actions **#189 合格**。リンク：[Actions #189](https://github.com/pikachu364/S-MU2000/actions/runs/39886755808)。
+- [Actions #262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056)：全7ジョブ成功（Linux、Windows、Windows 32-bit、MSVC Win32/x64、README、macOS）。
+- [Actions #260](https://github.com/pikachu364/S-MU2000/actions/runs/40061803563)：成功。FC展開後にF8/F9ループが続くケースを含む。
+- [Actions #256](https://github.com/pikachu364/S-MU2000/actions/runs/40059724255)：成功。FC連鎖・参照復帰などの回帰ケース。
+- #257/#258 はテストコードの問題で失敗、#259/#261 はキャンセル。修正後の成功を確認済み。
+- CI成功は合成テストとビルドの結果であり、実RCP2ファイルの再生互換性を証明しない。
 
-- 対象コードコミット: [27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e) — `Map RCP2 track headers to MIDI ports and channels`
-- 合格の根拠はユーザー報告。ここでは #189 の全ジョブログを独立再取得したとは主張しない。
-- CI 合格は、実際の RCP2 楽曲ファイルが再生できることを証明しない。
+## 3. 現在の実装状況
 
-## 3. 実装状況
+### 解析・時系列
+- RCP2固定ヘッダー、44-byteトラックヘッダー、4-byteレコードの解析基盤。
+- FE終端、コメント抽出、中間表現、複数トラックのtick順統合。
+- 文書レベルのイベント展開、符号付きトラック開始オフセット、ノート移調、gate/note-off展開。
+- F5キー署名、E7テンポの一部、EA/EB/EC/ED/EEの対応サブセット。
+- 未対応コマンドが混在する入力は成功扱いせず、出力を空にして拒否する。
 
-### 解析・タイムライン
-- 固定ヘッダー、44-byte track header、4-byte event の解析基盤。
-- FE 終端、コメントデータ抽出、中間表現、複数トラックの tick 順統合。
-- 文書レベルの時間展開は対応済みイベントのサブセットのみ。未対応コマンドは拒否する。
-- 符号付き track offset、負 tick の 0 クランプ、32-bit 範囲超過の拒否。
-- ノート移調、gate/note-off 展開。同一トラック・同一移調後音高の再発音時は既存 note-off tick を更新する。
-- F5 key signature、E7 tempo の一部、EB Control Change、EC 標準 Program Change、EE Pitch Bend。
-- tick から秒への変換補助処理。
+### ループ展開
+- F8/F9：有限反復1〜126、単純ループ、ネスト、反復回数1の境界をレコード列として展開する。
+- F8のstep=0および0x7f以上は、仕様未確定のため安全側で拒否する。
+- FC：44-byteトラックヘッダーを基準とするbyte offset参照、FC連鎖、参照終端からの復帰を処理する。
+- FCのヘッダー内・未整列・範囲外・FE参照、循環を拒否する。
+- FC展開後にF8/F9ループが続く連携テストを追加済み。
+- 主なテスト結果は `src/verify.cpp`、期待出力は `tests/verify.txt`。設計記録は [LOOP_EXPANSION_DESIGN.md](LOOP_EXPANSION_DESIGN.md)。
+- 0x98は未解決であり、FCと同じ意味として扱わない。
 
-### MIDI 出力準備
-- MIDI message encoder が Note On/Off、CC、Program Change、Pitch Bend のバイト列を生成する。
-- `map_track_midi_outputs(...)` が raw track header byte から channel/port mapping を生成する。下位 nibble=channel、上位 nibble=port/device、bit 7=dummy/unrouted track。
-- disabled track のイベントを除外する encoder overload と regression test がある。
-- 最新変更：[27b583a](https://github.com/pikachu364/S-MU2000/commit/27b583a981b1f2f474c5b5cebc05d197c495748e)。
+### MIDI / player
+- tick→秒変換、Note On/Off・CC・Program Change・Pitch BendのMIDIバイト列化補助、トラックのport/channel割り当てがある。
+- `src/ui/player.cpp` のRCP2経路から内部イベント列へ接続する実装と合成パイプラインテストがある。
+- ただし、実際のRCP2楽曲ファイルでの読み込み・再生・互換性は未確認。player APIレベルのエラー伝播を独立検証する余地がある。
+- E7の段階的テンポ変化、特殊EC経路、全コマンド対応は未完了。
 
-### 未実装・未確認
-- RCP2 event を既存 player に直接渡す adapter。
-- SMF ファイル serialization（SMF loader はあるが、RCP2→SMF writer はない）。
-- 実際の RCP2 楽曲での再生互換性。
-- E7 の段階的 tempo curve。
-- EC の特殊 MT-32/SysEx 経路。
-- 0xFC loop、0x98 など未解決コマンド。
-- 全コマンドの RCP2 互換性と参照コンバーターとの実データ比較。
+## 4. 次に行う作業
 
-## 4. 次の作業
+1. [NEXT_STEPS.md](NEXT_STEPS.md) の最新タスクを読む。
+2. FCの端点条件を参照資料や許可された実データと照合し、合成テストの範囲を増やす。
+3. F8/F9/FCの展開予算、失敗時の全体拒否、tickとイベント順序を確認する。
+4. player APIレベルでRCP2読み込みとエラー伝播を独立検証する。
+5. E7段階的テンポ、特殊EC、0x98など未解決事項は根拠なしに仕様確定しない。
+6. 変更後はActionsの全ジョブを確認し、成功後に `LOG.md`、`FACTS.md`、`CHECKLIST.md`、`NEXT_STEPS.md` を更新する。
 
-1. `src/smf.h` / `src/smf.cpp` / `src/ui/player.h` / `src/ui/player.cpp` を確認し、既存 player の event/time/port/seek/chase 契約を把握する。
-2. RCP2 の秒単位イベントと MIDI byte encoder、channel/port mapping を既存 player に接続する方式を設計する。
-3. 直接 `smf::event` 相当の列を作る案と SMF serialization を実装する案を比較し、既存設計に沿う小さい方を選ぶ。
-4. 合成テストを追加し、イベント時刻、同 tick 順序、channel/port、dummy track、未対応コマンドのエラーを検証する。
-5. feature ブランチにコミットし、Actions の全ジョブが完了するまで CI 合格扱いにしない。
-6. 使用許可のあるサンプルで参照出力と比較し、実機/アプリ再生は別項目として記録する。
+## 5. 開発上の注意
 
-## 5. 作業手順と安全策
-
-- 最新ブランチ SHA と対象ファイルを確認する。
-- 小さい変更単位で実装し、`src/verify.cpp` と `tests/verify.txt` を更新する。
-- `rcpdoc/FACTS.md` は根拠付きの事実、`HYPOTHESES.md` は未解決事項、`LOG.md` は日付順履歴、`NEXT_STEPS.md` は現状に基づくタスクを記録する。
-- 過去の失敗を消さず、修正後の合格を追記する。
-- ローカルの未コミット変更を破棄・上書きしない。PC が使えるときはローカルと GitHub の差分を確認してから必要な変更だけを統合する。
+- コードの存在、合成テスト、CI成功、実ファイル再生を別々に記録する。
+- ローカルの未コミット変更を破棄・上書き・resetしない。PCが使えるときにGitHubとの差分を確認してから必要な変更だけ統合する。
+- CM6/GSDは初期スコープ外。RCP3はRCP2の基礎が固まってから検討する。
