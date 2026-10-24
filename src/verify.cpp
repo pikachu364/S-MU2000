@@ -986,6 +986,32 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 E1/E2 MIDI command: XG/GS bank+program and timeline %s・範囲外拒否 %s\n",
         bank_commands_timeline ? "合" : "NG",
         invalid_bank_value_rejected ? "合" : "NG");
+
+    // DD sets GS address, DF sets device/model, and DE emits Roland DT1 SysEx.
+    const std::vector<rcp::sequence_event> gs_sequence = {
+        raw_event(0xdf, 1, 0x10, 0x42), raw_event(0xdd, 2, 0x40, 0x00),
+        raw_event(0xde, 3, 0x7f, 0x00), raw_event(60, 4, 2, 90),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const std::vector<u8> expected_gs_sysex = {
+        0xf0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7f, 0x00, 0x41, 0xf7
+    };
+    const bool gs_parameter_timeline =
+        rcp::expand_note_key_signature_tempo_timeline(gs_sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::sysex && timeline[0].tick == 3 &&
+        timeline[0].sysex == expected_gs_sysex &&
+        timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].tick == 6 &&
+        err.empty();
+    const std::vector<rcp::sequence_event> invalid_gs_sequence = {
+        raw_event(0xde, 0, 0x80, 0), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool invalid_gs_value_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(invalid_gs_sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+    std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\\n",
+        gs_parameter_timeline ? "合" : "NG",
+        invalid_gs_value_rejected ? "合" : "NG");
 }
 
 static void check_rcp_midi_encoding()
