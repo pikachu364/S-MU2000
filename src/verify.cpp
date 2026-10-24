@@ -1139,7 +1139,7 @@ static void check_rcp_aftertouch_commands()
         !rcp::expand_note_key_signature_tempo_timeline(
             invalid_track_sysex_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
-    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\\n",
+    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\n",
         track_sysex_loop_boundary_ok ? "合" : "NG",
         invalid_track_sysex_rejected ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
