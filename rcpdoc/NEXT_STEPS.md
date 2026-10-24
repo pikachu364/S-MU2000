@@ -113,3 +113,11 @@
 - 参照資料に基づき `E1` を CC32=p2 → Program Change=p1、`E2` を CC0=p2 → Program Change=p1 の順で同一 tick に展開する処理を追加。step による時間進行は各 RCP レコードにつき一度だけ。
 - `src/verify.cpp` にイベント順序・tick・7-bit 範囲外拒否の合成テストを追加し、`tests/verify.txt` の期待出力を同期した。
 - 実曲12ファイルでの C++ パーサー実行、比較、再生互換性は未確認。関連コミット: [E1/E2 実装](https://github.com/pikachu364/S-MU2000/commit/7788e6fa63e7623843595cdc078d528ce54e2e56)、[合成テスト](https://github.com/pikachu364/S-MU2000/commit/aa74cf217de259f50dc339bd40bc37f2d90be43c)、[期待出力](https://github.com/pikachu364/S-MU2000/commit/e5478490ddf1d286e2016e2d447c078642ee3508)。
+
+
+## 2026-10-24 追記 — #320 合格と GS パラメータ SysEx
+
+- ユーザー報告により Actions #320 の合格を確認。E1/E2 の改訂を含む当該時点の CI 成功として記録する。
+- `DD` は Roland GS アドレス上位/下位、`DF` はデバイス ID / モデル ID を状態として保持し、`DE` は `F0 41 device model 12 address data checksum F7` の DT1 SysEx を生成するようにした。チェックサムはアドレス2 byte とデータ2 byte の 7-bit 和から算出する。
+- 合成テストで状態保持、チェックサム、tick 進行、7-bit 範囲外拒否を検査。`tests/verify.txt` を同期した。
+- 追加変更の CI は未確認。次は E6 の動的チャンネル/ポート切替を調査・実装する。実 RCP2 ファイルの C++ パーサー実行・再生互換性は未確認。
