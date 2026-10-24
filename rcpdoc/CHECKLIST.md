@@ -45,11 +45,11 @@
 | コマンド | 資料の記述 | コード | テスト |
 |---|---|---|---|
 | `0x80`–`0x87` | ユーザーSysExを送信 | [ ] | [ ] |
-| `0x90`–`0x97` | SysEx内の置換バイトをgate/velocityで置換 | [ ] | [ ] |
+| `0x90`–`0x97` | ヘッダー定義ユーザーSysEx内の置換バイトを gate/velocity/channel 等で置換 | [ ] | [ ] |
 | `0xDD` / `0xDE` / `0xDF` | GSパラメータ書き込みを構成 | [ ] | [ ] |
 | `0xE1` | XG 音色選択（CC32 = p2、Program Change = p1） | コードあり | 合成テスト追加 | CC32 → Program Change に展開。最新 CI は未確認 |
 | `0xE2` | GS 音色選択（CC0 = p2、Program Change = p1） | コードあり | 合成テスト追加 | 同 tick で CC0 → Program Change。step は一度だけ加算。最新 CI は未確認 |
-| `0xE6` | チャンネル変更（gate = 1〜16） | [ ] | [ ] | トラック途中のチャンネル変更を既存の静的割当へどう反映するか未設計 |
+| `0xE6` | チャンネル/ポート変更（raw p1 を 1 減算して分解） | コードあり | 合成テストあり | route_change event を出力段で適用。dummy/unrouted 切替も対応。Actions #338 合格（ユーザー報告） |
 | `0xE7` | 基本テンポ比によるテンポ変更 | コードあり | 合成テストあり | gradual 曲線は未対応 |
 | `0xEA` / `0xEB` / `0xD2` | Control Change | D2 alias implemented | synthetic test added |
 | `0xEC` / `0xD3` | Program Change | D3 alias implemented | synthetic test added |
@@ -76,12 +76,18 @@
 
 ### 現在のコード・合成テスト確認（2026-10-24）
 
-以下は feature/rcp2-parser-skeleton の src/rcp.cpp、src/verify.cpp、tests/verify.txt を確認した範囲。最新の [CI #262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056) は全7ジョブ成功。実ファイル再生検証ではない。
+以下は feature/rcp2-parser-skeleton の src/rcp.cpp、src/verify.cpp、tests/verify.txt を確認した範囲。Actions #338 はユーザー報告により合格確認。これは E6 の動的ルーティング追加までの CI 結果であり、実ファイル再生検証ではない。
 
 | 項目 | コード | 合成テスト | 状態・制約 |
 |---|---|---|---|
 | 通常ノートのtick展開 | あり | あり | delayを次イベントへ累積 |
 | E7基本テンポイベント | あり | あり | gradual値は保持するが、段階的テンポ曲線は未展開 |
+| D0/D2/D3 MIDI alias | あり | あり | Pitch Bend / Control Change / Program Change へ対応 |
+| E1/E2 bank/program | あり | あり | XG/GS bank select と Program Change を同 tick に出力 |
+| DD/DE/DF GS SysEx | あり | あり | DT1 SysEx生成を合成テスト。実機再生は未確認 |
+| E6 動的ルート変更 | あり | あり | channel/port/dummy切替を検査。Actions #338 合格（ユーザー報告） |
+| 0x90–0x97 ユーザーSysEx | 未対応 | 未対応 | ヘッダー内テンプレートと置換規則の調査が次段階 |
+| 0x98 可変長SysEx | 未対応 | 未対応 | 固定4-byteレコード parser と衝突するため設計が必要 |
 | F5キー署名 | あり | あり | 時間を進めず、同tickの順序を検査 |
 | F6/F7コメント | 実験的にあり | あり | F6と直後のF7継続を除外。完全な仕様確定を意味しない |
 | EA/EB/EC/ED/EE | 一部あり | あり | 標準MIDI化できるサブセット。特殊ECは拒否 |
@@ -175,3 +181,10 @@
 - [x] E6 の 1-based MIDI route 値を port/channel に分解し、トラック内の後続 MIDI イベントへ動的に適用する。dummy 切替と tick 進行を合成テスト。
 - [ ] E6 追加変更の GitHub Actions を確認する。
 - [ ] 実 RCP2 サンプルを C++ パーサー／出力経路で検証し、チャンネル切替・SysEx の実機再生を確認する。
+
+
+## 11. 2026-10-24 追記 — E6 動的ルーティングと #338
+
+- ユーザー報告により Actions #338 の合格を確認。E6 の route-change timeline event、channel/port 切替、dummy/unrouted 切替の合成テストを含む変更までの CI 成功として記録する。
+- 実 RCP2 ファイルの C++ 実行・再生互換性は未確認。
+- 次の実装候補は `0x90–0x97` のヘッダー定義ユーザー SysEx。`0x98` は可変長データを伴うため、固定4-byteレコード前提の `parse_sequence` と FC/F8/F9 展開の相互作用を先に設計する。
