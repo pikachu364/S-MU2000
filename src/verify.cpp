@@ -1314,6 +1314,20 @@ static void check_rcp_tempo_timeline()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
+    // Loop expansion can change the indices before a comment. F7 continuation
+    // records must be consumed from the expanded sequence, not the raw input.
+    sequence = {event(0xf9, 0, 0, 0), event(60, 1, 4, 90),
+                event(0xf8, 2, 0, 0), event(0xf6, 0, 'A', 'B'),
+                event(0xf7, 0, 'C', 'D'), event(62, 1, 4, 80),
+                event(0xfe, 0, 0, 0)};
+    const bool comments_after_loop_expansion_ignored =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].kind == rcp::timeline_event_kind::note && timeline[0].note.note == 60 &&
+        timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].note.note == 60 &&
+        timeline[2].kind == rcp::timeline_event_kind::note && timeline[2].note.note == 62 &&
+        err.empty();
+
     sequence = {event(60, 5, 4, 90), event(0xe7, 7, 0, 0),
                 event(0xfe, 0, 0, 0)};
     const bool invalid_tempo_rejected =
