@@ -198,3 +198,12 @@
 - `rcpdoc/NEXT_STEPS.md` の HEAD、APIテスト状態、FC固有の予算テスト課題を更新。
 - リポジトリのファイルツリーを確認した範囲では、テスト用の `.rcp` / `.mid` ファイルは見当たらない。実ファイル互換性は引き続き未確認で、次の比較には許可されたサンプルまたは独立参照出力が必要。
 - #279 は文書変更後のCI成功であり、実曲再生テストの成功ではない。
+
+## 2026-10-24 — 実 RCP2 サンプル調査と旧形式トラック数の修正
+
+- ユーザーがプライベート資料リポジトリ [S-MU2000-private-data/RCP_DATA](https://github.com/pikachu364/S-MU2000-private-data/tree/main/RCP_DATA) に用意した12曲分の `.RCP` と説明書を調査対象として確認した。楽曲データは公開リポジトリへコピーしない。
+- 全12ファイルの先頭に `RCM-PC98V2.0(C)COME ON MUSIC` 識別文字列があり、トラック領域を長さフィールドでたどると18個のトラックスロットが並ぶことをバイナリ構造から確認した。
+- 多くのサンプルではヘッダーの `0x1E6` トラック数 byte が0。ValleyBell/MidiConverters の `rcp2mid.c` は0の場合に18トラックとして扱うため、`parse_header` に同じ互換フォールバックを追加した。
+- 合成テストを拡張し、ヘッダーのトラック数0から18を返すこと、および18個の短いトラック（各トラックはFE終端）を `parse_tracks` が解析することを検査する。
+- コミット: [b40c0df](https://github.com/pikachu364/S-MU2000/commit/b40c0dfd90e298352fe186a4d6ec4ed8f77e5687)、[e8a286b](https://github.com/pikachu364/S-MU2000/commit/e8a286b32ab8c6d620245f65066a912979020f1a)、[b00d17c](https://github.com/pikachu364/S-MU2000/commit/b00d17cdb834298ded55b226c228ecf54703dd09)、[9cccd64](https://github.com/pikachu364/S-MU2000/commit/9cccd6412d6932c5709c41e47197b35fe7afe934)。
+- この時点で新しいテストの GitHub Actions は実行中/待機中。成功は未確認。プライベート実データを使った `parse_tracks`・イベント展開・再生テストも未実施であり、今後の検証課題として残す。
