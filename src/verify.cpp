@@ -1420,7 +1420,7 @@ static void check_rcp_counted_loops()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\\n",
+    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
         simple_loop_ok ? "合" : "NG", nested_loop_ok ? "合" : "NG",
         fc_then_counted_loop_ok ? "合" : "NG",
         orphan_end_rejected && orphan_start_rejected ? "合" : "NG",
