@@ -144,12 +144,13 @@ bool rcp2_tempo_us_per_quarter(u16 bpm, u8 scale, u32 &out, std::string &err);
 
 // Experimental legacy timeline accepting notes and F5 only. F5 is emitted at
 // the current tick and must not advance it; other commands (including E7) are rejected.
-enum class timeline_event_kind { note, note_off, key_signature, tempo, control_change, program_change, pitch_bend, channel_aftertouch, poly_aftertouch, sysex };
+enum class timeline_event_kind { note, note_off, key_signature, tempo, control_change, program_change, pitch_bend, channel_aftertouch, poly_aftertouch, sysex, route_change };
 struct midi_channel_event {
     u8 delay = 0;
     u8 data1 = 0;
     u8 data2 = 0;
 };
+struct midi_route_event { u8 channel = 0; u8 port = 0; bool enabled = true; };
 
 struct timed_event {
     u32 tick = 0;
@@ -159,6 +160,7 @@ struct timed_event {
     tempo_event tempo;
     midi_channel_event channel;
     std::vector<u8> sysex;
+    midi_route_event route;
 };
 
 // Experimental decoder for EA Channel Aftertouch, EB Control Change, EC standard
