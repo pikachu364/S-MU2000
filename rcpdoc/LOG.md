@@ -215,3 +215,11 @@
 - 実装レビューで、F6コメント処理がループ展開後の `expanded_sequence` ではなく元の `sequence` を参照している問題を発見。ループ展開でインデックスが変わるとF7継続レコードを誤拒否し得るため、`src/rcp.cpp` を修正した。
 - `src/verify.cpp` に、F8/F9ループ展開後にF6/F7コメントがある合成回帰テストを追加。コード: [92b6d49](https://github.com/pikachu364/S-MU2000/commit/92b6d49cc013c224e19c49fca1b6d0e995da0dd5)、[9209688](https://github.com/pikachu364/S-MU2000/commit/92096888b24911b40b76fbe5affe696d1ccca945)、[5e35b4e](https://github.com/pikachu364/S-MU2000/commit/5e35b4e70bfc385db1c87cbdce91c791e7cc6575)。
 - CI #293 は確認時点で pending。修正後のCI成功と、実ファイルをC++実装に通した結果はまだ未確認。
+
+## 2026-10-24 — FD小節終端の時間処理
+
+- JMPlayer RCP format notes のコマンド表では `FD` は小節終端で、step byte は時間として加算しないと説明されている。この説明を参照仕様候補として採用し、`expand_note_key_signature_tempo_timeline` で `FD` をイベント出力・tick加算なしでスキップするようにした。
+- プライベート12曲のコード頻度調査では `FD` が計18,324件出現した。`DD/DE/DF` も合計1,028件あり、`E1/E2/E6` と `0x80–0x98` と合わせて次の未対応コマンド調査候補にした。
+- `src/verify.cpp` に、FDのstep byteが大きくても次ノートのtickを進めない合成テストを追加。コミット: [270f7d0](https://github.com/pikachu364/S-MU2000/commit/270f7d097f54174306316abc65cdf3524f068de4)、[c4041c0](https://github.com/pikachu364/S-MU2000/commit/c4041c03eb485871a1e1932ef0fa0a0ab1565acf)。
+- 参照資料: [JMPlayer RCP format notes](https://github.com/jihodaya/jmplayer/blob/main/docs/formats/en/rcp.md)。これは外部資料に基づく説明で、S-MU2000での互換性は合成テストと実データ比較を通じて別途検証する。
+- 最新CI結果はまだ未確認。
