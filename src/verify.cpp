@@ -1,12 +1,14 @@
 // license:BSD-3-Clause
 
-// The mute-flag regression check contributes to the process exit status.
+// Regression checks that must affect the process exit status.
 static bool rcp_mute_flags_test_ok = true;
+static bool rcp_player_api_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
 #include "compat/a64asm.h"
 #include "ui/bend_thinner.h"
+#include "ui/player.h"
 #include "smf.h"
 #include "rcp.h"
 #include "ui/font_check.h"
@@ -1616,6 +1618,38 @@ static void check_rcp2_player_event_pipeline()
         built ? "合" : "NG", expanded ? "合" : "NG", timed ? "合" : "NG", routed ? "合" : "NG",
         encoded ? "合" : "NG", (note_on && note_off) ? "合" : "NG", loop_pipeline_ok ? "合" : "NG");
     if (!encoded) std::printf("RCP2 player pipeline error: %s\n", err.c_str());
+
+    // Exercise the actual public player API, not just the conversion helpers.
+    // A valid synthetic RCP2 must be appended with converted events; an
+    // unsupported command must fail without appending a partial song.
+    ui::player api_player;
+    int api_index = -1;
+    std::string api_err = "stale error";
+    const bool api_valid_accepted =
+        api_player.add_from_memory(data.data(), data.size(), "synthetic.rcp", api_err, &api_index);
+    const auto api_entries_after_valid = api_player.list();
+    const bool api_valid_ok = api_valid_accepted && api_err.empty() && api_index == 0 &&
+        api_entries_after_valid.size() == 1 &&
+        api_entries_after_valid[0].path.empty() &&
+        !api_entries_after_valid[0].evs.empty();
+
+    std::vector<u8> invalid_data = data;
+    invalid_data[seq + 4] = 0x80; // syntactically valid record, unsupported by timeline expansion
+    int rejected_index = 77;
+    api_err.clear();
+    const bool api_invalid_rejected =
+        !api_player.add_from_memory(invalid_data.data(), invalid_data.size(),
+                                    "unsupported.rcp", api_err, &rejected_index);
+    const auto api_entries_after_invalid = api_player.list();
+    const bool api_no_partial_append = api_invalid_rejected && !api_err.empty() &&
+        rejected_index == 77 && api_entries_after_invalid.size() == 1 &&
+        api_entries_after_invalid[0].evs.size() == api_entries_after_valid[0].evs.size();
+
+    rcp_player_api_test_ok = api_valid_ok && api_no_partial_append;
+    std::printf("RCP2 player::add_from_memory API: 正常入力追加 %s・未対応コマンド拒否/部分追加なし %s\n",
+        api_valid_ok ? "合" : "NG", api_no_partial_append ? "合" : "NG");
+    if (!rcp_player_api_test_ok)
+        std::printf("RCP2 player API error: %s\n", api_err.c_str());
 }
 
 
@@ -1690,5 +1724,5 @@ int main()
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return rcp_mute_flags_test_ok ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok) ? 0 : 1;
 }
