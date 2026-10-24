@@ -1106,6 +1106,42 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7拒否 %s\n",
         track_sysex_continuation_ok ? "合" : "NG",
         orphan_track_continuation_rejected ? "合" : "NG");
+
+    // The loop expander must duplicate the complete 0x98 + F7 continuation
+    // group, so each iteration emits one independent SysEx at its own tick.
+    const std::vector<rcp::sequence_event> looped_track_sysex_sequence = {
+        raw_event(0xf9, 0, 0, 0),
+        raw_event(0x98, 1, 0x12, 0x34),
+        raw_event(0xf7, 0, 0x41, 0x01),
+        raw_event(0xf7, 0, 0xf7, 0xf7),
+        raw_event(0xf8, 2, 0, 0),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const bool track_sysex_loop_boundary_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            looped_track_sysex_sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::sysex &&
+        timeline[0].tick == 0 &&
+        timeline[0].sysex == std::vector<u8>({0xf0, 0x41, 0x01, 0xf7}) &&
+        timeline[1].kind == rcp::timeline_event_kind::sysex &&
+        timeline[1].tick == 1 &&
+        timeline[1].sysex == std::vector<u8>({0xf0, 0x41, 0x01, 0xf7}) &&
+        err.empty();
+
+    // A continuation with an invalid high-bit value is rejected atomically.
+    const std::vector<rcp::sequence_event> invalid_track_sysex_sequence = {
+        raw_event(0x98, 0, 0x12, 0x34),
+        raw_event(0xf7, 0, 0x41, 0x90),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const bool invalid_track_sysex_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(
+            invalid_track_sysex_sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\\n",
+        track_sysex_loop_boundary_ok ? "合" : "NG",
+        invalid_track_sysex_rejected ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
