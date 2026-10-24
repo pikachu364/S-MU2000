@@ -1646,10 +1646,10 @@ static void check_rcp2_player_event_pipeline()
         api_entries_after_invalid[0].evs.size() == api_entries_after_valid[0].evs.size();
 
     rcp_player_api_test_ok = api_valid_ok && api_no_partial_append;
-    std::printf("RCP2 player::add_from_memory API: 正常入力追加 %s・未対応コマンド拒否/部分追加なし %s\n",
-        api_valid_ok ? "合" : "NG", api_no_partial_append ? "合" : "NG");
+    // Keep successful verify output stable for tests/verify.txt; emit details only on failure.
     if (!rcp_player_api_test_ok)
-        std::printf("RCP2 player API error: %s\n", api_err.c_str());
+        std::printf("RCP2 player::add_from_memory API failed: valid=%s, reject-without-partial-append=%s; error=%s\n",
+            api_valid_ok ? "ok" : "NG", api_no_partial_append ? "ok" : "NG", api_err.c_str());
 }
 
 
