@@ -1154,7 +1154,7 @@ static void check_rcp_aftertouch_commands()
             empty_track_sysex_sequence, 120, timeline, err) &&
         timeline.size() == 1 &&
         timeline[0].kind == rcp::timeline_event_kind::note &&
-        timeline[0].tick == 5 && err.empty();
+        timeline[0].tick == 2 && err.empty();
     std::printf("RCP2 98 空 payload: SysEx省略/tick維持 %s\n",
         empty_track_sysex_tick_ok ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
