@@ -624,8 +624,10 @@ bool expand_fc_repeats(const std::vector<sequence_event> &sequence,
             continue;
         }
 
-        // An FC exactly at the target position is a tail-call: do not push
-        // another return address.
+        // An FC exactly at the target position is part of the reference
+        // chain, not the end of the repeated span. Skip it when returning to
+        // the caller, otherwise the chain's FC would be executed again.
+        return_pc = std::max(return_pc, pc + 1);
         if (!mark_fc(pc))
             return fail("RCP FC 参照チェーンに循環があります");
         size_t target = 0;
