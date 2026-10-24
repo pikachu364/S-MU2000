@@ -20,6 +20,10 @@ constexpr size_t RCP2_SIGNATURE_SIZE = sizeof(RCP2_SIGNATURE) - 1;
 constexpr size_t RCP2_PREFIX_SIZE = 0x20;
 constexpr size_t RCP2_HEADER_SIZE = 0x586;
 constexpr size_t RCP2_TRACK_HEADER_SIZE = 0x2c;
+constexpr size_t RCP2_USER_SYSEX_OFFSET = 0x406;
+constexpr size_t RCP2_USER_SYSEX_SLOT_SIZE = 0x30;
+constexpr size_t RCP2_USER_SYSEX_NAME_SIZE = 0x18;
+constexpr size_t RCP2_USER_SYSEX_DATA_SIZE = 0x18;
 
 std::string fixed_string(const u8 *data, size_t size)
 {
@@ -85,6 +89,17 @@ bool parse_header(const u8 *data, size_t size, document_header &out, std::string
 	out.play_bias = data[0x1c5];
 	// Legacy RCP2 files store zero here and still contain the standard 18 tracks.
 	out.track_count = data[0x1e6] == 0 ? 18 : data[0x1e6];
+	for (size_t i = 0; i < out.user_sysex.size(); ++i) {
+		const size_t slot = RCP2_USER_SYSEX_OFFSET + i * RCP2_USER_SYSEX_SLOT_SIZE;
+		out.user_sysex[i].name = fixed_string(data + slot, RCP2_USER_SYSEX_NAME_SIZE);
+		const u8 *source = data + slot + RCP2_USER_SYSEX_NAME_SIZE;
+		size_t length = RCP2_USER_SYSEX_DATA_SIZE;
+		// RCPFormat.txt defines F7 as padding. Strip padding here; the
+		// SysEx processor emits one final F7 when the template has no terminator.
+		while (length > 0 && source[length - 1] == 0xf7)
+			--length;
+		out.user_sysex[i].data.assign(source, source + length);
+	}
 	return true;
 }
 
@@ -726,7 +741,9 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
 
 bool expand_note_key_signature_tempo_timeline(
     const std::vector<sequence_event> &sequence, u16 bpm,
-    std::vector<timed_event> &out, std::string &err)
+    std::vector<timed_event> &out, std::string &err,
+    const std::array<user_sysex_template, 8> *user_sysex,
+    u8 initial_midi_channel)
 {
     out.clear();
     err.clear();
@@ -745,6 +762,8 @@ bool expand_note_key_signature_tempo_timeline(
     u32 current_tick = 0;
     // Reference rcp2mid.c initializes all six GS parameter bytes to zero.
     u8 gs_device = 0, gs_model = 0, gs_address_high = 0, gs_address_low = 0;
+    u8 current_midi_channel = static_cast<u8>(initial_midi_channel & 0x0f);
+    bool current_route_enabled = true;
     bool found_end = false;
     for (size_t record_index = 0; record_index < expanded_sequence.size(); ++record_index) {
         const sequence_event &raw = expanded_sequence[record_index];
@@ -812,15 +831,81 @@ bool expand_note_key_signature_tempo_timeline(
             route.tick = current_tick;
             route.kind = timeline_event_kind::route_change;
             if (raw.p1 == 0 || (route_value & 0x80)) {
+                current_route_enabled = false;
                 route.route.enabled = false;
                 route.route.channel = 0;
                 route.route.port = 0;
             } else {
+                current_route_enabled = true;
+                current_midi_channel = route_value & 0x0f;
                 route.route.enabled = true;
                 route.route.port = route_value >> 4;
-                route.route.channel = route_value & 0x0f;
+                route.route.channel = current_midi_channel;
             }
             out.push_back(route);
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
+        // User SysEx slots 1..8 are stored in the RCP2 fixed header at 0x406.
+        // Their template bytes are processed with the same substitution rules as 0x98.
+        if (raw.code >= 0x90 && raw.code <= 0x97) {
+            if (user_sysex == nullptr) {
+                out.clear();
+                err = "RCP 90..97 ユーザー SysEx にヘッダーテンプレートが渡されていません";
+                return false;
+            }
+            if (raw.p1 > 0x7f || raw.p2 > 0x7f) {
+                out.clear();
+                err = "RCP 90..97 SysEx パラメーターが 7 bit 範囲外です";
+                return false;
+            }
+            const user_sysex_template &slot = (*user_sysex)[raw.code & 0x07];
+            if (slot.data.size() > 0x18) {
+                out.clear();
+                err = "RCP 90..97 ユーザー SysEx テンプレートが上限を超えています";
+                return false;
+            }
+            if (current_route_enabled && !slot.data.empty()) {
+                timed_event sysex;
+                sysex.tick = current_tick;
+                sysex.kind = timeline_event_kind::sysex;
+                u8 checksum = 0;
+                bool ended = false;
+                for (u8 byte : slot.data) {
+                    if (byte == 0x80) {
+                        sysex.sysex.push_back(raw.p1);
+                    } else if (byte == 0x81) {
+                        sysex.sysex.push_back(raw.p2);
+                    } else if (byte == 0x82) {
+                        sysex.sysex.push_back(current_midi_channel);
+                    } else if (byte == 0x83) {
+                        checksum = 0;
+                    } else if (byte == 0x84) {
+                        sysex.sysex.push_back(static_cast<u8>((0x100u - checksum) & 0x7fu));
+                    } else if (byte == 0xf7) {
+                        sysex.sysex.push_back(0xf7);
+                        ended = true;
+                        break;
+                    } else if ((byte & 0x80) == 0) {
+                        sysex.sysex.push_back(byte);
+                        checksum = static_cast<u8>(checksum + byte);
+                    } else {
+                        out.clear();
+                        err = "RCP 90..97 ユーザー SysEx に未知の置換コードがあります";
+                        return false;
+                    }
+                }
+                if (!ended && !sysex.sysex.empty())
+                    sysex.sysex.push_back(0xf7);
+                if (sysex.sysex.size() > 1)
+                    out.push_back(std::move(sysex));
+            }
             if (raw.p0 > 0xffffffffu - current_tick) {
                 out.clear();
                 err = "RCP イベントの tick が 32 bit 範囲を超えます";
@@ -1179,7 +1264,8 @@ bool expand_intermediate_timeline(const intermediate_document &document,
             sequence.push_back(event.raw);
         std::vector<timed_event> timeline;
         if (!expand_note_key_signature_tempo_timeline(
-                sequence, document.header.tempo_bpm, timeline, err)) {
+                sequence, document.header.tempo_bpm, timeline, err,
+                &document.header.user_sysex, document.tracks[i].header.midi_channel & 0x0f)) {
             out.clear();
             err = "RCP2 トラック " + std::to_string(i + 1) +
                   " の時間展開に失敗しました: " + err;
