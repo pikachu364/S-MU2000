@@ -715,6 +715,15 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
             continue;
         }
 
+        // Continuation records are copied only when consumed by their owner
+        // (0x98/F6) above. Drop orphan F7 records here, before flattening loop
+        // iterations, so one outside a loop cannot attach to the last expanded
+        // 0x98 inside that loop during the later timeline conversion.
+        if (raw.code == 0xf7) {
+            ++pc;
+            continue;
+        }
+
         // Keep commands that own F7 continuation records together while
         // unrolling loops. Otherwise a continuation just after F8 could be
         // incorrectly attached to the last expanded 0x98 from inside the loop.
