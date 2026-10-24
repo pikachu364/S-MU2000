@@ -897,6 +897,21 @@ static void check_rcp_aftertouch_commands()
     const bool bad_poly_value = !rcp::decode_midi_channel_event(
         raw_event(0xed, 0, 60, 0x80), channel_event, kind, err) && !err.empty();
 
+    // D0/D2/D3 are documented legacy aliases for Pitch Bend, Control Change,
+    // and Program Change. Keep the existing standard MIDI event path.
+    const bool d0_pitch_bend = rcp::decode_midi_channel_event(
+        raw_event(0xd0, 4, 1, 64), channel_event, kind, err) &&
+        kind == rcp::timeline_event_kind::pitch_bend &&
+        channel_event.delay == 4 && channel_event.data1 == 1 && channel_event.data2 == 64 && err.empty();
+    const bool d2_control_change = rcp::decode_midi_channel_event(
+        raw_event(0xd2, 2, 7, 99), channel_event, kind, err) &&
+        kind == rcp::timeline_event_kind::control_change &&
+        channel_event.delay == 2 && channel_event.data1 == 7 && channel_event.data2 == 99 && err.empty();
+    const bool d3_program_change = rcp::decode_midi_channel_event(
+        raw_event(0xd3, 3, 10, 0), channel_event, kind, err) &&
+        kind == rcp::timeline_event_kind::program_change &&
+        channel_event.delay == 3 && channel_event.data1 == 10 && err.empty();
+
     rcp::timed_event event;
     event.kind = rcp::timeline_event_kind::channel_aftertouch;
     event.channel.data1 = 91;
@@ -919,11 +934,26 @@ static void check_rcp_aftertouch_commands()
         timeline[1].tick == 2 && timeline[1].kind == rcp::timeline_event_kind::poly_aftertouch &&
         err.empty();
 
+    const std::vector<rcp::sequence_event> alias_sequence = {
+        raw_event(0xd2, 2, 7, 99), raw_event(0xd3, 3, 10, 0),
+        raw_event(0xd0, 4, 1, 64), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool aliases_timeline = rcp::expand_note_key_signature_tempo_timeline(
+        alias_sequence, 120, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].kind == rcp::timeline_event_kind::control_change && timeline[0].tick == 0 &&
+        timeline[1].kind == rcp::timeline_event_kind::program_change && timeline[1].tick == 2 &&
+        timeline[2].kind == rcp::timeline_event_kind::pitch_bend && timeline[2].tick == 5 &&
+        err.empty();
+
     std::printf("RCP2 EA/ED アフタータッチ: Channel/Poly decode %s・MIDI符号化 %s・時間展開 %s・7-bit 範囲外拒否 %s\n",
         channel_decode && poly_decode ? "合" : "NG",
         channel_encode && poly_encode ? "合" : "NG",
         timeline_ok ? "合" : "NG",
         bad_channel_value && bad_poly_value ? "合" : "NG");
+    std::printf("RCP2 D0/D2/D3 MIDI alias: decode %s・時間展開 %s\\n",
+        d0_pitch_bend && d2_control_change && d3_program_change ? "合" : "NG",
+        aliases_timeline ? "合" : "NG");
 }
 
 static void check_rcp_midi_encoding()
