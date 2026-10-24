@@ -1074,6 +1074,38 @@ static void check_rcp_aftertouch_commands()
         user_sysex_ok ? "合" : "NG",
         dummy_user_sysex_suppressed ? "合" : "NG",
         invalid_user_sysex_parameter_rejected ? "合" : "NG");
+    const std::vector<rcp::sequence_event> track_sysex_sequence = {
+        raw_event(0xe6, 2, 0x06, 0),
+        raw_event(0x98, 2, 0x12, 0x34),
+        raw_event(0xf7, 0, 0x41, 0x80),
+        raw_event(0xf7, 0, 0x81, 0x82),
+        raw_event(0xf7, 0, 0x83, 0x01),
+        raw_event(0xf7, 0, 0x84, 0xf7),
+        raw_event(60, 3, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const std::vector<u8> expected_track_sysex = {
+        0xf0, 0x41, 0x12, 0x34, 0x05, 0x01, 0x7f, 0xf7
+    };
+    const bool track_sysex_continuation_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            track_sysex_sequence, 120, timeline, err, nullptr, 2) &&
+        timeline.size() == 3 &&
+        timeline[0].kind == rcp::timeline_event_kind::route_change &&
+        timeline[1].kind == rcp::timeline_event_kind::sysex &&
+        timeline[1].tick == 2 && timeline[1].sysex == expected_track_sysex &&
+        timeline[2].kind == rcp::timeline_event_kind::note &&
+        timeline[2].tick == 4 && err.empty();
+
+    const std::vector<rcp::sequence_event> orphan_continuation_sequence = {
+        raw_event(0xf7, 0, 0x41, 0), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool orphan_track_continuation_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(
+            orphan_continuation_sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+    std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7拒否 %s\n",
+        track_sysex_continuation_ok ? "合" : "NG",
+        orphan_track_continuation_rejected ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
