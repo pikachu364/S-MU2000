@@ -1407,6 +1407,60 @@ static void check_rcp_counted_loops()
 }
 
 
+static void check_rcp_fc_repeats()
+{
+    auto event = [](u8 code, u8 p0, u8 p1, u8 p2) {
+        rcp::sequence_event raw;
+        raw.code = code; raw.p0 = p0; raw.p1 = p1; raw.p2 = p2;
+        return raw;
+    };
+    auto offset_bytes = [](size_t record_index) { return size_t(0x2c) + record_index * 4; };
+    auto fc_to = [&](size_t target_index) {
+        const size_t offset = offset_bytes(target_index);
+        return event(0xfc, 0, u8(offset & 0xff), u8((offset >> 8) & 0xff));
+    };
+
+    std::vector<rcp::sequence_event> sequence = {
+        event(60, 1, 4, 90), event(62, 1, 4, 80), fc_to(1),
+        event(64, 1, 4, 70), event(0xfe, 0, 0, 0)
+    };
+    std::vector<rcp::timed_event> timeline;
+    std::string err;
+    const bool valid_repeat_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 62 && timeline[1].tick == 1 &&
+        timeline[2].note.note == 62 && timeline[2].tick == 2 &&
+        timeline[3].note.note == 64 && timeline[3].tick == 3 && err.empty();
+
+    sequence = {event(60, 1, 4, 90), event(0xfc, 0, 0, 0), event(0xfe, 0, 0, 0)};
+    const bool header_target_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    sequence = {event(60, 1, 4, 90), event(0xfc, 0, 45, 0), event(0xfe, 0, 0, 0)};
+    const bool unaligned_target_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    sequence = {event(60, 1, 4, 90), event(0xfc, 0, 0xff, 0x7f), event(0xfe, 0, 0, 0)};
+    const bool outside_target_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    sequence = {event(60, 1, 4, 90), fc_to(1), event(0xfe, 0, 0, 0)};
+    const bool cycle_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・ヘッダー内/未整列/範囲外拒否 %s・循環拒否 %s\n",
+        valid_repeat_ok ? "合" : "NG",
+        (header_target_rejected && unaligned_target_rejected && outside_target_rejected) ? "合" : "NG",
+        cycle_rejected ? "合" : "NG");
+}
+
+
 static void check_rcp_tempo_conversion()
 {
     u32 tempo = 123;
@@ -1547,6 +1601,7 @@ int main()
 	check_rcp_tempo_event_decode();
 	check_rcp_tempo_timeline();
 	check_rcp_counted_loops();
+	check_rcp_fc_repeats();
 	check_rcp_track_merge();
 	check_rcp_document_timeline();
 	check_rcp_aftertouch_commands();
