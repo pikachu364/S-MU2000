@@ -1142,6 +1142,21 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\n",
         track_sysex_loop_boundary_ok ? "合" : "NG",
         invalid_track_sysex_rejected ? "合" : "NG");
+    // A 0x98 event whose continuation records contain only F7 padding
+    // emits no empty SysEx, but its step still advances the following event.
+    const std::vector<rcp::sequence_event> empty_track_sysex_sequence = {
+        raw_event(0x98, 2, 0x12, 0x34),
+        raw_event(0xf7, 0, 0xf7, 0xf7),
+        raw_event(60, 3, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool empty_track_sysex_tick_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            empty_track_sysex_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 5 && err.empty();
+    std::printf("RCP2 98 空 payload: SysEx省略/tick維持 %s\\n",
+        empty_track_sysex_tick_ok ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
