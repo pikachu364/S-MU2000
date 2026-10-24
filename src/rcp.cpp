@@ -536,6 +536,97 @@ bool encode_midi_message(const timed_event &event, u8 channel,
 }
 
 
+namespace {
+
+struct counted_loop_frame {
+    size_t start_index = 0;
+    u8 total_passes = 0;
+    u8 completed_passes = 0;
+};
+
+// Expands only finite F9/F8 loops. Zero and >=0x7f counts have converter-
+// specific/infinite interpretations and are rejected until their policy is settled.
+bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
+                        std::vector<sequence_event> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    constexpr size_t MAX_EXPANDED_RECORDS = 1000000;
+    std::vector<counted_loop_frame> stack;
+    size_t pc = 0;
+    size_t steps = 0;
+    bool found_end = false;
+
+    while (pc < sequence.size()) {
+        if (++steps > MAX_EXPANDED_RECORDS) {
+            out.clear();
+            err = "RCP F8/F9 ループ展開がレコード予算を超えました";
+            return false;
+        }
+        const sequence_event &raw = sequence[pc];
+        if (raw.code == 0xfe) {
+            out.push_back(raw);
+            found_end = true;
+            break;
+        }
+        if (raw.code == 0xf9) {
+            stack.push_back({pc + 1, 0, 0});
+            if (stack.size() > sequence.size()) {
+                out.clear();
+                err = "RCP F9 ループのネスト状態が不正です";
+                return false;
+            }
+            ++pc;
+            continue;
+        }
+        if (raw.code == 0xf8) {
+            if (stack.empty()) {
+                out.clear();
+                err = "RCP F8 ループ終端に対応する F9 がありません";
+                return false;
+            }
+            if (raw.p0 == 0 || raw.p0 >= 0x7f) {
+                out.clear();
+                err = "RCP F8 の反復回数 0 または 0x7f 以上は未対応です";
+                return false;
+            }
+            counted_loop_frame &frame = stack.back();
+            if (frame.total_passes == 0)
+                frame.total_passes = raw.p0;
+            ++frame.completed_passes;
+            if (frame.completed_passes < frame.total_passes) {
+                pc = frame.start_index;
+            } else {
+                stack.pop_back();
+                ++pc;
+            }
+            continue;
+        }
+
+        if (out.size() >= MAX_EXPANDED_RECORDS) {
+            out.clear();
+            err = "RCP F8/F9 展開後のレコード数が上限を超えました";
+            return false;
+        }
+        out.push_back(raw);
+        ++pc;
+    }
+
+    if (!found_end) {
+        out.clear();
+        err = "RCP F8/F9 展開に Track End (FE) がありません";
+        return false;
+    }
+    if (!stack.empty()) {
+        out.clear();
+        err = "RCP F9 ループ開始に対応する F8 がありません";
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
 bool expand_note_key_signature_tempo_timeline(
     const std::vector<sequence_event> &sequence, u16 bpm,
     std::vector<timed_event> &out, std::string &err)
@@ -543,10 +634,14 @@ bool expand_note_key_signature_tempo_timeline(
     out.clear();
     err.clear();
 
+    std::vector<sequence_event> expanded_sequence;
+    if (!expand_f8_f9_loops(sequence, expanded_sequence, err))
+        return false;
+
     u32 current_tick = 0;
     bool found_end = false;
-    for (size_t record_index = 0; record_index < sequence.size(); ++record_index) {
-        const sequence_event &raw = sequence[record_index];
+    for (size_t record_index = 0; record_index < expanded_sequence.size(); ++record_index) {
+        const sequence_event &raw = expanded_sequence[record_index];
         if (raw.code == 0xfe) {
             found_end = true;
             break;
