@@ -3,6 +3,7 @@
 // Regression checks that must affect the process exit status.
 static bool rcp_mute_flags_test_ok = true;
 static bool rcp_player_api_test_ok = true;
+static bool rcp_loop_budget_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -1430,6 +1431,20 @@ static void check_rcp_counted_loops()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
+    // Three nested 126-pass loops exceed the 1,000,000-record expansion
+    // budget. The public timeline API must fail and leave no partial output.
+    sequence = {
+        event(0xf9, 0, 0, 0), event(0xf9, 0, 0, 0), event(0xf9, 0, 0, 0),
+        event(60, 1, 1, 90),
+        event(0xf8, 126, 0, 0), event(0xf8, 126, 0, 0),
+        event(0xf8, 126, 0, 0), event(0xfe, 0, 0, 0)
+    };
+    rcp_loop_budget_test_ok =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+    if (!rcp_loop_budget_test_ok)
+        std::printf("RCP2 F8/F9 expansion budget was not enforced safely\\n");
+
     std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・1回境界 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
         simple_loop_ok ? "合" : "NG", nested_loop_ok ? "合" : "NG",
         single_pass_loop_ok ? "合" : "NG", fc_then_counted_loop_ok ? "合" : "NG",
@@ -1724,5 +1739,5 @@ int main()
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok) ? 0 : 1;
 }
