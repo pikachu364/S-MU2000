@@ -212,3 +212,9 @@
 - [x] F7 padding-only continuation data emits no empty SysEx.
 - [x] The 0x98 step still advances the following event's tick.
 - [ ] CI after this follow-up is pending; real RCP2 playback remains unverified.
+
+
+### 2026-10-25 — #370 failure correction
+
+- [x] Correct the empty-payload test's expected note start tick from 5 to 2: `p0` advances time after the current record, so the note immediately after `0x98 p0=2` starts at tick 2.
+- [ ] Confirm CI after the correction; actual RCP2 parsing/playback remains unverified.
