@@ -144,4 +144,4 @@
 
 参照実装の MIDI channel/port 解釈は ValleyBell/MidiConverters の `rcp2mid.c` と照合した。これは S-MU2000 実機での再生試験を意味しない。
 
-**ループ調査:** F8/F9/FC は未対応。資料との照合、安全条件、失敗ケースと合成テスト案は [`rcpdoc/LOOP_EXPANSION_DESIGN.md`](LOOP_EXPANSION_DESIGN.md) に記録した。仕様の未決事項を確定するまで実装済みにはしない。
+**ループ対応状況:** F8/F9 の有限反復数 1〜126 とネストループを実装し、合成テストを追加した。F8 step=0 / 0x7f 以上は仕様未確定のため拒否。FC は未対応。設計・制約・テスト案は [`rcpdoc/LOOP_EXPANSION_DESIGN.md`](LOOP_EXPANSION_DESIGN.md) を参照。CI と実ファイル再生の確認前に合格扱いしない。
