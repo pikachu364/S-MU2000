@@ -530,7 +530,8 @@ bool encode_midi_message(const timed_event &event, u8 channel,
     case timeline_event_kind::key_signature:
     case timeline_event_kind::tempo:
     case timeline_event_kind::sysex:
-        err = "MIDI メタデータイベントまたは SysEx はチャンネルメッセージではありません";
+    case timeline_event_kind::route_change:
+        err = "メタデータイベント、SysEx、ルート変更は MIDI チャンネルメッセージではありません";
         return false;
     }
     err = "未対応の MIDI イベント種別です";
@@ -794,6 +795,32 @@ bool expand_note_key_signature_tempo_timeline(
                     gs_address_high, gs_address_low, raw.p1, raw.p2, checksum, 0xf7};
                 out.push_back(std::move(sysex));
             }
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
+        // E6 changes the active MIDI port/channel for subsequent events.
+        // The encoded value is one-based; subtract one before decoding.
+        if (raw.code == 0xe6) {
+            const u8 route_value = static_cast<u8>(raw.p1 - 1);
+            timed_event route;
+            route.tick = current_tick;
+            route.kind = timeline_event_kind::route_change;
+            if (raw.p1 == 0 || (route_value & 0x80)) {
+                route.route.enabled = false;
+                route.route.channel = 0;
+                route.route.port = 0;
+            } else {
+                route.route.enabled = true;
+                route.route.port = route_value >> 4;
+                route.route.channel = route_value & 0x0f;
+            }
+            out.push_back(route);
             if (raw.p0 > 0xffffffffu - current_tick) {
                 out.clear();
                 err = "RCP イベントの tick が 32 bit 範囲を超えます";
@@ -1276,6 +1303,7 @@ bool encode_timeline_to_midi_events(
     err.clear();
     double previous_time = 0.0;
     out.reserve(timeline.size());
+    std::vector<track_midi_mapping> active_mapping = mapping;
     for (const timed_seconds_event &source : timeline) {
         if (!(source.time >= 0.0) || source.time < previous_time) {
             out.clear(); err = "RCP2 MIDI 出力イベントの時刻が負値または逆順です"; return false;
@@ -1285,10 +1313,16 @@ bool encode_timeline_to_midi_events(
         if (kind == timeline_event_kind::tempo || kind == timeline_event_kind::key_signature)
             continue;
         const size_t track = source.source.track_index;
-        if (track >= mapping.size()) {
+        if (track >= active_mapping.size()) {
             out.clear(); err = "RCP2 MIDI 出力のトラック割り当てが不足しています"; return false;
         }
-        if (!mapping[track].enabled)
+        if (kind == timeline_event_kind::route_change) {
+            active_mapping[track].channel = source.source.event.route.channel;
+            active_mapping[track].port = source.source.event.route.port;
+            active_mapping[track].enabled = source.source.event.route.enabled;
+            continue;
+        }
+        if (!active_mapping[track].enabled)
             continue;
         std::vector<u8> bytes;
         if (kind == timeline_event_kind::sysex) {
@@ -1296,10 +1330,10 @@ bool encode_timeline_to_midi_events(
             if (bytes.size() < 2 || bytes.front() != 0xf0 || bytes.back() != 0xf7) {
                 out.clear(); err = "RCP SysEx イベントの開始/終端が不正です"; return false;
             }
-            out.push_back({source.time, std::move(bytes), mapping[track].port});
+            out.push_back({source.time, std::move(bytes), active_mapping[track].port});
             continue;
         }
-        if (!encode_midi_message(source.source.event, mapping[track].channel, bytes, err)) {
+        if (!encode_midi_message(source.source.event, active_mapping[track].channel, bytes, err)) {
             out.clear();
             err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
             return false;
@@ -1325,6 +1359,9 @@ bool encode_timeline_to_midi_events(
         const auto kind = source.source.event.kind;
         if (kind == timeline_event_kind::tempo || kind == timeline_event_kind::key_signature)
             continue;
+        if (kind == timeline_event_kind::route_change) {
+            out.clear(); err = "E6 ルート変更には track_midi_mapping 版の MIDI 出力 API が必要です"; return false;
+        }
         const size_t track = source.source.track_index;
         if (track >= channel_by_track.size() || track >= port_by_track.size()) {
             out.clear(); err = "RCP2 MIDI 出力のトラック割り当てが不足しています"; return false;
