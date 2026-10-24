@@ -1568,9 +1568,9 @@ static void check_rcp_tempo_timeline()
         timeline[1].tick == 5 && timeline[1].note.note == 62 && err.empty();
 
     sequence = {event(0xf7, 0, 0, 0), event(0xfe, 0, 0, 0)};
-    const bool orphan_comment_continuation_rejected =
-        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
-        timeline.empty() && !err.empty();
+    const bool orphan_comment_continuation_skipped =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && err.empty();
 
     // Loop expansion can change the indices before a comment. F7 continuation
     // records must be consumed from the expanded sequence, not the raw input.
