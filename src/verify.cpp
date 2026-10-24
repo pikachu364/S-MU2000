@@ -1437,7 +1437,7 @@ static void check_rcp_fc_repeats()
     // FC exactly at the target tail-calls to its own target without nesting
     // the return address; the caller resumes at the record after its FC.
     sequence = {
-        event(60, 1, 4, 90), fc_to(0), fc_to(1),
+        event(60, 1, 4, 90), fc_to(2), fc_to(0),
         event(64, 1, 4, 70), event(0xfe, 0, 0, 0)
     };
     const bool tail_call_ok =
@@ -1446,12 +1446,6 @@ static void check_rcp_fc_repeats()
         timeline[0].note.note == 60 && timeline[0].tick == 0 &&
         timeline[1].note.note == 60 && timeline[1].tick == 1 &&
         timeline[2].note.note == 64 && timeline[2].tick == 2 && err.empty();
-    if (!tail_call_ok) {
-        std::fprintf(stderr, "FC chain diagnostic: size=%zu err='%s'\\n", timeline.size(), err.c_str());
-        for (size_t i = 0; i < timeline.size(); ++i)
-            std::fprintf(stderr, "  [%zu] kind=%d note=%u tick=%u\\n", i, int(timeline[i].kind), unsigned(timeline[i].note.note), unsigned(timeline[i].tick));
-    }
-
     // A later FC marks the end of the referenced span and returns to the
     // record immediately after the initiating FC.
     sequence = {
