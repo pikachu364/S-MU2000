@@ -758,6 +758,9 @@ bool expand_note_key_signature_tempo_timeline(
                 ++record_index;
             continue;
         }
+        // FD marks a measure boundary; its step byte does not advance time.
+        if (raw.code == 0xfd)
+            continue;
         if (raw.code == 0xf7) {
             out.clear();
             err = "RCP F7 コメント継続レコードの前に F6 がありません";
