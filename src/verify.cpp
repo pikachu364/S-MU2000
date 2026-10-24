@@ -1378,6 +1378,26 @@ static void check_rcp_counted_loops()
         timeline[4].note.note == 62 && timeline[4].tick == 4 &&
         timeline[5].note.note == 62 && timeline[5].tick == 5 && err.empty();
 
+    // FC expansion runs before F8/F9 expansion. Check that a completed FC
+    // reference returns to the caller and the following counted loop still
+    // expands with the expected event order and ticks.
+    auto fc_to = [](size_t target_index) {
+        const size_t offset = size_t(0x2c) + target_index * 4;
+        return event(0xfc, 0, u8(offset & 0xff), u8((offset >> 8) & 0xff));
+    };
+    sequence = {
+        event(60, 1, 4, 90), fc_to(0),
+        event(0xf9, 0, 0, 0), event(62, 1, 4, 80),
+        event(0xf8, 2, 0, 0), event(0xfe, 0, 0, 0)
+    };
+    const bool fc_then_counted_loop_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 60 && timeline[1].tick == 1 &&
+        timeline[2].note.note == 62 && timeline[2].tick == 2 &&
+        timeline[3].note.note == 62 && timeline[3].tick == 3 && err.empty();
+
     sequence = {event(60, 1, 4, 90), event(0xf8, 2, 0, 0), event(0xfe, 0, 0, 0)};
     const bool orphan_end_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
@@ -1400,8 +1420,9 @@ static void check_rcp_counted_loops()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
+    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\\n",
         simple_loop_ok ? "合" : "NG", nested_loop_ok ? "合" : "NG",
+        fc_then_counted_loop_ok ? "合" : "NG",
         orphan_end_rejected && orphan_start_rejected ? "合" : "NG",
         zero_count_rejected && high_count_rejected ? "合" : "NG");
 }
