@@ -1398,6 +1398,14 @@ static void check_rcp_counted_loops()
         timeline[2].note.note == 62 && timeline[2].tick == 2 &&
         timeline[3].note.note == 62 && timeline[3].tick == 3 && err.empty();
 
+    // F8 count=1 means a single pass, with no replay.
+    sequence = {event(0xf9, 0, 0, 0), event(60, 1, 4, 90),
+                event(0xf8, 1, 0, 0), event(0xfe, 0, 0, 0)};
+    const bool single_pass_loop_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 1 && timeline[0].note.note == 60 &&
+        timeline[0].tick == 0 && err.empty();
+
     sequence = {event(60, 1, 4, 90), event(0xf8, 2, 0, 0), event(0xfe, 0, 0, 0)};
     const bool orphan_end_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
@@ -1420,9 +1428,9 @@ static void check_rcp_counted_loops()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
+    std::printf("RCP2 F8/F9 有限ループ: 単純反復 %s・入れ子 %s・1回境界 %s・FC後の連携 %s・不対 F8/F9 拒否 %s・未確定反復数拒否 %s\n",
         simple_loop_ok ? "合" : "NG", nested_loop_ok ? "合" : "NG",
-        fc_then_counted_loop_ok ? "合" : "NG",
+        single_pass_loop_ok ? "合" : "NG", fc_then_counted_loop_ok ? "合" : "NG",
         orphan_end_rejected && orphan_start_rejected ? "合" : "NG",
         zero_count_rejected && high_count_rejected ? "合" : "NG");
 }
