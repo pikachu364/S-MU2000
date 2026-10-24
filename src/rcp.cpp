@@ -546,6 +546,98 @@ struct counted_loop_frame {
 
 // Expands only finite F9/F8 loops. Zero and >=0x7f counts have converter-
 // specific/infinite interpretations and are rejected until their policy is settled.
+// Expands RCP2 FC same-measure references using byte offsets from the start
+// of the track, including its 44-byte header. FCs encountered exactly at the
+// current target tail-call to their own target; an FC later in the stream ends
+// the repeat and returns to the record after the initiating FC.
+bool expand_fc_repeats(const std::vector<sequence_event> &sequence,
+                       std::vector<sequence_event> &out, std::string &err)
+{
+    out.clear();
+    err.clear();
+    constexpr size_t TRACK_HEADER_SIZE = 0x2c;
+    constexpr size_t MAX_EXPANDED_RECORDS = 1000000;
+    size_t pc = 0, return_pc = 0, target_index = 0, steps = 0;
+    bool in_repeat = false;
+    std::vector<size_t> visited_fc;
+
+    auto fail = [&](const char *message) {
+        out.clear();
+        err = message;
+        return false;
+    };
+    auto resolve_target = [&](const sequence_event &raw, size_t &index) {
+        const size_t byte_offset = size_t(raw.p1) | (size_t(raw.p2) << 8);
+        if (byte_offset < TRACK_HEADER_SIZE)
+            return false;
+        const size_t sequence_offset = byte_offset - TRACK_HEADER_SIZE;
+        if ((sequence_offset % 4) != 0)
+            return false;
+        index = sequence_offset / 4;
+        return index < sequence.size() && sequence[index].code != 0xfe;
+    };
+    auto mark_fc = [&](size_t index) {
+        if (std::find(visited_fc.begin(), visited_fc.end(), index) != visited_fc.end())
+            return false;
+        visited_fc.push_back(index);
+        return true;
+    };
+
+    while (pc < sequence.size()) {
+        if (++steps > MAX_EXPANDED_RECORDS)
+            return fail("RCP FC 展開がレコード予算を超えました");
+        const sequence_event &raw = sequence[pc];
+        if (raw.code == 0xfe) {
+            if (in_repeat)
+                return fail("RCP FC 参照が Track End (FE) より前に終端できません");
+            out.push_back(raw);
+            return true;
+        }
+        if (raw.code != 0xfc) {
+            if (out.size() >= MAX_EXPANDED_RECORDS)
+                return fail("RCP FC 展開後のレコード数が上限を超えました");
+            out.push_back(raw);
+            ++pc;
+            continue;
+        }
+
+        if (!in_repeat) {
+            size_t target = 0;
+            if (!resolve_target(raw, target))
+                return fail("RCP FC 参照先がトラック範囲外、ヘッダー内、または未整列です");
+            in_repeat = true;
+            return_pc = pc + 1;
+            target_index = target;
+            visited_fc.clear();
+            if (!mark_fc(pc))
+                return fail("RCP FC 参照チェーンに循環があります");
+            pc = target_index;
+            continue;
+        }
+
+        if (pc < target_index)
+            return fail("RCP FC 参照チェーンの位置関係が不正です");
+        if (pc > target_index) {
+            in_repeat = false;
+            visited_fc.clear();
+            pc = return_pc;
+            continue;
+        }
+
+        // An FC exactly at the target position is a tail-call: do not push
+        // another return address.
+        if (!mark_fc(pc))
+            return fail("RCP FC 参照チェーンに循環があります");
+        size_t target = 0;
+        if (!resolve_target(raw, target))
+            return fail("RCP FC 連鎖の参照先がトラック範囲外、ヘッダー内、または未整列です");
+        target_index = target;
+        pc = target_index;
+    }
+
+    return fail("RCP FC 展開に Track End (FE) がありません");
+}
+
 bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
                         std::vector<sequence_event> &out, std::string &err)
 {
@@ -634,9 +726,16 @@ bool expand_note_key_signature_tempo_timeline(
     out.clear();
     err.clear();
 
-    std::vector<sequence_event> expanded_sequence;
-    if (!expand_f8_f9_loops(sequence, expanded_sequence, err))
+    std::vector<sequence_event> fc_expanded_sequence;
+    if (!expand_fc_repeats(sequence, fc_expanded_sequence, err)) {
+        out.clear();
         return false;
+    }
+    std::vector<sequence_event> expanded_sequence;
+    if (!expand_f8_f9_loops(fc_expanded_sequence, expanded_sequence, err)) {
+        out.clear();
+        return false;
+    }
 
     u32 current_tick = 0;
     bool found_end = false;
