@@ -294,3 +294,13 @@
 - 今回の実装・テスト・文書更新後の CI は未確認。実 RCP2 12曲の C++ パーサー実行と実機再生も未実施。
 - 次は `0x98` の可変長 SysEx を設計する。固定4-byte parser と同時に無理に処理せず、F7 継続レコードの消費位置、FC/F8/F9 展開、FE終端、切断入力をまとめてテストする。
 - 参照: https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt と https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+
+## 2026-10-25 — #352 合格後の 0x98 Track SysEx
+
+- ユーザー報告により Actions #352 の合格を確認。#352 は今回の 0x98 追加前の状態として記録する。
+- Glosa の `RcpConverter.cs` を確認し、Track Exclusive (0x98) はイベント自身の p1/p2 ではなく、後続する F7 レコードの p1/p2 を連結してデータ化する実装を参考にした。末尾の F7 はパディングとして除去する。
+- S-MU2000 のタイムライン展開で、FC/F8/F9 展開後に 0x98 と連続 F7 レコードをまとめ、0x80=p1、0x81=p2、0x82=channel、0x83=checksum reset、0x84=checksum insert を処理して SysEx イベント化するようにした。コマンド p0 は一度だけ tick に加算する。
+- `src/verify.cpp` と `tests/verify.txt` に、複数 F7 の結合、置換、checksum、tick、孤立 F7 拒否の合成テストを追加。
+- 今回の変更後の CI と実 RCP2 データの C++ 実行は未確認。Gearmulator PR #303 との詳細比較も継続する。
+- 参照: https://github.com/hsshss/glosa/blob/main/src/Glosa.Core/Rcp/RcpConverter.cs と https://github.com/dsp56300/gearmulator/pull/303
