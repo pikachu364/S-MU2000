@@ -983,7 +983,7 @@ static void check_rcp_aftertouch_commands()
         !rcp::expand_note_key_signature_tempo_timeline(invalid_bank_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 E1/E2 MIDI command: XG/GS bank+program and timeline %s・範囲外拒否 %s\\n",
+    std::printf("RCP2 E1/E2 MIDI command: XG/GS bank+program and timeline %s・範囲外拒否 %s\n",
         bank_commands_timeline ? "合" : "NG",
         invalid_bank_value_rejected ? "合" : "NG");
 }
