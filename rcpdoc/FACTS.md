@@ -194,3 +194,16 @@
 - RCP2 のタイトル、PPQ、初期テンポ、対応する E7 テンポイベントを `smf::song_meta` に反映する。既存 player の秒単位イベント再生経路を利用するため、RCP2 専用の SMF ファイル書き出しは不要。
 - `src/verify.cpp` の `check_rcp2_player_event_pipeline()` は合成データで解析から MIDI イベント化までを検査する。Actions #225 では Linux、Windows MinGW 64/32-bit、MSVC x64/Win32、macOS、README の全7ジョブが成功した。
 - **制約:** このテストは内部変換パイプラインの検査であり、`player::add_from_memory` の API レベル動作や実際の RCP2 ファイルの音出しを証明しない。E7 gradual tempo、特殊 EC、ループ、未対応コマンドなどの制約も残る。
+
+
+## F-016 — FC/F8/F9 展開の回帰テストと CI #262
+
+**状態:** GitHub 上のコード・テスト・期待出力と、Actions #256/#260/#262 の結果を確認。
+
+- 現在のブランチ HEAD は [5306f8b](https://github.com/pikachu364/S-MU2000/commit/5306f8b0d345f46b386a05fc8b1ece38a53cbc14)。
+- FC展開コードは `src/rcp.cpp` の `expand_fc_repeats`。FC参照位置の解決、FC連鎖、参照終端からの復帰、循環検出、展開レコード予算を扱う。
+- F8/F9展開は `expand_f8_f9_loops`。有限反復数1〜126、ネストループ、反復回数1の境界を合成テストする。0と0x7f以上は仕様未確定のため拒否。
+- `src/verify.cpp` と `tests/verify.txt` に、FC展開後にF8/F9ループが続く回帰ケースがある。
+- [Actions #256](https://github.com/pikachu364/S-MU2000/actions/runs/40059724255)、[#260](https://github.com/pikachu364/S-MU2000/actions/runs/40061803563)、[#262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056) は成功。#262 はLinux、Windows、Windows 32-bit、MSVC Win32/x64、README、macOSの全7ジョブ成功。
+- #257/#258 はテスト追加時の問題で失敗、#259/#261はキャンセル。履歴を消さず、後続の修正後成功と区別する。
+- **制約:** CI成功は対象コードのビルドと合成テストの成功であり、実RCP2ファイルの再生互換性やすべてのループ端点の仕様を保証しない。
