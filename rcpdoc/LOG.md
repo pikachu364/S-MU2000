@@ -283,3 +283,14 @@
 - `0x98` は可変長 SysEx データを読み込むため、現行の固定4-byte `parse_sequence` では直接処理できない。単純な4-byte commandとして実装せず、可変長レコードの境界と FC/F8/F9 ループ展開との関係を設計課題として残す。
 - E5 は参照実装で明示的な command handler を確認できていないため、根拠なく意味を割り当てない。
 - 実 RCP2 ファイルを C++ パーサー／出力経路に通した検証と実機再生は引き続き未実施。
+
+
+## 2026-10-25 — #341 合格後の 0x90–0x97 ユーザー SysEx 実装
+
+- ユーザー報告により Actions #341 の合格を確認。E6 までの変更に対する CI 成功として記録する。
+- ValleyBell/MidiConverters の `RCPFormat.txt` と `rcp2mid.c` を照合。RCP2 固定ヘッダーの `0x406` から8個の `0x30` byte スロットを読み、各スロットは `0x18` byte の名前と `0x18` byte の SysEx テンプレートから成る。末尾 `F7` はパディングとして除去し、コマンド展開時に必要な終端を補う。
+- `0x90–0x97` を対応するテンプレートスロットへ接続。テンプレート内の `0x80`=p1、`0x81`=p2、`0x82`=現在の MIDI channel、`0x83`=Roland checksum 初期化、`0x84`=checksum 挿入を処理する。MIDI SysEx の `F0` / `F7` を含め、イベント時刻は現在 tick、コマンドの p0 は次イベント位置へ一度だけ加算する。E6 の dummy route 中は SysEx を出さない。
+- `src/verify.cpp` と `tests/verify.txt` に、ヘッダーテンプレート抽出、置換、チェックサム、E6後のchannel、tick、dummy抑止、7-bit範囲外拒否の合成テストを追加した。
+- 今回の実装・テスト・文書更新後の CI は未確認。実 RCP2 12曲の C++ パーサー実行と実機再生も未実施。
+- 次は `0x98` の可変長 SysEx を設計する。固定4-byte parser と同時に無理に処理せず、F7 継続レコードの消費位置、FC/F8/F9 展開、FE終端、切断入力をまとめてテストする。
+- 参照: https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt と https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
