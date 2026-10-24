@@ -219,6 +219,7 @@ static void check_rcp_header()
 	std::memcpy(data.data() + 0x020, "Synthetic test", 14);
 	std::memcpy(data.data() + 0x060, "Generated header", 16);
 	std::memcpy(data.data() + 0x406, "GS test", 7);
+	std::fill(data.begin() + 0x406 + 0x18, data.begin() + 0x406 + 0x30, 0xf7);
 	const u8 sysex_template[] = {0x41, 0x80, 0x81, 0xf7};
 	std::memcpy(data.data() + 0x406 + 0x18, sysex_template, sizeof(sysex_template));
 	data[0x1c0] = 96;  // low byte of ticks per quarter
