@@ -218,6 +218,9 @@ static void check_rcp_header()
 	data[31] = 0;
 	std::memcpy(data.data() + 0x020, "Synthetic test", 14);
 	std::memcpy(data.data() + 0x060, "Generated header", 16);
+	std::memcpy(data.data() + 0x406, "GS test", 7);
+	const u8 sysex_template[] = {0x41, 0x80, 0x81, 0xf7};
+	std::memcpy(data.data() + 0x406 + 0x18, sysex_template, sizeof(sysex_template));
 	data[0x1c0] = 96;  // low byte of ticks per quarter
 	data[0x1e7] = 1;   // high byte -> 352 ticks per quarter
 	data[0x1c1] = 120;
@@ -237,7 +240,9 @@ static void check_rcp_header()
 	                             header.comment == "Generated header" &&
 	                             header.ticks_per_quarter == 352 && header.tempo_bpm == 120 &&
 	                             header.beat_numerator == 4 && header.beat_denominator == 4 &&
-	                             header.track_count == 0x24;
+	                             header.track_count == 0x24 &&
+	                             header.user_sysex[0].name == "GS test" &&
+	                             header.user_sysex[0].data == std::vector<u8>({0x41, 0x80, 0x81});
 	data[0x1e6] = 0; // Legacy RCP2 header: zero means the standard 18 tracks.
 	rcp::document_header legacy_header;
 	const bool legacy_zero_count_ok =
@@ -1026,6 +1031,48 @@ static void check_rcp_aftertouch_commands()
     const bool invalid_gs_value_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(invalid_gs_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
+    // 0x90..0x97 fetch a header template and substitute p1/p2/current channel/checksum.
+    std::array<rcp::user_sysex_template, 8> user_sysex{};
+    user_sysex[0].name = "synthetic GS";
+    user_sysex[0].data = {0x41, 0x80, 0x81, 0x82, 0x83, 0x01, 0x84};
+    const std::vector<rcp::sequence_event> user_sysex_sequence = {
+        raw_event(0xe6, 2, 0x06, 0), // raw route 6 -> channel 5
+        raw_event(0x90, 3, 0x12, 0x34),
+        raw_event(60, 1, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const std::vector<u8> expected_user_sysex = {
+        0xf0, 0x41, 0x12, 0x34, 0x05, 0x01, 0x7f, 0xf7
+    };
+    const bool user_sysex_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            user_sysex_sequence, 120, timeline, err, &user_sysex, 2) &&
+        timeline.size() == 3 &&
+        timeline[0].kind == rcp::timeline_event_kind::route_change &&
+        timeline[1].kind == rcp::timeline_event_kind::sysex && timeline[1].tick == 2 &&
+        timeline[1].sysex == expected_user_sysex &&
+        timeline[2].kind == rcp::timeline_event_kind::note && timeline[2].tick == 5 &&
+        err.empty();
+    const std::vector<rcp::sequence_event> dummy_sysex_sequence = {
+        raw_event(0xe6, 0, 0x81, 0), raw_event(0x90, 1, 0x12, 0x34),
+        raw_event(60, 1, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool dummy_user_sysex_suppressed =
+        rcp::expand_note_key_signature_tempo_timeline(
+            dummy_sysex_sequence, 120, timeline, err, &user_sysex, 0) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::route_change &&
+        timeline[1].kind == rcp::timeline_event_kind::note;
+    const std::vector<rcp::sequence_event> invalid_user_sysex_sequence = {
+        raw_event(0x90, 0, 0x80, 0), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool invalid_user_sysex_parameter_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(
+            invalid_user_sysex_sequence, 120, timeline, err, &user_sysex, 0) &&
+        timeline.empty() && !err.empty();
+    std::printf("RCP2 90..97 ユーザー SysEx: header/置換/チェックサム/tick %s・dummy 抑止 %s・7-bit 拒否 %s\\n",
+        user_sysex_ok ? "合" : "NG",
+        dummy_user_sysex_suppressed ? "合" : "NG",
+        invalid_user_sysex_parameter_rejected ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
