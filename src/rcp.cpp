@@ -715,6 +715,29 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
             continue;
         }
 
+        // Keep commands that own F7 continuation records together while
+        // unrolling loops. Otherwise a continuation just after F8 could be
+        // incorrectly attached to the last expanded 0x98 from inside the loop.
+        if (raw.code == 0x98 || raw.code == 0xf6) {
+            if (out.size() >= MAX_EXPANDED_RECORDS) {
+                out.clear();
+                err = "RCP F8/F9 展開後のレコード数が上限を超えました";
+                return false;
+            }
+            out.push_back(raw);
+            ++pc;
+            while (pc < sequence.size() && sequence[pc].code == 0xf7) {
+                if (out.size() >= MAX_EXPANDED_RECORDS) {
+                    out.clear();
+                    err = "RCP F8/F9 展開後のレコード数が上限を超えました";
+                    return false;
+                }
+                out.push_back(sequence[pc]);
+                ++pc;
+            }
+            continue;
+        }
+
         if (out.size() >= MAX_EXPANDED_RECORDS) {
             out.clear();
             err = "RCP F8/F9 展開後のレコード数が上限を超えました";
@@ -773,8 +796,7 @@ bool expand_note_key_signature_tempo_timeline(
         }
 
         // F6 starts a comment and immediately following F7 records continue it.
-        // Comment bytes are metadata, not timed MIDI events. A standalone F7 is
-        // rejected so malformed/unknown command records are not silently ignored.
+        // Comment bytes are metadata, not timed MIDI events.
         if (raw.code == 0xf6) {
             while (record_index + 1 < expanded_sequence.size() &&
                    expanded_sequence[record_index + 1].code == 0xf7)
@@ -784,11 +806,10 @@ bool expand_note_key_signature_tempo_timeline(
         // FD marks a measure boundary; its step byte does not advance time.
         if (raw.code == 0xfd)
             continue;
-        if (raw.code == 0xf7) {
-            out.clear();
-            err = "RCP F7 コメント継続レコードの前に F6 がありません";
-            return false;
-        }
+        // Reference converters skip a continuation with no owning command.
+        // Such a record can occur when a continuation is outside an F8/F9 loop.
+        if (raw.code == 0xf7)
+            continue;
 
         // GS parameter state commands, matching the reference converter.
         if (raw.code == 0xdd || raw.code == 0xde || raw.code == 0xdf) {
