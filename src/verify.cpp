@@ -1099,13 +1099,13 @@ static void check_rcp_aftertouch_commands()
     const std::vector<rcp::sequence_event> orphan_continuation_sequence = {
         raw_event(0xf7, 0, 0x41, 0), raw_event(0xfe, 0, 0, 0)
     };
-    const bool orphan_track_continuation_rejected =
-        !rcp::expand_note_key_signature_tempo_timeline(
+    const bool orphan_track_continuation_skipped =
+        rcp::expand_note_key_signature_tempo_timeline(
             orphan_continuation_sequence, 120, timeline, err) &&
-        timeline.empty() && !err.empty();
-    std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7拒否 %s\n",
+        timeline.empty() && err.empty();
+    std::printf("RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick %s・孤立F7スキップ %s\\n",
         track_sysex_continuation_ok ? "合" : "NG",
-        orphan_track_continuation_rejected ? "合" : "NG");
+        orphan_track_continuation_skipped ? "合" : "NG");
 
     // The loop expander must duplicate the complete 0x98 + F7 continuation
     // group, so each iteration emits one independent SysEx at its own tick.
@@ -1128,6 +1128,24 @@ static void check_rcp_aftertouch_commands()
         timeline[1].tick == 1 &&
         timeline[1].sysex == std::vector<u8>({0xf0, 0x41, 0x01, 0xf7}) &&
         err.empty();
+
+    // A continuation after the loop terminator is outside the 0x98 command's
+    // loop body and must not attach to the final expanded iteration.
+    const std::vector<rcp::sequence_event> continuation_outside_loop_sequence = {
+        raw_event(0xf9, 0, 0, 0),
+        raw_event(0x98, 1, 0x12, 0x34),
+        raw_event(0xf8, 2, 0, 0),
+        raw_event(0xf7, 0, 0x41, 0x01),
+        raw_event(60, 0, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool track_sysex_continuation_outside_loop_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            continuation_outside_loop_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 2 && err.empty();
+    std::printf("RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない %s\\n",
+        track_sysex_continuation_outside_loop_ok ? "合" : "NG");
 
     // A continuation with an invalid high-bit value is rejected atomically.
     const std::vector<rcp::sequence_event> invalid_track_sysex_sequence = {
