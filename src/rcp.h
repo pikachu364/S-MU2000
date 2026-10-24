@@ -10,6 +10,7 @@
 
 #include "compat/mamecompat.h"
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -32,6 +33,11 @@ bool inspect_header(const u8 *data, size_t size, header_info &out, std::string &
 
 // RCP2 固定ヘッダーを読む。文字列は文字コード変換せず、末尾の空白/NUL のみ除去する。
 // 現段階ではトラックデータの存在やイベント列の正当性は検証しない。
+struct user_sysex_template {
+	std::string name;
+	std::vector<u8> data; // raw template bytes; trailing F7 padding is removed
+};
+
 struct document_header {
 	std::string title;
 	std::string comment;
@@ -42,6 +48,7 @@ struct document_header {
 	u8 key_signature = 0;
 	u8 play_bias = 0; // raw signed 8-bit document transpose (reference-compatible interpretation)
 	u8 track_count = 0;
+	std::array<user_sysex_template, 8> user_sysex{};
 };
 
 bool parse_header(const u8 *data, size_t size, document_header &out, std::string &err);
@@ -186,7 +193,9 @@ bool expand_note_key_signature_timeline(const std::vector<sequence_event> &seque
 // tempo curves (p2) are retained but not expanded.
 bool expand_note_key_signature_tempo_timeline(
     const std::vector<sequence_event> &sequence, u16 bpm,
-    std::vector<timed_event> &out, std::string &err);
+    std::vector<timed_event> &out, std::string &err,
+    const std::array<user_sysex_template, 8> *user_sysex = nullptr,
+    u8 initial_midi_channel = 0);
 
 
 // Experimental note-only timeline. start_tick is the current tick before the
