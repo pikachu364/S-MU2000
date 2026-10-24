@@ -1434,6 +1434,31 @@ static void check_rcp_fc_repeats()
         timeline[2].note.note == 62 && timeline[2].tick == 2 &&
         timeline[3].note.note == 64 && timeline[3].tick == 3 && err.empty();
 
+    // FC exactly at the target tail-calls to its own target without nesting
+    // the return address; the caller resumes at the record after its FC.
+    sequence = {
+        event(60, 1, 4, 90), fc_to(0), fc_to(1),
+        event(64, 1, 4, 70), event(0xfe, 0, 0, 0)
+    };
+    const bool tail_call_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 64 && timeline[1].tick == 1 && err.empty();
+
+    // A later FC marks the end of the referenced span and returns to the
+    // record immediately after the initiating FC.
+    sequence = {
+        event(60, 1, 4, 90), event(62, 1, 4, 80), fc_to(0),
+        event(64, 1, 4, 70), event(0xfe, 0, 0, 0)
+    };
+    const bool endpoint_return_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 64 && timeline[1].tick == 1 &&
+        timeline[2].tick == 2 && err.empty();
+
     sequence = {event(60, 1, 4, 90), event(0xfc, 0, 0, 0), event(0xfe, 0, 0, 0)};
     const bool header_target_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
@@ -1454,12 +1479,19 @@ static void check_rcp_fc_repeats()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・ヘッダー内/未整列/範囲外拒否 %s・循環拒否 %s\n",
+    sequence = {event(60, 1, 4, 90), fc_to(2), event(0xfe, 0, 0, 0)};
+    const bool fe_target_rejected =
+        !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.empty() && !err.empty();
+
+    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・FC 連鎖 %s・参照終端から復帰 %s・ヘッダー内/未整列/範囲外拒否 %s・FE 参照拒否 %s・循環拒否 %s\n",
         valid_repeat_ok ? "合" : "NG",
+        tail_call_ok ? "合" : "NG",
+        endpoint_return_ok ? "合" : "NG",
         (header_target_rejected && unaligned_target_rejected && outside_target_rejected) ? "合" : "NG",
+        fe_target_rejected ? "合" : "NG",
         cycle_rejected ? "合" : "NG");
 }
-
 
 static void check_rcp_tempo_conversion()
 {
