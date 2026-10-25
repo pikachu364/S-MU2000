@@ -2026,34 +2026,34 @@ static int check_rcp2_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
-		std::fprintf(stderr, "RCP2 sample: cannot open: %s\\n", path);
+		std::fprintf(stderr, "RCP2 sample: cannot open: %s\n", path);
 		return 1;
 	}
 	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
 	                      std::istreambuf_iterator<char>());
 	if (bytes.empty()) {
-		std::fprintf(stderr, "RCP2 sample: empty file: %s\\n", path);
+		std::fprintf(stderr, "RCP2 sample: empty file: %s\n", path);
 		return 1;
 	}
 
 	rcp::header_info info;
 	std::string err;
 	if (!rcp::inspect_header(bytes.data(), bytes.size(), info, err)) {
-		std::fprintf(stderr, "RCP2 sample: header failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "RCP2 sample: header failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	std::vector<rcp::track> tracks;
 	if (!rcp::parse_tracks(bytes.data(), bytes.size(), tracks, err)) {
-		std::fprintf(stderr, "RCP2 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "RCP2 sample: parse_tracks failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	rcp::intermediate_document document;
 	if (!rcp::build_intermediate(bytes.data(), bytes.size(), document, err)) {
-		std::fprintf(stderr, "RCP2 sample: build_intermediate failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "RCP2 sample: build_intermediate failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 
-	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\\n",
+	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\n",
 	            path, bytes.size(), tracks.size(), document.tracks.size());
 	for (size_t i = 0; i < tracks.size(); ++i) {
 		const auto &track = tracks[i];
@@ -2064,7 +2064,7 @@ static int check_rcp2_sample_file(const char *path)
 			f9 += event.code == 0xf9;
 			fe += event.code == 0xfe;
 		}
-		std::printf("  track[%zu] name=\\\"%s\\\" records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\\n",
+		std::printf("  track[%zu] name=\\"%s\\" records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
 		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
 	}
 	return 0;
