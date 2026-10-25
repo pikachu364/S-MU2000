@@ -278,8 +278,9 @@
 
 ## T-007 follow-up — gradual E7 semantics
 
-- Actions #439 passed (user-reported).
+- Actions #439 and #441 passed (user-reported). #441 is recorded as the validation result after the diagnostic follow-up.
 - ValleyBell/MidiConverters `RCPFormat.txt` defines E7 p1 as a tempo multiplier (`0x40` = 100%) and p2 as interpolation duration in ticks: p2=0 sets tempo immediately; p2=1..FF interpolates over that many ticks.
 - `rcp2mid.c` and QB64-Phoenix-Edition's Recomposer implementation both warn about nonzero p2 and currently ignore the gradual interpolation, setting the target tempo immediately. This corroborates the gap but does not establish the exact interpolation curve used by the original RCP player.
 - `src/verify.cpp` now prints a separate `E7 gradual tempo` count and explicitly says interpolation is not implemented, so a successful seconds conversion is not mistaken for complete gradual-tempo support. Commit: 9fd7296.
-- Next: establish the interpolation curve from stronger format/player evidence before implementing seconds conversion; then test p2=0, p2=1, p2=0x30, ramp completion, and a new E7 arriving during an active ramp. CI after commit 9fd7296 is pending.
+- A follow-up public-source search did not find stronger evidence for the original player's interpolation curve. The two converter implementations remain evidence only of a known unsupported feature, not of the original playback semantics.
+- Next: inspect additional RCP player/source implementations and format documents for an explicit curve or update rule. Until found, retain the raw `gradual` value and do not invent a curve. Once evidence is sufficient, test p2=0, p2=1, p2=0x30, ramp completion, and a new E7 arriving during an active ramp. Actions #441 passed (user-reported).
