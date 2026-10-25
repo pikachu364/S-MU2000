@@ -435,3 +435,13 @@
 - `src/verify.cpp` に E5 が MIDI イベントを増やさず p0 分だけ次イベントを進める合成テストを追加し、`tests/verify.txt` の期待出力を同期。
 - 修正コミット: [b7de799](https://github.com/pikachu364/S-MU2000/commit/b7de7999e7c79495638421121c7894d5d65ae036)、[回帰テスト](https://github.com/pikachu364/S-MU2000/commit/d1714da)、[期待出力更新](https://github.com/pikachu364/S-MU2000/commit/e54cc73)。この変更後の CI と private sample-check は未確認。
 - 次は Actions でビルド・テストを通し、private sample-check を再実行して CHISA140 の timeline / MIDI 変換が解消したかを確認する。実曲の聴感・完全な互換性までは未確認。
+
+
+## 2026-10-25 — Actions #431 合格と sample-6 の E5 修正再検証
+
+- ユーザー報告により Actions #431 合格を確認。E5 Key Scan 対応後の CI 成功として記録する。
+- private repository の [sample-6 レポート](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-6/rcp2-sample-report.txt) を確認。12曲すべてが `parsed_tracks=18` / `intermediate_tracks=18`。
+- 12曲すべてで全体の `timeline`、`seconds`、`midi_encode` が `OK`。各曲の `track_pipeline` でも失敗行は見つからなかった。
+- sample-5 で失敗していた CHISA140.RCP は、今回 `timeline: OK; events=128539`、`seconds: OK; events=128539`、`midi_encode: OK; events=128533`。E5 Key Scan 対応で、以前の全体 timeline 失敗は解消したと判断できる。
+- これは現行診断パイプラインが12曲を MIDI イベント列へ符号化できたことを示す。参照コンバーターとのバイト単位の出力一致、MIDI ファイルの実再生、聴感上の互換性を示すものではない。
+- 次はプライベートの実曲データを公開リポジトリへコピーせず、参照コンバーターとの比較方法を整え、代表曲の出力差分を調べる。比較条件・入力・イベント数・差分を記録するまでは互換性完了としない。
