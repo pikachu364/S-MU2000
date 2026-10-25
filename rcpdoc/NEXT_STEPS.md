@@ -274,3 +274,12 @@
 - [ ] 必要な仕様が確定したら、p2=0 と非ゼロ双方の合成テストを追加してから実装する。
 
 補足: sample-7 のレポートではコマンド histogram 終端がリテラル `\\n` になっていたため、`src/verify.cpp` で改行出力も修正した（commit [abb3c08](https://github.com/pikachu364/S-MU2000/commit/abb3c080644248f7d344657ddce3a9dec5f0c811)）。この修正後の CI / レポート再生成は未確認。
+
+
+## T-007 follow-up — gradual E7 semantics
+
+- Actions #439 passed (user-reported).
+- ValleyBell/MidiConverters `RCPFormat.txt` defines E7 p1 as a tempo multiplier (`0x40` = 100%) and p2 as interpolation duration in ticks: p2=0 sets tempo immediately; p2=1..FF interpolates over that many ticks.
+- `rcp2mid.c` and QB64-Phoenix-Edition's Recomposer implementation both warn about nonzero p2 and currently ignore the gradual interpolation, setting the target tempo immediately. This corroborates the gap but does not establish the exact interpolation curve used by the original RCP player.
+- `src/verify.cpp` now prints a separate `E7 gradual tempo` count and explicitly says interpolation is not implemented, so a successful seconds conversion is not mistaken for complete gradual-tempo support. Commit: 9fd7296.
+- Next: establish the interpolation curve from stronger format/player evidence before implementing seconds conversion; then test p2=0, p2=1, p2=0x30, ramp completion, and a new E7 arriving during an active ramp. CI after commit 9fd7296 is pending.
