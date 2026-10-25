@@ -2070,9 +2070,8 @@ static int check_rcp2_sample_file(const char *path)
 		std::printf("  track[%zu] name=%s records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
 		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
 		// Raw parsing intentionally accepts command combinations without assigning
-		// semantics. When F8/F9 counts differ, emit exact record positions and
-		// payload bytes so the sample report can distinguish a malformed loop from
-		// a format-specific marker convention without guessing.
+		// semantics. When F8/F9 counts differ, report exact marker positions and
+		// use a stack to identify unmatched starts/ends without changing parsing.
 		if (f8 != f9) {
 			std::printf("    F8/F9 detail (record:code p0 p1 p2):");
 			for (size_t j = 0; j < track.sequence.size(); ++j) {
@@ -2083,25 +2082,55 @@ static int check_rcp2_sample_file(const char *path)
 					            unsigned(event.p1), unsigned(event.p2));
 			}
 			std::printf("\n");
+			std::vector<size_t> open_f9;
+			for (size_t j = 0; j < track.sequence.size(); ++j) {
+				if (track.sequence[j].code == 0xf9) {
+					open_f9.push_back(j);
+				} else if (track.sequence[j].code == 0xf8) {
+					if (open_f9.empty()) {
+						std::printf("    unmatched F8 record=%zu p0=%02X\n",
+						            j, unsigned(track.sequence[j].p0));
+					} else {
+						open_f9.pop_back();
+					}
+				}
+			}
+			for (size_t j : open_f9)
+				std::printf("    unmatched F9 record=%zu p0=%02X\n",
+				            j, unsigned(track.sequence[j].p0));
 		}
-		// F6 owns a chain of immediately following F7 records in the current
-		// experimental decoder. Report chains and orphan F7 records for corpus
-		// inspection, but do not reject samples based on unconfirmed semantics.
+		// F6 comments and 0x98/0x99 multi-record commands may own immediately
+		// following F7 continuation records. Keep this as diagnostics only:
+		// unconfirmed semantics must not cause sample rejection.
 		for (size_t j = 0; j < track.sequence.size(); ++j) {
-			if (track.sequence[j].code == 0xf6) {
+			const u8 code = track.sequence[j].code;
+			if (code == 0xf6 || code == 0x98 || code == 0x99) {
 				size_t end = j + 1;
 				while (end < track.sequence.size() && track.sequence[end].code == 0xf7)
 					++end;
-				std::printf("    F6/F7 chain start=%zu records=%zu next=%s\n",
-				            j, end - j, end < track.sequence.size() ?
-				            (track.sequence[end].code == 0xfe ? "FE" : "other") : "EOF");
+				if (end > j + 1)
+					std::printf("    %02X/F7 chain start=%zu records=%zu next=%s\n",
+					            unsigned(code), j, end - j, end < track.sequence.size() ?
+					            (track.sequence[end].code == 0xfe ? "FE" : "other") : "EOF");
 				j = end - 1;
-			} else if (track.sequence[j].code == 0xf7 &&
+			} else if (code == 0xf7 &&
 			           (j == 0 || (track.sequence[j - 1].code != 0xf6 &&
+			                       track.sequence[j - 1].code != 0x98 &&
+			                       track.sequence[j - 1].code != 0x99 &&
 			                       track.sequence[j - 1].code != 0xf7))) {
 				std::printf("    orphan F7 record=%zu p0=%02X p1=%02X p2=%02X\n",
 				            j, unsigned(track.sequence[j].p0),
 				            unsigned(track.sequence[j].p1), unsigned(track.sequence[j].p2));
+				const size_t begin = j > 3 ? j - 3 : 0;
+				const size_t finish = std::min(track.sequence.size(), j + 4);
+				std::printf("      context (record:code p0 p1 p2):");
+				for (size_t k = begin; k < finish; ++k) {
+					const auto &near = track.sequence[k];
+					std::printf(" %zu:%02X %02X %02X %02X", k,
+					            unsigned(near.code), unsigned(near.p0),
+					            unsigned(near.p1), unsigned(near.p2));
+				}
+				std::printf("\n");
 			}
 		}
 	}
