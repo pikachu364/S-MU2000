@@ -2241,7 +2241,7 @@ static int check_rcp2_sample_file(const char *path)
 		for (const auto &entry : tempo_parameter_counts)
 			std::printf(" %02X/%02X=%zu", entry.first.first,
 			            entry.first.second, entry.second);
-		std::printf("\\n");
+		std::printf("\n");
 	}
 	std::printf("  command histogram:");
 	for (size_t code = 0; code < 256; ++code) {
