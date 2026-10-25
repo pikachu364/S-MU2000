@@ -262,10 +262,15 @@
 
 ## T-007 — E7 p1/p2 実サンプル分布と gradual tempo の参照比較
 
-**状態:** 診断コード追加済み。CI と sample-check は未確認。
+**状態:** sample-7 を確認。E7 の参照実装調査で gradual tempo の未対応警告を確認。実装変更は未着手。
 
-- [x] src/verify.cpp の --rcp2-sample に E7 の p1/p2 組合せ別件数を表示する診断を追加。変換意味論は変更しない。
-- [ ] Actions CI の成功を確認する。
-- [ ] private sample-check を再実行し、12曲の p1/p2 分布を記録する。
-- [ ] ValleyBell / Glosa 等の参照実装と照合し、gradual tempo の p2 の意味・出力差を確認する。根拠が揃うまでは仕様を推測で確定しない。
-- [ ] 検証後、必要であれば段階的テンポ変化を表現する実装・合成テストを追加する。
+- [x] `src/verify.cpp` の `--rcp2-sample` に E7 の p1/p2 組合せ別件数を表示する診断を追加。
+- [x] ユーザー報告により Actions #437 合格を確認。これは E7 分布診断を含むコードの CI 成功。
+- [x] private の [sample-7 レポート](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-7/rcp2-sample-report.txt) を確認。12曲すべて構造解析成功、全体 timeline / seconds / MIDI event encoding が OK。各 track_pipeline に FAIL は見当たらない。
+- [x] 12曲の E7 分布を確認。E7 は 8 曲に出現。p2=00 が大半で、非ゼロ p2 は CHISA140.RCP の 4件（p1/p2: 28/30、32/30、3A/30、3C/30）のみ。
+- [x] ValleyBell/MidiConverters の `rcp2mid.c` の `case 0xE7` を確認。p2 != 0 の場合は “Gradual Tempo Change” の警告を出すが、警告後も p1 を使って即時の MIDI tempo event を書き出す。コメント上の speed は `0x40` 固定。段階的なテンポ変化そのものはこの参照コードでは実装されていない。
+- [ ] p2=0x30 の実サンプル文脈と RCP の仕様資料を追加調査し、p2 の値・単位・更新間隔を推測なしに特定する。
+- [ ] 仕様根拠が得られるまでは、現行の `gradual` フィールド保持を維持し、変換動作を変更しない。
+- [ ] 必要な仕様が確定したら、p2=0 と非ゼロ双方の合成テストを追加してから実装する。
+
+補足: sample-7 のレポートではコマンド histogram 終端がリテラル `\\n` になっていたため、`src/verify.cpp` で改行出力も修正した（commit [abb3c08](https://github.com/pikachu364/S-MU2000/commit/abb3c080644248f7d344657ddce3a9dec5f0c811)）。この修正後の CI / レポート再生成は未確認。
