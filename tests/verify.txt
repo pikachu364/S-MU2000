@@ -46,6 +46,7 @@ RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick 合・孤立F7�
 RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない 合
 RCP2 98 ループ境界: 各反復でSysEx再生成 合・不正データ拒否 合
 RCP2 98 空 payload: SysEx省略/tick維持 合
+RCP2 99 外部コマンド: F7連結/MIDI出力なし/tick 合・ループ境界 合
 RCP2 DD/DE/DF GS SysEx: state/checksum/tick 合・7-bit 範囲外拒否 合
 RCP2 MIDIメッセージ符号化: Note On 合・Note Off 合・CC 合・Program Change 合・Pitch Bend 合・不正チャンネル拒否 合・メタデータ分離 合
 RCP2 tick→秒変換: テンポ変更前後 合・PPQ 0 拒否 合・初期 BPM 0 拒否 合・逆順 tick 拒否 合・テンポ値 0 拒否 合
