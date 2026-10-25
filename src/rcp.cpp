@@ -664,6 +664,25 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
     out.clear();
     err.clear();
     constexpr size_t MAX_EXPANDED_RECORDS = 1000000;
+
+    // Match finite F9/F8 pairs before expansion. Real RCP2 tracks can contain
+    // an unclosed F9 that marks a track-level loop point; it must not consume
+    // a later F8 belonging to a nested finite loop. Only paired F9 records
+    // participate in counted-loop expansion. Unmatched F8 is still rejected
+    // by the normal expansion path below.
+    std::vector<bool> f9_has_f8(sequence.size(), false);
+    std::vector<size_t> marker_stack;
+    for (size_t i = 0; i < sequence.size(); ++i) {
+        if (sequence[i].code == 0xfe)
+            break;
+        if (sequence[i].code == 0xf9) {
+            marker_stack.push_back(i);
+        } else if (sequence[i].code == 0xf8 && !marker_stack.empty()) {
+            f9_has_f8[marker_stack.back()] = true;
+            marker_stack.pop_back();
+        }
+    }
+
     std::vector<counted_loop_frame> stack;
     size_t pc = 0;
     size_t steps = 0;
@@ -682,12 +701,8 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
             break;
         }
         if (raw.code == 0xf9) {
-            stack.push_back({pc + 1, 0, 0});
-            if (stack.size() > sequence.size()) {
-                out.clear();
-                err = "RCP F9 ループのネスト状態が不正です";
-                return false;
-            }
+            if (f9_has_f8[pc])
+                stack.push_back({pc + 1, 0, 0});
             ++pc;
             continue;
         }
