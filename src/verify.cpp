@@ -2082,7 +2082,7 @@ static int check_rcp2_sample_file(const char *path)
 					            unsigned(event.code), unsigned(event.p0),
 					            unsigned(event.p1), unsigned(event.p2));
 			}
-			std::printf("\\n");
+			std::printf("\n");
 		}
 		// F6 owns a chain of immediately following F7 records in the current
 		// experimental decoder. Report chains and orphan F7 records for corpus
@@ -2092,14 +2092,14 @@ static int check_rcp2_sample_file(const char *path)
 				size_t end = j + 1;
 				while (end < track.sequence.size() && track.sequence[end].code == 0xf7)
 					++end;
-				std::printf("    F6/F7 chain start=%zu records=%zu next=%s\\n",
+				std::printf("    F6/F7 chain start=%zu records=%zu next=%s\n",
 				            j, end - j, end < track.sequence.size() ?
 				            (track.sequence[end].code == 0xfe ? "FE" : "other") : "EOF");
 				j = end - 1;
 			} else if (track.sequence[j].code == 0xf7 &&
 			           (j == 0 || (track.sequence[j - 1].code != 0xf6 &&
 			                       track.sequence[j - 1].code != 0xf7))) {
-				std::printf("    orphan F7 record=%zu p0=%02X p1=%02X p2=%02X\\n",
+				std::printf("    orphan F7 record=%zu p0=%02X p1=%02X p2=%02X\n",
 				            j, unsigned(track.sequence[j].p0),
 				            unsigned(track.sequence[j].p1), unsigned(track.sequence[j].p2));
 			}
