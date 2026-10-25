@@ -425,3 +425,13 @@
 - `--rcp2-sample` の全体パイプライン診断だけでは、最初の未対応トラックで処理が止まり、他トラックの状態を確認しにくい。
 - 各中間トラックを単独の文書として検査し、timeline 展開、秒変換、MIDI マッピング、MIDI 符号化の各段階を個別に表示する診断を追加。診断専用であり、受理条件や変換意味論は変更しない。
 - この追加後の CI と、診断を再実行した12曲のレポートは未確認。次は結果を回収し、失敗したトラックのエラーとコマンド頻度を照合して、対応コマンドを優先順位付けする。
+
+
+## 2026-10-25 — sample-5 で見つかった E5 Key Scan の未対応
+
+- private repository の `sample-5/rcp2-sample-report.txt` を読み、12曲すべて構造解析は成功、11曲は全体 timeline → seconds → MIDI event encoding まで成功していることを確認。
+- `CHISA140.RCP` の track[0]（ドラムス）だけ全体 timeline と単独 track pipeline が失敗。コマンド histogram に `E5=1` があり、エラーは現行の時間展開で許可していないコマンドを示していた。
+- 参照実装 `ValleyBell/MidiConverters/rcp2mid.c` の `case 0xE5` は “Key Scan” として警告のみを出し、MIDI イベントを生成しない。これに合わせて `src/rcp.cpp` で E5 を出力イベントなしとして処理し、p0 の tick 進行を維持するよう修正。
+- `src/verify.cpp` に E5 が MIDI イベントを増やさず p0 分だけ次イベントを進める合成テストを追加し、`tests/verify.txt` の期待出力を同期。
+- 修正コミット: [b7de799](https://github.com/pikachu364/S-MU2000/commit/b7de7999e7c79495638421121c7894d5d65ae036)、[回帰テスト](https://github.com/pikachu364/S-MU2000/commit/d1714da)、[期待出力更新](https://github.com/pikachu364/S-MU2000/commit/e54cc73)。この変更後の CI と private sample-check は未確認。
+- 次は Actions でビルド・テストを通し、private sample-check を再実行して CHISA140 の timeline / MIDI 変換が解消したかを確認する。実曲の聴感・完全な互換性までは未確認。
