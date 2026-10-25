@@ -454,3 +454,13 @@
 - `src/verify.cpp` の `--rcp2-sample` に、E7 の `p1/p2` 組合せ別件数を出力する診断を追加。既存の command histogram とは別に表示し、E7 gradual の意味論や変換結果は変更していない。
 - 追加コミット: [c22f498](https://github.com/pikachu364/S-MU2000/commit/c22f49844f5d85833ef13f47205d76673648064f)、改行修正 [62676b2](https://github.com/pikachu364/S-MU2000/commit/62676b2bb8c697423c5fef8ec65a1da82d93ff1e)。
 - この診断追加後の CI は未確認。次は CI 合格後に private sample-check を再実行し、p1/p2 の組合せを集計して参照実装の gradual tempo 処理と照合する。
+
+
+## 2026-10-26 — Actions #443 合格後の E7 gradual tempo 調査
+
+- ユーザー報告により Actions #443 の合格を確認。これを直近の CI 成功として記録する。
+- `RCPFormat.txt`（ValleyBell/MidiConverters）の E7 記述を再確認。p1 はテンポ倍率（0x40=100%）、p2 は補間に使う tick 数で、p2=0 は即時変更、p2=1..FF はその tick 数にわたる補間と説明されている。
+- 同資料は補間の曲線・tick ごとの更新規則までは説明していない。`rcp2mid.c` も p2 が非ゼロの場合に警告しつつ目標テンポを即時設定するため、元プレイヤーの補間アルゴリズムの根拠にはならない。
+- 追加の公開ソース検索でも、元プレイヤーの補間曲線や更新規則を示す一次資料は見つからなかった。複数の変換ツールが補間を省略していることを、元仕様の証明として扱わない。
+- したがって E7 の補間実装は保留し、未確認の曲線を推測で追加しない。既存の `gradual` 値保持と「interpolation not implemented」の診断を維持する。
+- 次の実作業は、プライベートの実 RCP2 サンプルを公開リポジトリへコピーせず、代表曲の参照コンバーター出力と S-MU2000 の MIDI イベント列を同じ条件で比較する手順を整えること。CI 合格と実曲互換性は引き続き区別する。
