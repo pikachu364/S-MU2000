@@ -1175,6 +1175,38 @@ static void check_rcp_aftertouch_commands()
         timeline[0].tick == 2 && err.empty();
     std::printf("RCP2 98 空 payload: SysEx省略/tick維持 %s\n",
         empty_track_sysex_tick_ok ? "合" : "NG");
+    // External commands gather their F7 continuation records but do not
+    // generate MIDI output. Their p0 delay still advances the next event.
+    const std::vector<rcp::sequence_event> external_command_sequence = {
+        raw_event(0x99, 2, 0x41, 0x42),
+        raw_event(0xf7, 0, 'O', 'K'),
+        raw_event(0xf7, 0, 0xf7, 0xf7),
+        raw_event(60, 3, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool external_command_ignored_tick_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            external_command_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 2 && err.empty();
+
+    // The 0x99 + F7 group is copied together when inside an F8/F9 loop.
+    const std::vector<rcp::sequence_event> looped_external_command_sequence = {
+        raw_event(0xf9, 0, 0, 0),
+        raw_event(0x99, 1, 0x41, 0x42),
+        raw_event(0xf7, 0, 'A', 'B'),
+        raw_event(0xf8, 2, 0, 0),
+        raw_event(60, 0, 2, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool external_command_loop_group_ok =
+        rcp::expand_note_key_signature_tempo_timeline(
+            looped_external_command_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::note &&
+        timeline[0].tick == 2 && err.empty();
+    std::printf("RCP2 99 外部コマンド: F7連結/MIDI出力なし/tick %s・ループ境界 %s\n",
+        external_command_ignored_tick_ok ? "合" : "NG",
+        external_command_loop_group_ok ? "合" : "NG");
     std::printf("RCP2 DD/DE/DF GS SysEx: state/checksum/tick %s・7-bit 範囲外拒否 %s\n",
         gs_parameter_timeline ? "合" : "NG",
         invalid_gs_value_rejected ? "合" : "NG");
