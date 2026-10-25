@@ -16,6 +16,7 @@ static bool rcp_loop_budget_test_ok = true;
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
+#include <iterator>
 #include <cstring>
 #include <initializer_list>
 #include <string>
