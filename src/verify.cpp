@@ -2181,13 +2181,13 @@ static int check_rcp2_sample_file(const char *path)
 		std::vector<rcp::timed_track_event> track_timeline;
 		err.clear();
 		if (!rcp::expand_intermediate_timeline(single_track, track_timeline, err)) {
-			std::printf("  track_pipeline[%zu] name=%s: timeline FAIL; %s\\n",
+			std::printf("  track_pipeline[%zu] name=%s: timeline FAIL; %s\n",
 			            track_index, document.tracks[track_index].header.name.c_str(), err.c_str());
 			continue;
 		}
 		std::vector<rcp::timed_seconds_event> track_seconds;
 		if (!rcp::convert_timeline_to_seconds(single_track.header, track_timeline, track_seconds, err)) {
-			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds FAIL; %s\\n",
+			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds FAIL; %s\n",
 			            track_index, document.tracks[track_index].header.name.c_str(),
 			            track_timeline.size(), err.c_str());
 			continue;
@@ -2195,18 +2195,18 @@ static int check_rcp2_sample_file(const char *path)
 		std::vector<rcp::track_midi_mapping> track_mapping;
 		std::vector<rcp::midi_output_event> track_midi;
 		if (!rcp::map_track_midi_outputs(single_track, track_mapping, err)) {
-			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping FAIL; %s\\n",
+			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping FAIL; %s\n",
 			            track_index, document.tracks[track_index].header.name.c_str(),
 			            track_timeline.size(), track_seconds.size(), err.c_str());
 			continue;
 		}
 		if (!rcp::encode_timeline_to_midi_events(track_seconds, track_mapping, track_midi, err)) {
-			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping OK; MIDI FAIL; %s\\n",
+			std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping OK; MIDI FAIL; %s\n",
 			            track_index, document.tracks[track_index].header.name.c_str(),
 			            track_timeline.size(), track_seconds.size(), err.c_str());
 			continue;
 		}
-		std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping OK; MIDI OK events=%zu\\n",
+		std::printf("  track_pipeline[%zu] name=%s: timeline OK events=%zu; seconds OK events=%zu; mapping OK; MIDI OK events=%zu\n",
 		            track_index, document.tracks[track_index].header.name.c_str(),
 		            track_timeline.size(), track_seconds.size(), track_midi.size());
 	}
