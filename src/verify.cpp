@@ -15,6 +15,7 @@ static bool rcp_loop_budget_test_ok = true;
 #include "ui/font_check.h"
 #include <algorithm>
 #include <cstdio>
+#include <fstream>
 #include <cstring>
 #include <initializer_list>
 #include <string>
@@ -2019,8 +2020,64 @@ static void check_rcp2_player_event_pipeline()
 }
 
 
-int main()
+// Read real RCP2 files on demand without placing private song data in the repository.
+// Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
+static int check_rcp2_sample_file(const char *path)
 {
+	std::ifstream file(path, std::ios::binary);
+	if (!file) {
+		std::fprintf(stderr, "RCP2 sample: cannot open: %s\\n", path);
+		return 1;
+	}
+	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
+	                      std::istreambuf_iterator<char>());
+	if (bytes.empty()) {
+		std::fprintf(stderr, "RCP2 sample: empty file: %s\\n", path);
+		return 1;
+	}
+
+	rcp::header_info info;
+	std::string err;
+	if (!rcp::inspect_header(bytes.data(), bytes.size(), info, err)) {
+		std::fprintf(stderr, "RCP2 sample: header failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	std::vector<rcp::track> tracks;
+	if (!rcp::parse_tracks(bytes.data(), bytes.size(), tracks, err)) {
+		std::fprintf(stderr, "RCP2 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	rcp::intermediate_document document;
+	if (!rcp::build_intermediate(bytes.data(), bytes.size(), document, err)) {
+		std::fprintf(stderr, "RCP2 sample: build_intermediate failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+
+	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\\n",
+	            path, bytes.size(), tracks.size(), document.tracks.size());
+	for (size_t i = 0; i < tracks.size(); ++i) {
+		const auto &track = tracks[i];
+		size_t fc = 0, f8 = 0, f9 = 0, fe = 0;
+		for (const auto &event : track.sequence) {
+			fc += event.code == 0xfc;
+			f8 += event.code == 0xf8;
+			f9 += event.code == 0xf9;
+			fe += event.code == 0xfe;
+		}
+		std::printf("  track[%zu] name=\\\"%s\\\" records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\\n",
+		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
+	}
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+	if (argc >= 3 && std::strcmp(argv[1], "--rcp2-sample") == 0) {
+		int failures = 0;
+		for (int i = 2; i < argc; ++i)
+			failures += check_rcp2_sample_file(argv[i]);
+		return failures == 0 ? 0 : 1;
+	}
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
 	std::vector<u16> sintab(0x8000, 0);
 
