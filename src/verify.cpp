@@ -2242,6 +2242,13 @@ static int check_rcp2_sample_file(const char *path)
 			std::printf(" %02X/%02X=%zu", entry.first.first,
 			            entry.first.second, entry.second);
 		std::printf("\n");
+		size_t gradual_tempo_count = 0;
+		for (const auto &entry : tempo_parameter_counts) {
+			if (entry.first.second != 0)
+				gradual_tempo_count += entry.second;
+		}
+		std::printf("  E7 gradual tempo: %zu event(s); interpolation not implemented\n",
+		            gradual_tempo_count);
 	}
 	std::printf("  command histogram:");
 	for (size_t code = 0; code < 256; ++code) {
