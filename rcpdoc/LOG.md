@@ -445,3 +445,12 @@
 - sample-5 で失敗していた CHISA140.RCP は、今回 `timeline: OK; events=128539`、`seconds: OK; events=128539`、`midi_encode: OK; events=128533`。E5 Key Scan 対応で、以前の全体 timeline 失敗は解消したと判断できる。
 - これは現行診断パイプラインが12曲を MIDI イベント列へ符号化できたことを示す。参照コンバーターとのバイト単位の出力一致、MIDI ファイルの実再生、聴感上の互換性を示すものではない。
 - 次はプライベートの実曲データを公開リポジトリへコピーせず、参照コンバーターとの比較方法を整え、代表曲の出力差分を調べる。比較条件・入力・イベント数・差分を記録するまでは互換性完了としない。
+
+
+## 2026-10-25 — Actions #433 合格後の E7 gradual tempo 調査準備
+
+- ユーザー報告により Actions #433 の合格を確認。これは E7 パラメータ診断を追加する前の CI 結果として記録する。
+- 実サンプル12曲では E7 が複数曲に出現するため、段階的テンポ変化（p2）の意味を推測で確定せず、実データで使われている p1/p2 の組合せを先に観測する方針とした。
+- `src/verify.cpp` の `--rcp2-sample` に、E7 の `p1/p2` 組合せ別件数を出力する診断を追加。既存の command histogram とは別に表示し、E7 gradual の意味論や変換結果は変更していない。
+- 追加コミット: [c22f498](https://github.com/pikachu364/S-MU2000/commit/c22f49844f5d85833ef13f47205d76673648064f)、改行修正 [62676b2](https://github.com/pikachu364/S-MU2000/commit/62676b2bb8c697423c5fef8ec65a1da82d93ff1e)。
+- この診断追加後の CI は未確認。次は CI 合格後に private sample-check を再実行し、p1/p2 の組合せを集計して参照実装の gradual tempo 処理と照合する。
