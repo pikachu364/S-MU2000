@@ -2052,7 +2052,7 @@ static void check_rcp2_player_event_pipeline()
 
 // Read real RCP2 files on demand without placing private song data in the repository.
 // Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
-static int check_rcp2_sample_file(const char *path)
+static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
@@ -2108,6 +2108,45 @@ static int check_rcp2_sample_file(const char *path)
 				std::printf("  midi_encode: FAIL; %s\n", err.c_str());
 			} else {
 				std::printf("  midi_encode: OK; events=%zu\n", midi_events.size());
+				if (dump_event_trace) {
+					// Emit a stable, line-oriented trace for local comparison. This is
+					// intentionally opt-in so normal sample diagnostics stay compact.
+					std::vector<rcp::track_midi_mapping> active_mapping = mapping;
+					std::printf("  event_dump: begin; fields=track,tick,time_seconds,port,midi_bytes\n");
+					for (const rcp::timed_seconds_event &source : seconds_timeline) {
+						const rcp::timed_event &event = source.source.event;
+						if (event.kind == rcp::timeline_event_kind::tempo ||
+						    event.kind == rcp::timeline_event_kind::key_signature)
+							continue;
+						const size_t track_index = source.source.track_index;
+						if (track_index >= active_mapping.size())
+							continue; // Already rejected by midi_encode; defensive only.
+						if (event.kind == rcp::timeline_event_kind::route_change) {
+							active_mapping[track_index].channel = event.route.channel;
+							active_mapping[track_index].port = event.route.port;
+							active_mapping[track_index].enabled = event.route.enabled;
+							continue;
+						}
+						if (!active_mapping[track_index].enabled)
+							continue;
+						std::vector<u8> midi_bytes;
+						if (event.kind == rcp::timeline_event_kind::sysex) {
+							midi_bytes = event.sysex;
+						} else if (!rcp::encode_midi_message(
+						               event, active_mapping[track_index].channel, midi_bytes, err)) {
+							std::printf("  event_dump: FAIL; %s\n", err.c_str());
+							break;
+						}
+						std::printf("  event: track=%02zu tick=%010u time=%.9f port=%02X bytes=",
+						            track_index, unsigned(event.tick), source.time,
+						            unsigned(active_mapping[track_index].port));
+						for (size_t byte_index = 0; byte_index < midi_bytes.size(); ++byte_index)
+							std::printf("%s%02X", byte_index == 0 ? "" : " ",
+							            unsigned(midi_bytes[byte_index]));
+						std::printf("\n");
+					}
+					std::printf("  event_dump: end\n");
+				}
 			}
 		}
 	}
@@ -2261,10 +2300,12 @@ static int check_rcp2_sample_file(const char *path)
 
 int main(int argc, char **argv)
 {
-	if (argc >= 3 && std::strcmp(argv[1], "--rcp2-sample") == 0) {
+	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
+	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0)) {
+		const bool dump_event_trace = std::strcmp(argv[1], "--rcp2-event-dump") == 0;
 		int failures = 0;
 		for (int i = 2; i < argc; ++i)
-			failures += check_rcp2_sample_file(argv[i]);
+			failures += check_rcp2_sample_file(argv[i], dump_event_trace);
 		return failures == 0 ? 0 : 1;
 	}
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
