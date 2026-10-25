@@ -59,7 +59,7 @@
 - [x] Glosa の `RcpConverter.cs` を確認。`TrackExclusive (0x98)` / `ExternalCommand (0x99)` / `Comment (0xF6)` は後続 `F7` レコードを集約してループ展開し、末尾の `F7` を除去する。`ExternalCommand` は MIDI 出力せず、時間進行のみ残す。ValleyBell と QB64 Recomposer は 0x99 の変換処理をコメントアウトしており、Glosa が直接の根拠。
 - [x] プライベートの実 RCP2 サンプル12曲を独立スキャン。トラック内レコードのコマンド位置に `0x99` は検出されなかった（ヘッダーなどにある生バイト出現はコマンドとは扱わない）。payload の実例・用途は実曲から確認できていない。
 - [x] CI の `verify --rcp2-sample` により現行 C++ `parse_tracks` / `build_intermediate` で12曲の構造解析結果を記録。全曲 `OK; parsed_tracks=18; intermediate_tracks=18`。ただし timeline 展開・MIDI 出力は未検証。
-- [ ] 12曲について timeline 展開と MIDI 出力まで実行し、未対応コマンド・ループ展開失敗・イベント件数を曲ごとに記録する。
+- [ ] `verify --rcp2-sample` に timeline 展開・秒変換・MIDI イベント符号化の診断出力を追加した。次回 private sample-check の report で12曲それぞれの成功/失敗とイベント件数を確認し、未対応コマンドを分類する。
 
 ## T-004 — 実 RCP2 サンプルとの比較・再生検証
 
