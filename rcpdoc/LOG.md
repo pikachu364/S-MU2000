@@ -391,3 +391,13 @@
 - 孤立 F7 が残る場合、前後最大3レコードの code/p0/p1/p2 を出力する。これで CHISA140.RCP の record 994 の周辺データを次のレポートから確認できる。
 - コミット: [11809a7 — Improve RCP2 loop and F7 sample diagnostics](https://github.com/pikachu364/S-MU2000/commit/11809a7bfdf80fd3d6a91148121dd17dbd801403)。
 - この変更は診断表示のみで、RCP パーサーの意味論やサンプル受理条件を変えていない。変更後の CI と更新レポートは未確認。
+
+
+## 2026-10-25 — sample-4 F8/F9 診断の再照合
+
+- private sample report のブロック境界を再確認し、F8/F9 不一致のサンプル名を訂正した。実例は MIND.RCP track[10] record 35 の F9 単独と、WINGS_55.RCP track[4] record 2184 を未対応として残すネスト列。
+- 以前の「DINA track[10]」という記録は誤り。DINA track[10] は `MELO1`、F8/F9 は 0/0。
+- ValleyBell の参照コードでは F9 がループスタック開始、F8 がその処理を行い、トラック全体のループ拡張用 `loopOfs` も別に扱われる。現状の材料だけで孤立 F9 の仕様は断定しない。
+- 現時点でソースコードの意味論は変更していない。MIND の record 35 と WINGS の record 2122–2210 の生レコードを確認した。MIND の F9 は `F9 00 00 00`、WINGS の record 2184 は `F9 01 00 00` で、後者の内側にある record 2194 の F9 は record 2207 の F8 と対応する。よって record 2184 は未対応の外側マーカーとして残る。
+- 次は参照実装の事前走査が unclosed F9 をどう扱うかを確認し、有限ループとの区別を合成テストで固定してから実装を変える。
+- 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
