@@ -220,13 +220,29 @@
 
 ## T-004 — 実 RCP2 サンプルのトラック別パイプライン診断
 
-**状態:** 診断コード追加済み。追加後の CI と12曲の新レポートは未確認。
+**状態:** 診断コード追加済み。Actions #425 合格を確認。sample-5 の12曲レポートを確認し、CHISA140 の E5 Key Scan 未対応を特定。E5 対応コミット後の CI と再検証は未確認。
 
 - [x] 全体の timeline → seconds → MIDI 診断を追加。
 - [x] 各トラック単独で timeline 展開、秒変換、MIDI マッピング、MIDI 符号化を診断する出力を追加（今回）。全体診断で一つのトラックが失敗しても、残りのトラックの状態を観測できる。
-- [ ] 追加変更の CI を確認する。
-- [ ] private sample-check を再実行し、12曲のトラック別レポートを回収する。
-- [ ] 失敗トラックのエラーと raw command histogram を突き合わせ、未対応コマンドとデータ依存の問題を分類する。
+- [x] トラック別診断追加変更の CI を確認する（Actions #425 合格）。
+- [x] private sample-check の12曲レポートを回収し、全体 timeline 失敗が CHISA140 のみであることを確認する。
+- [x] 失敗トラックのエラーと raw command histogram を突き合わせ、CHISA140 track[0] の E5=1 を特定する。
+- [ ] E5 Key Scan 対応後の CI を確認する。
+- [ ] private sample-check を再実行し、CHISA140 の timeline / MIDI 変換が成功するか確認する。
 - [ ] 実際の MIDI 出力を参照コンバーターと比較し、互換性を確認する。
 
 注意: トラック単独の成功は、複数トラックの統合、テンポ同期、ポート割当、実曲再生の正しさを保証しない。
+
+
+## T-005 — E5 Key Scan の時間展開対応
+
+- sample-5 レポートでは CHISA140.RCP の track[0] だけ timeline 展開に失敗し、histogram に E5 が1件あった。
+- 参照実装は E5 を Key Scan として MIDI イベントなしで扱うため、S-MU2000 も MIDI イベントを出さず p0 tick を進めるようにした。
+- [x] `src/rcp.cpp` に E5 の処理を追加。
+- [x] `src/verify.cpp` に合成回帰テストを追加。
+- [x] `tests/verify.txt` の期待出力を更新。
+- [ ] Actions CI を確認。
+- [ ] private sample-check を再実行して CHISA140 の失敗が解消したか確認。
+- [ ] 実際の MIDI 出力と参照コンバーターの結果を比較する。
+
+参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
