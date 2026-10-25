@@ -716,7 +716,7 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
         }
 
         // Continuation records are copied only when consumed by their owner
-        // (0x98/F6) above. Drop orphan F7 records here, before flattening loop
+        // (0x98/0x99/F6) above. Drop orphan F7 records here, before flattening loop
         // iterations, so one outside a loop cannot attach to the last expanded
         // 0x98 inside that loop during the later timeline conversion.
         if (raw.code == 0xf7) {
@@ -726,8 +726,8 @@ bool expand_f8_f9_loops(const std::vector<sequence_event> &sequence,
 
         // Keep commands that own F7 continuation records together while
         // unrolling loops. Otherwise a continuation just after F8 could be
-        // incorrectly attached to the last expanded 0x98 from inside the loop.
-        if (raw.code == 0x98 || raw.code == 0xf6) {
+        // incorrectly attached to the last expanded owner from inside the loop.
+        if (raw.code == 0x98 || raw.code == 0x99 || raw.code == 0xf6) {
             if (out.size() >= MAX_EXPANDED_RECORDS) {
                 out.clear();
                 err = "RCP F8/F9 展開後のレコード数が上限を超えました";
@@ -873,6 +873,23 @@ bool expand_note_key_signature_tempo_timeline(
                 route.route.channel = current_midi_channel;
             }
             out.push_back(route);
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP イベントの tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
+        // 0x99 is an external-command instruction, not a MIDI message.
+        // Reference converters gather its following F7 records as command text,
+        // then ignore the instruction for MIDI output. Keep the group atomic in
+        // loop expansion and preserve only the command's p0 time advance.
+        if (raw.code == 0x99) {
+            while (record_index + 1 < expanded_sequence.size() &&
+                   expanded_sequence[record_index + 1].code == 0xf7)
+                ++record_index;
             if (raw.p0 > 0xffffffffu - current_tick) {
                 out.clear();
                 err = "RCP イベントの tick が 32 bit 範囲を超えます";
