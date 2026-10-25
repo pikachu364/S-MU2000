@@ -1654,7 +1654,7 @@ static void check_rcp_tempo_timeline()
 
     // An unsupported command after a valid note must fail the whole expansion;
     // the earlier note must not leak out as a partial successful result.
-    sequence = {event(60, 1, 4, 90), event(0xf5, 0, 0, 0),
+    sequence = {event(60, 1, 4, 90), event(0xf4, 0, 0, 0),
                 event(0xfe, 0, 0, 0)};
     const bool unsupported_mixed_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
