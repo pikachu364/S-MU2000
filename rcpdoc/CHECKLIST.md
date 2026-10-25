@@ -226,4 +226,4 @@
 - [x] Match reference behavior by skipping an orphan `F7` continuation.
 - [x] Add a regression test for an `F7` record located after the loop terminator.
 - [ ] Confirm Actions after this follow-up; actual RCP2 parsing/playback remains unverified.
-- [ ] Implement and verify `0x99` external-command continuation semantics.
+- [x] Implement `0x99` external-command handling: group immediately following `F7` continuation records during F8/F9 loop expansion, emit no MIDI event, and preserve `p0` tick advancement. Synthetic regression tests are present; real-sample occurrence and payload semantics remain unverified.
