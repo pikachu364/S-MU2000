@@ -963,6 +963,21 @@ static void check_rcp_aftertouch_commands()
         d0_pitch_bend && d2_control_change && d3_program_change ? "合" : "NG",
         aliases_timeline ? "合" : "NG");
 
+    // E5 is the RCP2 Key Scan command: it emits no MIDI event but
+    // advances the track clock by p0, as in the reference converter.
+    const std::vector<rcp::sequence_event> key_scan_sequence = {
+        raw_event(60, 2, 4, 90), raw_event(0xe5, 3, 0, 0),
+        raw_event(62, 4, 4, 90), raw_event(0xfe, 0, 0, 0)
+    };
+    const bool key_scan_timeline =
+        rcp::expand_note_key_signature_tempo_timeline(key_scan_sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].kind == rcp::timeline_event_kind::note && timeline[0].tick == 0 &&
+        timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].tick == 5 &&
+        err.empty();
+    std::printf("RCP2 E5 Key Scan: no MIDI event + p0 tick advance %s\\n",
+        key_scan_timeline ? "合" : "NG");
+
     // E1 selects XG instrument: CC32=p2, Program Change=p1.
     // E2 selects GS instrument: CC0=p2, Program Change=p1. Both emit at
     // the current tick and advance time once by p0.
