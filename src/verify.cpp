@@ -2064,7 +2064,7 @@ static int check_rcp2_sample_file(const char *path)
 			f9 += event.code == 0xf9;
 			fe += event.code == 0xfe;
 		}
-		std::printf("  track[%zu] name=\\"%s\\" records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
+		std::printf("  track[%zu] name=%s records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
 		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
 	}
 	return 0;
