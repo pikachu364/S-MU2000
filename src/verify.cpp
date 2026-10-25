@@ -2068,6 +2068,32 @@ static int check_rcp2_sample_file(const char *path)
 
 	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\n",
 	            path, bytes.size(), tracks.size(), document.tracks.size());
+
+	// Diagnostic-only end-to-end probe: keep structural parsing success separate
+	// from timeline/MIDI support. A failure here is reported per sample but does
+	// not make the raw-parser sample check fail.
+	std::vector<rcp::timed_track_event> timeline;
+	if (!rcp::expand_intermediate_timeline(document, timeline, err)) {
+		std::printf("  timeline: FAIL; %s\n", err.c_str());
+	} else {
+		std::printf("  timeline: OK; events=%zu\n", timeline.size());
+		std::vector<rcp::timed_seconds_event> seconds_timeline;
+		if (!rcp::convert_timeline_to_seconds(document.header, timeline, seconds_timeline, err)) {
+			std::printf("  seconds: FAIL; %s\n", err.c_str());
+		} else {
+			std::printf("  seconds: OK; events=%zu\n", seconds_timeline.size());
+			std::vector<rcp::track_midi_mapping> mapping;
+			std::vector<rcp::midi_output_event> midi_events;
+			if (!rcp::map_track_midi_outputs(document, mapping, err)) {
+				std::printf("  midi_mapping: FAIL; %s\n", err.c_str());
+			} else if (!rcp::encode_timeline_to_midi_events(
+			               seconds_timeline, mapping, midi_events, err)) {
+				std::printf("  midi_encode: FAIL; %s\n", err.c_str());
+			} else {
+				std::printf("  midi_encode: OK; events=%zu\n", midi_events.size());
+			}
+		}
+	}
 	size_t command_counts[256] = {};
 	for (size_t i = 0; i < tracks.size(); ++i) {
 		const auto &track = tracks[i];
