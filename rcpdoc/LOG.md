@@ -2,6 +2,13 @@
 
 日付順の短い記録です。テストを実行したかどうか、何を根拠に判断したかを必ず区別します。
 
+## 2026-10-26 — Actions #447 合格、比較用イベントダンプを次工程に設定
+
+- GitHub Actions API で run #447 の `conclusion=success` を確認。head commit は `d43b376a69e75e13bb68f5200d96a2a927481a12`（#445 の合格記録を追加したドキュメントコミット）。
+- 現行 `verify --rcp2-sample` は timeline / seconds / MIDI encoding の成功とイベント件数を出すが、イベント単位の正規化ダンプや SMF ファイルを生成しないことをコード確認した。
+- 参照 MIDI との比較の前提として、次は `track index / absolute time / port / MIDI bytes` を出力する診断モードを設ける。プライベートの RCP データは公開リポジトリに追加しない。
+- #447 はドキュメント更新に対する CI 成功であり、新しい RCP 機能や実曲の出力一致を検証した結果ではない。
+
 ## 2026-10-26 — Actions #445 合格と次の比較作業
 
 - ユーザー報告の Actions #445 合格を確認し、GitHub Actions API でも run #445 が `success`、head commit が `5a53b6c` であることを確認した。
