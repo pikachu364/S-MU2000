@@ -2056,10 +2056,12 @@ static int check_rcp2_sample_file(const char *path)
 
 	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\n",
 	            path, bytes.size(), tracks.size(), document.tracks.size());
+	size_t command_counts[256] = {};
 	for (size_t i = 0; i < tracks.size(); ++i) {
 		const auto &track = tracks[i];
 		size_t fc = 0, f8 = 0, f9 = 0, fe = 0;
 		for (const auto &event : track.sequence) {
+			++command_counts[event.code];
 			fc += event.code == 0xfc;
 			f8 += event.code == 0xf8;
 			f9 += event.code == 0xf9;
@@ -2068,6 +2070,12 @@ static int check_rcp2_sample_file(const char *path)
 		std::printf("  track[%zu] name=%s records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
 		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
 	}
+	std::printf("  command histogram:");
+	for (size_t code = 0; code < 256; ++code) {
+		if (command_counts[code] != 0)
+			std::printf(" %02X=%zu", static_cast<unsigned>(code), command_counts[code]);
+	}
+	std::printf("\n");
 	return 0;
 }
 
