@@ -1041,6 +1041,19 @@ bool expand_note_key_signature_tempo_timeline(
             continue;
         }
 
+        // E5 is the RCP2 "Key Scan" command. The reference converter
+        // warns about it but emits no MIDI event; its p0 delay still advances
+        // the track clock like other non-emitting commands.
+        if (raw.code == 0xe5) {
+            if (raw.p0 > 0xffffffffu - current_tick) {
+                out.clear();
+                err = "RCP E5 Key Scan の tick が 32 bit 範囲を超えます";
+                return false;
+            }
+            current_tick += raw.p0;
+            continue;
+        }
+
         // Reference rcp2mid.c: E1 selects an XG instrument (CC32 = p2,
         // Program Change = p1); E2 selects a GS instrument (CC0 = p2,
         // Program Change = p1). p0 is the step/delay for either command.
