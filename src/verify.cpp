@@ -975,7 +975,7 @@ static void check_rcp_aftertouch_commands()
         timeline[0].kind == rcp::timeline_event_kind::note && timeline[0].tick == 0 &&
         timeline[1].kind == rcp::timeline_event_kind::note && timeline[1].tick == 5 &&
         err.empty();
-    std::printf("RCP2 E5 Key Scan: no MIDI event + p0 tick advance %s\\n",
+    std::printf("RCP2 E5 Key Scan: no MIDI event + p0 tick advance %s\n",
         key_scan_timeline ? "合" : "NG");
 
     // E1 selects XG instrument: CC32=p2, Program Change=p1.
