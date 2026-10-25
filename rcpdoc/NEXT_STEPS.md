@@ -258,3 +258,14 @@
 - [ ] 実際の MIDI 出力と参照コンバーターの結果を比較する。
 
 参照: https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c
+
+
+## T-007 — E7 p1/p2 実サンプル分布と gradual tempo の参照比較
+
+**状態:** 診断コード追加済み。CI と sample-check は未確認。
+
+- [x] src/verify.cpp の --rcp2-sample に E7 の p1/p2 組合せ別件数を表示する診断を追加。変換意味論は変更しない。
+- [ ] Actions CI の成功を確認する。
+- [ ] private sample-check を再実行し、12曲の p1/p2 分布を記録する。
+- [ ] ValleyBell / Glosa 等の参照実装と照合し、gradual tempo の p2 の意味・出力差を確認する。根拠が揃うまでは仕様を推測で確定しない。
+- [ ] 検証後、必要であれば段階的テンポ変化を表現する実装・合成テストを追加する。
