@@ -2248,7 +2248,7 @@ static int check_rcp2_sample_file(const char *path)
 		if (command_counts[code] != 0)
 			std::printf(" %02X=%zu", static_cast<unsigned>(code), command_counts[code]);
 	}
-	std::printf("\\n");
+	std::printf("\n");
 	return 0;
 }
 
