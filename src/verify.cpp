@@ -17,6 +17,8 @@ static bool rcp_loop_budget_test_ok = true;
 #include <cstdio>
 #include <fstream>
 #include <iterator>
+#include <map>
+#include <utility>
 #include <cstring>
 #include <initializer_list>
 #include <string>
@@ -2225,12 +2227,28 @@ static int check_rcp2_sample_file(const char *path)
 		            track_index, document.tracks[track_index].header.name.c_str(),
 		            track_timeline.size(), track_seconds.size(), track_midi.size());
 	}
+	// E7 p1/p2 combinations are reported separately so real-sample diagnostics
+	// can show whether gradual-tempo parameters occur without guessing their meaning.
+	std::map<std::pair<unsigned, unsigned>, size_t> tempo_parameter_counts;
+	for (const auto &track : document.tracks) {
+		for (const auto &event : track.events) {
+			if (event.raw.code == 0xe7)
+				++tempo_parameter_counts[{event.raw.p1, event.raw.p2}];
+		}
+	}
+	if (!tempo_parameter_counts.empty()) {
+		std::printf("  E7 p1/p2 pairs:");
+		for (const auto &entry : tempo_parameter_counts)
+			std::printf(" %02X/%02X=%zu", entry.first.first,
+			            entry.first.second, entry.second);
+		std::printf("\\n");
+	}
 	std::printf("  command histogram:");
 	for (size_t code = 0; code < 256; ++code) {
 		if (command_counts[code] != 0)
 			std::printf(" %02X=%zu", static_cast<unsigned>(code), command_counts[code]);
 	}
-	std::printf("\n");
+	std::printf("\\n");
 	return 0;
 }
 
