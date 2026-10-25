@@ -285,3 +285,20 @@
 - `src/verify.cpp` now prints a separate `E7 gradual tempo` count and explicitly says interpolation is not implemented, so a successful seconds conversion is not mistaken for complete gradual-tempo support. Commit: 9fd7296.
 - A follow-up public-source search found the same warning/ignore behavior in ValleyBell/MidiConverters `rcp2mid.c`, QB64-Phoenix-Edition's `Recomposer/RCP.cpp`, and Stuerp's `libmidi/src/RCP/RCP.cpp`. The latter two implementations may share code lineage, so they should not be counted as fully independent confirmation. No source found so far establishes the original player's interpolation curve or update rule.
 - Next: seek primary evidence such as original player documentation/source or a controlled playback comparison for an explicit curve/update rule. Do not infer semantics merely from multiple converters that ignore the feature. Until evidence is found, retain the raw `gradual` value and do not invent a curve. Once evidence is sufficient, test p2=0, p2=1, p2=0x30, ramp completion, and a new E7 arriving during an active ramp. Actions #442 passed (user-reported).
+
+
+## T-008 — 決定的な MIDI イベント診断ダンプ
+
+**状態:** 実装を追加。CI と実サンプルでの実行は未確認。
+
+- [x] `verify --rcp2-event-dump <file.rcp>` を追加。従来の `--rcp2-sample` は通常どおり要約診断だけを出し、既存の期待出力を変えない。
+- [x] ダンプは変換成功時に限り、イベントごとに track index、絶対 tick、秒、MIDI port、MIDI bytes を16進数で出す。出力は private サンプルのローカル比較用であり、曲データをリポジトリへ保存しない。
+- [ ] GitHub Actions CI でビルド・回帰テストを確認する。
+- [ ] private sample report の生成環境で代表曲1曲にダンプを実行し、出力件数・先頭/末尾イベント・複数トラックの並びを確認する。
+- [ ] 参照コンバーター側のイベント列と同条件で比較する。現時点では一致や実再生互換性を主張しない。
+
+実行例（サンプルファイルのパスはローカル環境に合わせる）:
+
+```sh
+./verify --rcp2-event-dump /path/to/sample.rcp > sample-events.txt
+```
