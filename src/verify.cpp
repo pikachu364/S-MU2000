@@ -2069,6 +2069,41 @@ static int check_rcp2_sample_file(const char *path)
 		}
 		std::printf("  track[%zu] name=%s records=%zu FC=%zu F8=%zu F9=%zu FE=%zu\n",
 		            i, track.header.name.c_str(), track.sequence.size(), fc, f8, f9, fe);
+		// Raw parsing intentionally accepts command combinations without assigning
+		// semantics. When F8/F9 counts differ, emit exact record positions and
+		// payload bytes so the sample report can distinguish a malformed loop from
+		// a format-specific marker convention without guessing.
+		if (f8 != f9) {
+			std::printf("    F8/F9 detail (record:code p0 p1 p2):");
+			for (size_t j = 0; j < track.sequence.size(); ++j) {
+				const auto &event = track.sequence[j];
+				if (event.code == 0xf8 || event.code == 0xf9)
+					std::printf(" %zu:%02X %02X %02X %02X", j,
+					            unsigned(event.code), unsigned(event.p0),
+					            unsigned(event.p1), unsigned(event.p2));
+			}
+			std::printf("\\n");
+		}
+		// F6 owns a chain of immediately following F7 records in the current
+		// experimental decoder. Report chains and orphan F7 records for corpus
+		// inspection, but do not reject samples based on unconfirmed semantics.
+		for (size_t j = 0; j < track.sequence.size(); ++j) {
+			if (track.sequence[j].code == 0xf6) {
+				size_t end = j + 1;
+				while (end < track.sequence.size() && track.sequence[end].code == 0xf7)
+					++end;
+				std::printf("    F6/F7 chain start=%zu records=%zu next=%s\\n",
+				            j, end - j, end < track.sequence.size() ?
+				            (track.sequence[end].code == 0xfe ? "FE" : "other") : "EOF");
+				j = end - 1;
+			} else if (track.sequence[j].code == 0xf7 &&
+			           (j == 0 || (track.sequence[j - 1].code != 0xf6 &&
+			                       track.sequence[j - 1].code != 0xf7))) {
+				std::printf("    orphan F7 record=%zu p0=%02X p1=%02X p2=%02X\\n",
+				            j, unsigned(track.sequence[j].p0),
+				            unsigned(track.sequence[j].p1), unsigned(track.sequence[j].p2));
+			}
+		}
 	}
 	std::printf("  command histogram:");
 	for (size_t code = 0; code < 256; ++code) {
