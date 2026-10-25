@@ -362,3 +362,13 @@
 - 関連コミット: [FC budget test](https://github.com/pikachu364/S-MU2000/commit/366a0aec278258d54b10afa6c5c4e067f1411b76)、[baseline update](https://github.com/pikachu364/S-MU2000/commit/b79d7b8ec4fe302dc0333e8af90eeaf0969267aa)。
 - 追加変更後の CI は未確認。実 RCP2 データの C++ 実行・実曲再生も未確認。
 - 次は `0x99` 外部コマンドの後続 F7 継続レコードの意味を参照実装と照合する。`0x98` と同一視せず、確認済み挙動と仮説を分けて記録する。
+
+
+## 2026-10-25 — Actions #395 合格と 0x99 調査の整理
+
+- GitHub Actions API で [Actions #395](https://github.com/pikachu364/S-MU2000/actions/runs/40150355286) を確認。Linux、Windows、macOS、MSVC x64、README、Windows 32-bit、MSVC Win32 の全7ジョブが success。
+- #395 の対象コミットは `4bb789a`。この結果は同コミット時点の CI 成功を示し、後続の文書更新コミットの CI 成功を意味しない。
+- `src/rcp.cpp` を再確認し、`parse_tracks` がトラック長と `FE` 終端を検証し、`build_intermediate` が解析済みレコードを中間表現へ移すことを確認した。今回、プライベート12曲をこの C++ 関数に直接実行したわけではない。
+- 独立したレコード境界スキャンでは、12曲のトラック内コマンド位置に `0x99` は見つからなかった。ヘッダー等に存在する生バイトの `0x99` はコマンドとして数えない。よって実曲から外部コマンド payload の具体例・用途は確認できていない。
+- `rcpdoc/CHECKLIST.md` の 0x99 項目を、実装・合成テスト済み、実データでの確認は未完了と区別して更新。 `rcpdoc/NEXT_STEPS.md` に Actions #395 と12曲スキャン結果を反映。
+- 次は現行 C++ `parse_tracks` / `build_intermediate` で12曲を直接処理し、各曲の成功・失敗とエラーを記録する。続けて未対応コマンドの実データ頻度と展開失敗を整理する。
