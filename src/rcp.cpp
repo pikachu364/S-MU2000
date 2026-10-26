@@ -1385,9 +1385,14 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
     std::stable_sort(expanded.begin(), expanded.end(),
         [](const timed_event &a, const timed_event &b) {
             if (a.tick != b.tick) return a.tick < b.tick;
-            const bool a_off = a.kind == timeline_event_kind::note_off;
-            const bool b_off = b.kind == timeline_event_kind::note_off;
-            return !a_off && b_off;
+            const auto priority = [](timeline_event_kind kind) {
+                if (kind == timeline_event_kind::note_off) return 1;
+                if (kind == timeline_event_kind::note) return 2;
+                return 0;
+            };
+            // Keep controllers and other non-note events first, then note-offs,
+            // then note-ons. This matches the reference event order at equal ticks.
+            return priority(a.kind) < priority(b.kind);
         });
     out.swap(expanded);
     return true;
