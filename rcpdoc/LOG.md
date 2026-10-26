@@ -1,3 +1,11 @@
+## 2026-10-26 — Actions #460 / private sample-check #10 合格、sample-9 ダンプ確認
+
+- ユーザー報告により公開リポジトリ Actions #460 と private sample-check #10 の合格を確認。
+- プライベートの `Sample report files/rcp2-sample-report/sample-9/` に要約レポート、イベントダンプ、選択サンプル情報の3ファイルが存在することを GitHub 上で確認した。
+- `rcp2-event-dump-info.txt` は代表曲を `private-data/RCP_DATA/BUTTFLY/BUTTFLY.RCP` と記録している。要約レポートの BUTTFLY ブロックは timeline 28008 events、seconds 28008 events、MIDI encoding 27974 events で各段階 OK。
+- これで代表曲のイベントダンプを生成する工程まで確認できた。ダンプの内部 consistency 行、先頭/末尾イベントと複数トラック順の精査、参照コンバーターとのイベント単位比較は未完了。CI 合格を出力互換性の証明とは扱わない。
+- 次はプライベート側でダンプの整合性を精査し、参照コンバーターと同条件で比較する。RCP 曲データとイベントダンプは公開リポジトリへコピーしない。
+
 # 作業ログ
 
 日付順の短い記録です。テストを実行したかどうか、何を根拠に判断したかを必ず区別します。
