@@ -1389,23 +1389,6 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
             return a.tick < b.tick;
         });
 
-    // RCP2 reference conversion emits same-tick Expression (CC11) changes
-    // before the note termination they coincide with. Note-offs are synthesized
-    // next to their originating note above, so their insertion position alone
-    // cannot express that boundary. Move CC11 left only across preceding
-    // same-tick note-offs; leave all other event ordering untouched.
-    for (size_t i = 0; i < expanded.size(); ++i) {
-        if (expanded[i].kind != timeline_event_kind::control_change ||
-            expanded[i].channel.data1 != 11)
-            continue;
-        size_t j = i;
-        while (j > 0 && expanded[j - 1].tick == expanded[i].tick &&
-               expanded[j - 1].kind == timeline_event_kind::note_off) {
-            std::swap(expanded[j - 1], expanded[j]);
-            --j;
-        }
-    }
-
     out.swap(expanded);
     return true;
 }
