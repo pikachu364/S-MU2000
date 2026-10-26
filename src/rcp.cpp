@@ -1387,7 +1387,7 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
             if (a.tick != b.tick) return a.tick < b.tick;
             const bool a_off = a.kind == timeline_event_kind::note_off;
             const bool b_off = b.kind == timeline_event_kind::note_off;
-            return a_off && !b_off;
+            return !a_off && b_off;
         });
     out.swap(expanded);
     return true;
