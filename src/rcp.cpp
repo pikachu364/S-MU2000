@@ -612,6 +612,18 @@ bool expand_fc_repeats(const std::vector<sequence_event> &sequence,
             out.push_back(raw);
             return true;
         }
+        // The reference converter treats FD inside an FC-referenced span as
+        // the return point: emit the measure-end marker, then resume after the
+        // initiating FC instead of copying the rest of the referenced region.
+        if (in_repeat && raw.code == 0xfd) {
+            if (out.size() >= MAX_EXPANDED_RECORDS)
+                return fail("RCP FC 展開後のレコード数が上限を超えました");
+            out.push_back(raw);
+            in_repeat = false;
+            visited_fc.clear();
+            pc = return_pc;
+            continue;
+        }
         if (raw.code != 0xfc) {
             if (out.size() >= MAX_EXPANDED_RECORDS)
                 return fail("RCP FC 展開後のレコード数が上限を超えました");
