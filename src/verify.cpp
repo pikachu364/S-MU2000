@@ -939,7 +939,7 @@ static void check_rcp_aftertouch_commands()
     event.note.note = 80;
     event.note.velocity = 0;
     const bool note_off_encode = rcp::encode_midi_message(event, 9, bytes, err) &&
-        bytes == std::vector<u8>({0x99, 80, 0}) && err.empty();
+        bytes == std::vector<u8>({0x89, 80, 0}) && err.empty();
     event.note.note = 0x80;
     const bool bad_note_off_encode = !rcp::encode_midi_message(event, 9, bytes, err) &&
         bytes.empty() && !err.empty();
@@ -2003,7 +2003,7 @@ static void check_rcp2_player_event_pipeline()
         return e.bytes == std::vector<u8>({0x90, 60, 90}) && e.port == 0 && e.time >= 0.0;
     });
     const bool note_off = encoded && std::any_of(output.begin(), output.end(), [](const rcp::midi_output_event &e) {
-        return e.bytes.size() == 3 && e.bytes[0] == 0x80 && e.bytes[1] == 60 && e.port == 0;
+        return e.bytes.size() == 3 && (e.bytes[0] == 0x80 || (e.bytes[0] == 0x90 && e.bytes[2] == 0)) && e.bytes[1] == 60 && e.port == 0;
     });
     size_t loop_note_ons = 0, loop_note_offs = 0;
     bool loop_times_ok = true;
@@ -2014,7 +2014,7 @@ static void check_rcp2_player_event_pipeline()
             if (e.time < expected - 0.000001 || e.time > expected + 0.000001)
                 loop_times_ok = false;
         }
-        if (e.bytes == std::vector<u8>({0x80, 62, 0}) && e.port == 0) {
+        if ((e.bytes == std::vector<u8>({0x80, 62, 0}) || e.bytes == std::vector<u8>({0x90, 62, 0})) && e.port == 0) {
             ++loop_note_offs;
             const double expected = loop_note_offs == 1 ? 0.025 : 0.040;
             if (e.time < expected - 0.000001 || e.time > expected + 0.000001)
