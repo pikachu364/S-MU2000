@@ -2054,6 +2054,7 @@ static void check_rcp2_player_event_pipeline()
 // Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
 static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false)
 {
+	bool event_dump_failed = false;
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
 		std::fprintf(stderr, "RCP2 sample: cannot open: %s\n", path);
@@ -2153,8 +2154,10 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 					std::printf("  event_dump: count=%zu encoded_count=%zu consistency=%s\n",
 					            dumped_event_count, midi_events.size(), event_count_ok ? "OK" : "FAIL");
 					std::printf("  event_dump: end\n");
-					if (!event_count_ok)
+					if (!event_count_ok) {
+						event_dump_failed = true;
 						std::fprintf(stderr, "RCP2 event dump: encoded/dumped event count mismatch: %s\n", path);
+					}
 				}
 			}
 		}
@@ -2304,7 +2307,7 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 			std::printf(" %02X=%zu", static_cast<unsigned>(code), command_counts[code]);
 	}
 	std::printf("\n");
-	return 0;
+	return event_dump_failed ? 1 : 0;
 }
 
 int main(int argc, char **argv)
