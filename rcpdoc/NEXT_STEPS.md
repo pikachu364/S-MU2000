@@ -293,7 +293,7 @@
 
 - [x] `verify --rcp2-event-dump <file.rcp>` を追加。従来の `--rcp2-sample` は通常どおり要約診断だけを出し、既存の期待出力を変えない。
 - [x] ダンプは変換成功時に限り、イベントごとに連番 index、track index、絶対 tick、秒、MIDI port、MIDI bytes を16進数で出す。出力は private サンプルのローカル比較用であり、曲データをリポジトリへ保存しない。
-- [x] ダンプ行数と MIDI encoder の出力件数を比較し、`event_dump: count=... encoded_count=... consistency=OK/FAIL` を表示する。エンコード失敗または件数不一致は stderr に診断する。
+- [x] ダンプ行数と MIDI encoder の出力件数を比較し、`event_dump: count=... encoded_count=... consistency=OK/FAIL` を表示する。エンコード失敗または件数不一致は stderr に診断し、`--rcp2-event-dump` の終了コードも失敗にする。
 - [ ] GitHub Actions CI でビルド・回帰テストを確認する。
 - [ ] private sample report の生成環境で代表曲1曲にダンプを実行し、出力件数・先頭/末尾イベント・複数トラックの並びを確認する。
 - [ ] 参照コンバーター側のイベント列と同条件で比較する。現時点では一致や実再生互換性を主張しない。
