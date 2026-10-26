@@ -1875,7 +1875,7 @@ static void check_rcp_same_tick_order()
         timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
         err.empty();
 
-    std::printf("RCP2 同一 tick の順序（CC11→Note Off→次の Note On）: %s\n",
+    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
 }
 
