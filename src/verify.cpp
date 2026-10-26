@@ -939,7 +939,7 @@ static void check_rcp_aftertouch_commands()
     event.note.note = 80;
     event.note.velocity = 0;
     const bool note_off_encode = rcp::encode_midi_message(event, 9, bytes, err) &&
-        bytes == std::vector<u8>({0x89, 80, 0}) && err.empty();
+        bytes == std::vector<u8>({0x99, 80, 0}) && err.empty();
     event.note.note = 0x80;
     const bool bad_note_off_encode = !rcp::encode_midi_message(event, 9, bytes, err) &&
         bytes.empty() && !err.empty();
@@ -1258,7 +1258,7 @@ static void check_rcp_midi_encoding()
     event.note.note = 60;
     const bool note_off_ok =
         rcp::encode_midi_message(event, 2, bytes, err) &&
-        bytes == std::vector<u8>({0x82, 60, 0}) && err.empty();
+        bytes == std::vector<u8>({0x92, 60, 0}) && err.empty();
 
     event.kind = rcp::timeline_event_kind::control_change;
     event.channel.data1 = 7;
