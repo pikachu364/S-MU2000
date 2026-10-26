@@ -2,7 +2,7 @@
 
 更新日：2026-10-26  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-直近の CI：Actions #447 合格（GitHub Actions API で success を確認）。#447 は #445 の結果を記録したドキュメント更新コミットに対する CI。private sample-7 レポートでは12曲すべての構造解析、全体 timeline、seconds 変換、MIDI event encoding が成功している。これは診断パイプラインの成功であり、参照コンバーターとの出力一致や実曲再生の成功を意味しない。
+直近の CI：Actions #460 合格（ユーザー報告）。プライベート sample-check #10 も合格（ユーザー報告）。sample-9 のレポートと代表曲イベントダンプがアップロードされている。これは診断パイプラインの成功であり、参照コンバーターとの出力一致や実曲再生の成功を意味しない。
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -295,7 +295,8 @@
 - [x] ダンプは変換成功時に限り、イベントごとに連番 index、track index、絶対 tick、秒、MIDI port、MIDI bytes を16進数で出す。出力は private サンプルのローカル比較用であり、曲データをリポジトリへ保存しない。
 - [x] ダンプ行数と MIDI encoder の出力件数を比較し、`event_dump: count=... encoded_count=... consistency=OK/FAIL` を表示する。エンコード失敗または件数不一致は stderr に診断し、`--rcp2-event-dump` の終了コードも失敗にする（commit [ace293e](https://github.com/pikachu364/S-MU2000/commit/ace293edb02f8cc6fe151217143274684e593e05)）。
 - [x] GitHub Actions CI の合格を確認（Actions #458、ユーザー報告）。#456 は同じブランチの優先度の高い待機実行があるためキャンセルされたもので、失敗とは扱わない。
-- [ ] private sample report の生成環境で代表曲1曲にダンプを実行し、終了コード・件数一致・先頭/末尾イベント・複数トラックの並びを確認する。
+- [x] private sample-check #10 の sample-9 artifact に代表曲のイベントダンプが出力されたことを確認。`rcp2-event-dump-info.txt` は `private-data/RCP_DATA/BUTTFLY/BUTTFLY.RCP` を選択したと記録している。レポートの先頭ブロックでは BUTTFLY の timeline / seconds / MIDI encoding が OK（28008 / 28008 / 27974 events）。
+- [ ] イベントダンプの `event_dump: count=... encoded_count=... consistency=OK` 行と先頭/末尾イベント、複数トラックの並びを精査する。ダンプファイル自体はプライベート側に保持し、公開リポジトリへコピーしない。
 - [ ] 参照コンバーター側のイベント列と同条件で比較する。現時点では一致や実再生互換性を主張しない。
 
 実行例（サンプルファイルのパスはローカル環境に合わせる）:
@@ -306,3 +307,11 @@ echo $?
 ```
 
 終了コード `0` はダンプの内部件数整合性チェック成功、`1` は処理または整合性チェック失敗を示す。これは参照コンバーターとの一致を示すものではない。
+
+
+## 2026-10-26 追記 — Actions #460 / private sample-check #10 合格
+
+- ユーザー報告により公開リポジトリ Actions #460 と、`S-MU2000-private-data` の sample-check #10 の合格を確認。
+- private `sample-9` に `rcp2-sample-report.txt`、`rcp2-event-dump.txt`、`rcp2-event-dump-info.txt` が存在することを GitHub 上で確認。ダンプ対象は `private-data/RCP_DATA/BUTTFLY/BUTTFLY.RCP`。
+- レポートの BUTTFLY ブロックでは全体 timeline=OK (28008 events)、seconds=OK (28008)、midi_encode=OK (27974)。イベントダンプの内部 consistency 行・先頭/末尾の全件精査、および参照コンバーターとの比較はまだ未完了。
+- 次はプライベート環境でダンプの consistency / 先頭・末尾・複数トラックの順序を確認し、参照コンバーター出力との差分を比較する。曲データとダンプは公開リポジトリへコピーしない。
