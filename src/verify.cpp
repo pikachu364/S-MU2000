@@ -1865,17 +1865,17 @@ static void check_rcp_same_tick_order()
         timeline.size() == 5 &&
         timeline[0].event.kind == rcp::timeline_event_kind::note &&
         timeline[0].event.note.note == 60 && timeline[0].event.tick == 0 &&
-        timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
-        timeline[1].event.tick == 10 && timeline[1].event.channel.data1 == 11 &&
-        timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
-        timeline[2].event.tick == 10 && timeline[2].event.note.note == 60 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[1].event.tick == 10 && timeline[1].event.note.note == 60 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[2].event.tick == 10 && timeline[2].event.channel.data1 == 11 &&
         timeline[3].event.kind == rcp::timeline_event_kind::note &&
         timeline[3].event.tick == 10 && timeline[3].event.note.note == 61 &&
         timeline[4].event.kind == rcp::timeline_event_kind::note_off &&
         timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
         err.empty();
 
-    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
+    std::printf("RCP2 同一 tick の順序（元レコード順を保持）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
 }
 
