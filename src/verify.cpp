@@ -2112,7 +2112,9 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 					// Emit a stable, line-oriented trace for local comparison. This is
 					// intentionally opt-in so normal sample diagnostics stay compact.
 					std::vector<rcp::track_midi_mapping> active_mapping = mapping;
-					std::printf("  event_dump: begin; fields=track,tick,time_seconds,port,midi_bytes\n");
+					size_t dumped_event_count = 0;
+					bool event_dump_ok = true;
+					std::printf("  event_dump: begin; fields=index,track,tick,time_seconds,port,midi_bytes\n");
 					for (const rcp::timed_seconds_event &source : seconds_timeline) {
 						const rcp::timed_event &event = source.source.event;
 						if (event.kind == rcp::timeline_event_kind::tempo ||
@@ -2135,17 +2137,24 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 						} else if (!rcp::encode_midi_message(
 						               event, active_mapping[track_index].channel, midi_bytes, err)) {
 							std::printf("  event_dump: FAIL; %s\n", err.c_str());
+							event_dump_ok = false;
 							break;
 						}
-						std::printf("  event: track=%02zu tick=%010u time=%.9f port=%02X bytes=",
-						            track_index, unsigned(event.tick), source.time,
+						std::printf("  event: index=%zu track=%02zu tick=%010u time=%.9f port=%02X bytes=",
+						            dumped_event_count, track_index, unsigned(event.tick), source.time,
 						            unsigned(active_mapping[track_index].port));
 						for (size_t byte_index = 0; byte_index < midi_bytes.size(); ++byte_index)
 							std::printf("%s%02X", byte_index == 0 ? "" : " ",
 							            unsigned(midi_bytes[byte_index]));
 						std::printf("\n");
+						++dumped_event_count;
 					}
+					const bool event_count_ok = event_dump_ok && dumped_event_count == midi_events.size();
+					std::printf("  event_dump: count=%zu encoded_count=%zu consistency=%s\n",
+					            dumped_event_count, midi_events.size(), event_count_ok ? "OK" : "FAIL");
 					std::printf("  event_dump: end\n");
+					if (!event_count_ok)
+						std::fprintf(stderr, "RCP2 event dump: encoded/dumped event count mismatch: %s\n", path);
 				}
 			}
 		}
