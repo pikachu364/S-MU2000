@@ -934,6 +934,17 @@ static void check_rcp_aftertouch_commands()
     const bool poly_encode = rcp::encode_midi_message(event, 2, bytes, err) &&
         bytes == std::vector<u8>({0xa2, 60, 77}) && err.empty();
 
+    // The reference converter encodes note termination as Note On with velocity zero.
+    event.kind = rcp::timeline_event_kind::note_off;
+    event.note.note = 80;
+    event.note.velocity = 0;
+    const bool note_off_encode = rcp::encode_midi_message(event, 9, bytes, err) &&
+        bytes == std::vector<u8>({0x99, 80, 0}) && err.empty();
+    event.note.note = 0x80;
+    const bool bad_note_off_encode = !rcp::encode_midi_message(event, 9, bytes, err) &&
+        bytes.empty() && !err.empty();
+
+
     std::vector<rcp::timed_event> timeline;
     const std::vector<rcp::sequence_event> sequence = {
         raw_event(0xea, 2, 91, 0), raw_event(0xed, 3, 60, 77), raw_event(0xfe, 0, 0, 0)
@@ -958,7 +969,7 @@ static void check_rcp_aftertouch_commands()
 
     std::printf("RCP2 EA/ED アフタータッチ: Channel/Poly decode %s・MIDI符号化 %s・時間展開 %s・7-bit 範囲外拒否 %s\n",
         channel_decode && poly_decode ? "合" : "NG",
-        channel_encode && poly_encode ? "合" : "NG",
+        channel_encode && poly_encode && note_off_encode && bad_note_off_encode ? "合" : "NG",
         timeline_ok ? "合" : "NG",
         bad_channel_value && bad_poly_value ? "合" : "NG");
     std::printf("RCP2 D0/D2/D3 MIDI alias: decode %s・時間展開 %s\n",
