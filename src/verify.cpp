@@ -1885,10 +1885,11 @@ static void check_rcp_fc_repeats()
     };
     const bool fd_returns_from_reference_ok =
         rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
-        timeline.size() == 3 &&
+        timeline.size() == 4 &&
         timeline[0].note.note == 60 && timeline[0].tick == 0 &&
         timeline[1].note.note == 64 && timeline[1].tick == 1 &&
-        timeline[2].note.note == 62 && timeline[2].tick == 2 && err.empty();
+        timeline[2].note.note == 62 && timeline[2].tick == 2 &&
+        timeline[3].note.note == 64 && timeline[3].tick == 3 && err.empty();
 
     // FD outside an FC reference must leave following records untouched.
     sequence = {
