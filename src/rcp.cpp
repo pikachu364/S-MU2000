@@ -1384,15 +1384,12 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
     }
     std::stable_sort(expanded.begin(), expanded.end(),
         [](const timed_event &a, const timed_event &b) {
-            if (a.tick != b.tick) return a.tick < b.tick;
-            const auto priority = [](timeline_event_kind kind) {
-                if (kind == timeline_event_kind::note_off) return 1;
-                if (kind == timeline_event_kind::note) return 2;
-                return 0;
-            };
-            // Keep controllers and other non-note events first, then note-offs,
-            // then note-ons. This matches the reference event order at equal ticks.
-            return priority(a.kind) < priority(b.kind);
+            // Keep equal-tick events in the order they were produced from the
+            // source timeline. This preserves per-track RCP command order;
+            // note-offs are inserted alongside their originating notes, so a
+            // global event-class priority can incorrectly move them across
+            // controllers, pitch bends, or SysEx events.
+            return a.tick < b.tick;
         });
     out.swap(expanded);
     return true;
