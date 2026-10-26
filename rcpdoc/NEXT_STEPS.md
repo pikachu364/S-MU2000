@@ -289,17 +289,20 @@
 
 ## T-008 — 決定的な MIDI イベント診断ダンプ
 
-**状態:** 実装を追加。CI と実サンプルでの実行は未確認。
+**状態:** イベントダンプ実装済み。Actions #458 合格（ユーザー報告）。実サンプルのダンプと参照コンバーター比較は未実施。
 
 - [x] `verify --rcp2-event-dump <file.rcp>` を追加。従来の `--rcp2-sample` は通常どおり要約診断だけを出し、既存の期待出力を変えない。
 - [x] ダンプは変換成功時に限り、イベントごとに連番 index、track index、絶対 tick、秒、MIDI port、MIDI bytes を16進数で出す。出力は private サンプルのローカル比較用であり、曲データをリポジトリへ保存しない。
-- [x] ダンプ行数と MIDI encoder の出力件数を比較し、`event_dump: count=... encoded_count=... consistency=OK/FAIL` を表示する。エンコード失敗または件数不一致は stderr に診断し、`--rcp2-event-dump` の終了コードも失敗にする。
-- [ ] GitHub Actions CI でビルド・回帰テストを確認する。
-- [ ] private sample report の生成環境で代表曲1曲にダンプを実行し、出力件数・先頭/末尾イベント・複数トラックの並びを確認する。
+- [x] ダンプ行数と MIDI encoder の出力件数を比較し、`event_dump: count=... encoded_count=... consistency=OK/FAIL` を表示する。エンコード失敗または件数不一致は stderr に診断し、`--rcp2-event-dump` の終了コードも失敗にする（commit [ace293e](https://github.com/pikachu364/S-MU2000/commit/ace293edb02f8cc6fe151217143274684e593e05)）。
+- [x] GitHub Actions CI の合格を確認（Actions #458、ユーザー報告）。#456 は同じブランチの優先度の高い待機実行があるためキャンセルされたもので、失敗とは扱わない。
+- [ ] private sample report の生成環境で代表曲1曲にダンプを実行し、終了コード・件数一致・先頭/末尾イベント・複数トラックの並びを確認する。
 - [ ] 参照コンバーター側のイベント列と同条件で比較する。現時点では一致や実再生互換性を主張しない。
 
 実行例（サンプルファイルのパスはローカル環境に合わせる）:
 
 ```sh
 ./verify --rcp2-event-dump /path/to/sample.rcp > sample-events.txt
+echo $?
 ```
+
+終了コード `0` はダンプの内部件数整合性チェック成功、`1` は処理または整合性チェック失敗を示す。これは参照コンバーターとの一致を示すものではない。
