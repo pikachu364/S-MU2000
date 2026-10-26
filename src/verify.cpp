@@ -1837,6 +1837,49 @@ static void check_rcp_counted_loops()
 }
 
 
+static void check_rcp_same_tick_order()
+{
+    auto raw = [](u8 code, u8 p0, u8 p1, u8 p2) {
+        rcp::intermediate_event event;
+        event.raw.code = code;
+        event.raw.p0 = p0;
+        event.raw.p1 = p1;
+        event.raw.p2 = p2;
+        return event;
+    };
+
+    rcp::intermediate_document doc;
+    doc.header.tempo_bpm = 120;
+    doc.tracks.resize(1);
+    doc.tracks[0].events = {
+        raw(60, 10, 10, 90),
+        raw(0xeb, 0, 11, 127),
+        raw(61, 1, 2, 80),
+        raw(0xfe, 0, 0, 0)
+    };
+
+    std::vector<rcp::timed_track_event> timeline;
+    std::string err;
+    const bool same_tick_order_ok =
+        rcp::expand_intermediate_timeline(doc, timeline, err) &&
+        timeline.size() == 5 &&
+        timeline[0].event.kind == rcp::timeline_event_kind::note &&
+        timeline[0].event.note.note == 60 && timeline[0].event.tick == 0 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[1].event.tick == 10 && timeline[1].event.channel.data1 == 11 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[2].event.tick == 10 && timeline[2].event.note.note == 60 &&
+        timeline[3].event.kind == rcp::timeline_event_kind::note &&
+        timeline[3].event.tick == 10 && timeline[3].event.note.note == 61 &&
+        timeline[4].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
+        err.empty();
+
+    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
+                same_tick_order_ok ? "合" : "NG");
+}
+
+
 static void check_rcp_fc_repeats()
 {
     auto event = [](u8 code, u8 p0, u8 p1, u8 p2) {
@@ -2401,6 +2444,7 @@ int main(int argc, char **argv)
 	check_rcp_tempo_event_decode();
 	check_rcp_tempo_timeline();
 	check_rcp_counted_loops();
+	check_rcp_same_tick_order();
 	check_rcp_fc_repeats();
 	check_rcp_track_merge();
 	check_rcp_document_timeline();
