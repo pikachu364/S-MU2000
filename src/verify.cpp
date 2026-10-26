@@ -784,9 +784,9 @@ static void check_rcp_document_timeline()
     const bool all_kinds_offset_ok =
         rcp::expand_intermediate_timeline(doc, merged, err) &&
         merged.size() == 4 &&
-        merged[0].event.kind == rcp::timeline_event_kind::note && merged[0].event.tick == 3 &&
-        merged[1].event.kind == rcp::timeline_event_kind::key_signature && merged[1].event.tick == 3 &&
-        merged[2].event.kind == rcp::timeline_event_kind::tempo && merged[2].event.tick == 3 &&
+        merged[0].event.kind == rcp::timeline_event_kind::key_signature && merged[0].event.tick == 3 &&
+        merged[1].event.kind == rcp::timeline_event_kind::tempo && merged[1].event.tick == 3 &&
+        merged[2].event.kind == rcp::timeline_event_kind::note && merged[2].event.tick == 3 &&
         merged[3].event.kind == rcp::timeline_event_kind::note_off && merged[3].event.tick == 11 && err.empty();
 
     doc.tracks[0].events = {raw(60, 0, 8, 90), raw(0xfe, 0, 0, 0)};
