@@ -1876,6 +1876,31 @@ static void check_rcp_fc_repeats()
         timeline[0].note.note == 60 && timeline[0].tick == 0 &&
         timeline[1].note.note == 60 && timeline[1].tick == 1 &&
         timeline[2].note.note == 64 && timeline[2].tick == 2 && err.empty();
+
+    // FD inside an FC-referenced span returns to the caller, matching the
+    // reference converter's parentPos behavior.
+    sequence = {
+        event(60, 1, 4, 90), fc_to(3), event(62, 1, 4, 80),
+        event(64, 1, 4, 70), event(0xfd, 0, 0, 0), event(0xfe, 0, 0, 0)
+    };
+    const bool fd_returns_from_reference_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 3 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 64 && timeline[1].tick == 1 &&
+        timeline[2].note.note == 62 && timeline[2].tick == 2 && err.empty();
+
+    // FD outside an FC reference must leave following records untouched.
+    sequence = {
+        event(60, 1, 4, 90), event(0xfd, 0, 0, 0),
+        event(62, 1, 4, 80), event(0xfe, 0, 0, 0)
+    };
+    const bool fd_outside_reference_ok =
+        rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
+        timeline.size() == 2 &&
+        timeline[0].note.note == 60 && timeline[0].tick == 0 &&
+        timeline[1].note.note == 62 && timeline[1].tick == 1 && err.empty();
+
     // A later FC marks the end of the referenced span and returns to the
     // record immediately after the initiating FC.
     sequence = {
@@ -1924,9 +1949,10 @@ static void check_rcp_fc_repeats()
         !rcp::expand_note_key_signature_tempo_timeline(sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
 
-    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・FC 連鎖 %s・参照終端から復帰 %s・ヘッダー内/未整列/範囲外拒否 %s・FE 参照拒否 %s・循環拒否 %s・展開予算超過拒否 %s\n",
+    std::printf("RCP2 FC 小節参照: 有効参照/時刻 %s・FC 連鎖 %s・FD 復帰/通常境界 %s・参照終端から復帰 %s・ヘッダー内/未整列/範囲外拒否 %s・FE 参照拒否 %s・循環拒否 %s・展開予算超過拒否 %s\n",
         valid_repeat_ok ? "合" : "NG",
         tail_call_ok ? "合" : "NG",
+        (fd_returns_from_reference_ok && fd_outside_reference_ok) ? "合" : "NG",
         endpoint_return_ok ? "合" : "NG",
         (header_target_rejected && unaligned_target_rejected && outside_target_rejected) ? "合" : "NG",
         fe_target_rejected ? "合" : "NG",
