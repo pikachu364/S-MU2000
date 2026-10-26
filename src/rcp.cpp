@@ -506,7 +506,7 @@ bool encode_midi_message(const timed_event &event, u8 channel,
             return false;
         }
         // Match the reference converter: note termination is Note On with velocity zero.
-        out = {u8(0x80 | channel), event.note.note, 0};
+        out = {u8(0x90 | channel), event.note.note, 0};
         return true;
     case timeline_event_kind::control_change:
         if (event.channel.data1 > 0x7f || event.channel.data2 > 0x7f) {
