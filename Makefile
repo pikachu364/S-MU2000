@@ -314,6 +314,7 @@ SRCS := \
 	src/compat/compat.cpp \
 	src/sampling.cpp \
 	src/smartmedia.cpp \
+	src/card_folder.cpp \
 	src/card_fs.cpp \
 	src/m2a.cpp \
 	src/rcp.cpp \
