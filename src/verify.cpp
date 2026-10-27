@@ -1860,24 +1860,6 @@ static void check_rcp_same_tick_order()
 
     std::vector<rcp::timed_track_event> timeline;
     std::string err;
-    const bool same_tick_order_ok =
-        rcp::expand_intermediate_timeline(doc, timeline, err) &&
-        timeline.size() == 5 &&
-        timeline[0].event.kind == rcp::timeline_event_kind::note &&
-        timeline[0].event.note.note == 60 && timeline[0].event.tick == 0 &&
-        timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
-        timeline[1].event.tick == 10 && timeline[1].event.channel.data1 == 11 &&
-        timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
-        timeline[2].event.tick == 10 && timeline[2].event.note.note == 60 &&
-        timeline[3].event.kind == rcp::timeline_event_kind::note &&
-        timeline[3].event.tick == 10 && timeline[3].event.note.note == 61 &&
-        timeline[4].event.kind == rcp::timeline_event_kind::note_off &&
-        timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
-        err.empty();
-
-    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
-                same_tick_order_ok ? "合" : "NG");
-
     // Regression: a CC11 + duration-generated Note Off pair must also be
     // ordered correctly when no third Note On shares the tick.
     rcp::intermediate_document pair_doc;
@@ -1903,6 +1885,26 @@ static void check_rcp_same_tick_order()
         pair_err.empty();
     std::printf("RCP2 同一 tick の CC11→Note Off（2イベントのみ）: %s\n",
                 cc11_note_off_pair_ok ? "合" : "NG");
+
+    const bool same_tick_order_ok = cc11_note_off_pair_ok &&
+        rcp::expand_intermediate_timeline(doc, timeline, err) &&
+        timeline.size() == 5 &&
+        timeline[0].event.kind == rcp::timeline_event_kind::note &&
+        timeline[0].event.note.note == 60 && timeline[0].event.tick == 0 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[1].event.tick == 10 && timeline[1].event.channel.data1 == 11 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[2].event.tick == 10 && timeline[2].event.note.note == 60 &&
+        timeline[3].event.kind == rcp::timeline_event_kind::note &&
+        timeline[3].event.tick == 10 && timeline[3].event.note.note == 61 &&
+        timeline[4].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
+        err.empty();
+
+    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
+                same_tick_order_ok ? "合" : "NG");
+
+
 }
 
 
