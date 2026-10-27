@@ -1382,51 +1382,42 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
         expanded.push_back(note_off);
         running.push_back({event.note.note, note_off_index, new_end_tick});
     }
-    // Preserve source order for unrelated event kinds. At each shared tick,
-    // reorder only the slots occupied by CC, generated Note Off, and Note On
-    // events so the reference ordering is CC -> Note Off -> Note On.
+    // First preserve source order for every event sharing a tick.
     std::stable_sort(expanded.begin(), expanded.end(),
         [](const timed_event &a, const timed_event &b) {
             return a.tick < b.tick;
         });
 
+    // Only apply the reference converter's controller -> expired Note Off ->
+    // new Note On ordering when all three kinds collide at the same tick.
+    // Other same-tick combinations (e.g. Note, key signature, tempo) retain
+    // their original order.
     for (size_t first = 0; first < expanded.size();) {
         size_t last = first + 1;
         while (last < expanded.size() &&
                expanded[last].tick == expanded[first].tick)
             ++last;
 
-        std::vector<size_t> relevant_positions;
-        std::vector<timed_event> relevant_events;
-        for (size_t i = first; i < last; ++i) {
-            const auto kind = expanded[i].kind;
-            if (kind == timeline_event_kind::control_change ||
-                kind == timeline_event_kind::note_off ||
-                kind == timeline_event_kind::note) {
-                relevant_positions.push_back(i);
-                relevant_events.push_back(expanded[i]);
-            }
-        }
-
         bool has_control = false, has_note_off = false, has_note = false;
-        for (const timed_event &event : relevant_events) {
-            has_control |= event.kind == timeline_event_kind::control_change;
-            has_note_off |= event.kind == timeline_event_kind::note_off;
-            has_note |= event.kind == timeline_event_kind::note;
+        for (size_t i = first; i < last; ++i) {
+            has_control |= expanded[i].kind == timeline_event_kind::control_change;
+            has_note_off |= expanded[i].kind == timeline_event_kind::note_off;
+            has_note |= expanded[i].kind == timeline_event_kind::note;
         }
-        if ((has_control && has_note_off) ||
-            (has_note_off && has_note)) {
-            auto priority = [](timeline_event_kind kind) {
-                if (kind == timeline_event_kind::control_change) return 0;
-                if (kind == timeline_event_kind::note_off) return 1;
-                return 2; // Note On
-            };
-            std::stable_sort(relevant_events.begin(), relevant_events.end(),
-                [&](const timed_event &a, const timed_event &b) {
+        if (has_control && has_note_off && has_note) {
+            std::stable_sort(expanded.begin() + first, expanded.begin() + last,
+                [](const timed_event &a, const timed_event &b) {
+                    auto priority = [](timeline_event_kind kind) {
+                        if (kind == timeline_event_kind::control_change)
+                            return 0;
+                        if (kind == timeline_event_kind::note_off)
+                            return 1;
+                        if (kind == timeline_event_kind::note)
+                            return 2;
+                        return 1;
+                    };
                     return priority(a.kind) < priority(b.kind);
                 });
-            for (size_t i = 0; i < relevant_positions.size(); ++i)
-                expanded[relevant_positions[i]] = relevant_events[i];
         }
         first = last;
     }
