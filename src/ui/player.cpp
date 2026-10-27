@@ -158,6 +158,16 @@ std::vector<player::entry> player::list() const
 	return m_list;
 }
 
+std::vector<std::string> player::paths() const
+{
+	std::vector<std::string> result;
+	for (const auto &e : list()) {
+		if (!e.path.empty())
+			result.push_back(e.path);
+	}
+	return result;
+}
+
 std::string player::name() const
 {
 	std::lock_guard<std::mutex> lock(m_lock);
