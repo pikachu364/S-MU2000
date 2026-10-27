@@ -1877,6 +1877,32 @@ static void check_rcp_same_tick_order()
 
     std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
+
+    // Regression: a CC11 + duration-generated Note Off pair must also be
+    // ordered correctly when no third Note On shares the tick.
+    rcp::intermediate_document pair_doc;
+    pair_doc.header.tempo_bpm = 120;
+    pair_doc.tracks.resize(1);
+    pair_doc.tracks[0].events = {
+        raw(60, 10, 10, 90),
+        raw(0xeb, 0, 11, 127),
+        raw(0xfe, 0, 0, 0)
+    };
+    std::vector<rcp::timed_track_event> pair_timeline;
+    std::string pair_err;
+    const bool cc11_note_off_pair_ok =
+        rcp::expand_intermediate_timeline(pair_doc, pair_timeline, pair_err) &&
+        pair_timeline.size() == 3 &&
+        pair_timeline[0].event.kind == rcp::timeline_event_kind::note &&
+        pair_timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
+        pair_timeline[1].event.channel.data1 == 11 &&
+        pair_timeline[1].event.tick == 10 &&
+        pair_timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
+        pair_timeline[2].event.tick == 10 &&
+        pair_timeline[2].event.note.note == 60 &&
+        pair_err.empty();
+    std::printf("RCP2 同一 tick の CC11→Note Off（2イベントのみ）: %s\n",
+                cc11_note_off_pair_ok ? "合" : "NG");
 }
 
 
