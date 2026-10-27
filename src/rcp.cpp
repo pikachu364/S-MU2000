@@ -1384,9 +1384,16 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
     }
     std::stable_sort(expanded.begin(), expanded.end(),
         [](const timed_event &a, const timed_event &b) {
-            // Keep equal-tick events in the order they were produced from the
-            // source timeline. This preserves per-track RCP command order.
-            return a.tick < b.tick;
+            if (a.tick != b.tick)
+                return a.tick < b.tick;
+            // The reference converter checks expired running notes immediately
+            // before writing each source event. At a shared tick, source events
+            // (including CC11) are therefore emitted before generated note-offs.
+            // Preserve source order among equal-tick source events and among
+            // generated note-offs.
+            const bool a_is_note_off = a.kind == timeline_event_kind::note_off;
+            const bool b_is_note_off = b.kind == timeline_event_kind::note_off;
+            return !a_is_note_off && b_is_note_off;
         });
 
     out.swap(expanded);
