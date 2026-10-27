@@ -1386,14 +1386,19 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
         [](const timed_event &a, const timed_event &b) {
             if (a.tick != b.tick)
                 return a.tick < b.tick;
-            // The reference converter checks expired running notes immediately
-            // before writing each source event. At a shared tick, source events
-            // (including CC11) are therefore emitted before generated note-offs.
-            // Preserve source order among equal-tick source events and among
-            // generated note-offs.
-            const bool a_is_note_off = a.kind == timeline_event_kind::note_off;
-            const bool b_is_note_off = b.kind == timeline_event_kind::note_off;
-            return !a_is_note_off && b_is_note_off;
+            // At a shared tick, emit controller changes before expired notes,
+            // then generated note-offs before a new Note On at that tick.
+            // Keep stable order within each priority class.
+            auto priority = [](timeline_event_kind kind) {
+                if (kind == timeline_event_kind::control_change)
+                    return 0;
+                if (kind == timeline_event_kind::note_off)
+                    return 1;
+                if (kind == timeline_event_kind::note)
+                    return 2;
+                return 0;
+            };
+            return priority(a.kind) < priority(b.kind);
         });
 
     out.swap(expanded);
