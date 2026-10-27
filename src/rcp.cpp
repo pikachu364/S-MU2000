@@ -1418,6 +1418,12 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
                     };
                     return priority(a.kind) < priority(b.kind);
                 });
+        } else if (last - first == 2 &&
+                   expanded[first].kind == timeline_event_kind::note_off &&
+                   expanded[first + 1].kind == timeline_event_kind::control_change &&
+                   expanded[first + 1].channel.data1 == 11) {
+            // RCP2 CC11 must precede a duration-generated Note Off at the same tick.
+            std::swap(expanded[first], expanded[first + 1]);
         }
         first = last;
     }
