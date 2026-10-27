@@ -1848,18 +1848,6 @@ static void check_rcp_same_tick_order()
         return event;
     };
 
-    rcp::intermediate_document doc;
-    doc.header.tempo_bpm = 120;
-    doc.tracks.resize(1);
-    doc.tracks[0].events = {
-        raw(60, 10, 10, 90),
-        raw(0xeb, 0, 11, 127),
-        raw(61, 1, 2, 80),
-        raw(0xfe, 0, 0, 0)
-    };
-
-    std::vector<rcp::timed_track_event> timeline;
-    std::string err;
     // Regression: a CC11 + duration-generated Note Off pair must also be
     // ordered correctly when no third Note On shares the tick.
     rcp::intermediate_document pair_doc;
@@ -1883,9 +1871,19 @@ static void check_rcp_same_tick_order()
         pair_timeline[2].event.tick == 10 &&
         pair_timeline[2].event.note.note == 60 &&
         pair_err.empty();
-    std::printf("RCP2 同一 tick の CC11→Note Off（2イベントのみ）: %s\n",
-                cc11_note_off_pair_ok ? "合" : "NG");
 
+    rcp::intermediate_document doc;
+    doc.header.tempo_bpm = 120;
+    doc.tracks.resize(1);
+    doc.tracks[0].events = {
+        raw(60, 10, 10, 90),
+        raw(0xeb, 0, 11, 127),
+        raw(61, 1, 2, 80),
+        raw(0xfe, 0, 0, 0)
+    };
+
+    std::vector<rcp::timed_track_event> timeline;
+    std::string err;
     const bool same_tick_order_ok = cc11_note_off_pair_ok &&
         rcp::expand_intermediate_timeline(doc, timeline, err) &&
         timeline.size() == 5 &&
@@ -1901,10 +1899,10 @@ static void check_rcp_same_tick_order()
         timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
         err.empty();
 
+    // Keep the established verify output stable; the focused pair regression
+    // is included in the existing same-tick ordering result.
     std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
-
-
 }
 
 
