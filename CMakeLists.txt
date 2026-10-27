@@ -56,6 +56,7 @@ add_library(smu2000_core STATIC
   src/compat/compat.cpp
   src/sampling.cpp
   src/smartmedia.cpp
+  src/card_folder.cpp
   src/card_fs.cpp
   src/m2a.cpp
   src/mame/sound/swp30.cpp
