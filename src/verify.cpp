@@ -2553,6 +2553,7 @@ int main(int argc, char **argv)
 	check_rcp_track_midi_mapping();
 	check_rcp_tracks();
 	check_rcp_intermediate();
+	check_rcp2_e6_note_off_route();
 	check_rcp2_player_event_pipeline();
 	check_font_parses();
 
