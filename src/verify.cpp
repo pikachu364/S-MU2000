@@ -1202,7 +1202,7 @@ static void check_rcp_aftertouch_commands()
         timeline[0].kind == rcp::timeline_event_kind::sysex &&
         timeline[0].sysex == std::vector<u8>({0xf0, 0x41, 0xf7}) &&
         err.empty();
-    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正パラメーター拒否 %s・未知高位バイトをスキップ %s\\n",
+    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正パラメーター拒否 %s・未知高位バイトをスキップ %s\n",
         track_sysex_loop_boundary_ok ? "合" : "NG",
         invalid_track_sysex_rejected ? "合" : "NG",
         unknown_track_sysex_byte_skipped ? "合" : "NG");
