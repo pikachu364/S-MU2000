@@ -2232,7 +2232,8 @@ static void check_rcp2_player_event_pipeline()
 
 // Read real RCP2 files on demand without placing private song data in the repository.
 // Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
-static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false)
+static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false,
+                                  bool dump_raw_records = false)
 {
 	bool event_dump_failed = false;
 	std::ifstream file(path, std::ios::binary);
@@ -2266,6 +2267,27 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 
 	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\n",
 	            path, bytes.size(), tracks.size(), document.tracks.size());
+
+	// Opt-in source-record trace. This deliberately reports raw record provenance
+	// without guessing command timing or changing the normal parser/timeline path.
+	if (dump_raw_records) {
+		size_t track_file_offset = info.minimum_header_size;
+		std::printf("  raw_record_dump: begin; fields=track,record,file_offset,code,p0,p1,p2\n");
+		for (size_t track_index = 0; track_index < tracks.size(); ++track_index) {
+			const rcp::track &track = tracks[track_index];
+			const size_t sequence_offset = track_file_offset + 0x2c;
+			for (size_t record_index = 0; record_index < track.sequence.size(); ++record_index) {
+				const rcp::sequence_event &raw = track.sequence[record_index];
+				const size_t file_offset = sequence_offset + record_index * 4;
+				std::printf("  raw_record: track=%02zu record=%zu file_offset=0x%zx code=%02X p0=%02X p1=%02X p2=%02X\n",
+				            track_index, record_index, file_offset,
+				            unsigned(raw.code), unsigned(raw.p0),
+				            unsigned(raw.p1), unsigned(raw.p2));
+			}
+			track_file_offset += track.header.encoded_length;
+		}
+		std::printf("  raw_record_dump: end\n");
+	}
 
 	// Diagnostic-only end-to-end probe: keep structural parsing success separate
 	// from timeline/MIDI support. A failure here is reported per sample but does
@@ -2493,11 +2515,13 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 int main(int argc, char **argv)
 {
 	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
-	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0)) {
+	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0 ||
+	                  std::strcmp(argv[1], "--rcp2-raw-record-dump") == 0)) {
 		const bool dump_event_trace = std::strcmp(argv[1], "--rcp2-event-dump") == 0;
+		const bool dump_raw_records = std::strcmp(argv[1], "--rcp2-raw-record-dump") == 0;
 		int failures = 0;
 		for (int i = 2; i < argc; ++i)
-			failures += check_rcp2_sample_file(argv[i], dump_event_trace);
+			failures += check_rcp2_sample_file(argv[i], dump_event_trace, dump_raw_records);
 		return failures == 0 ? 0 : 1;
 	}
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
