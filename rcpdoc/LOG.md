@@ -571,3 +571,11 @@
 - トラック終端では `FlushRunningNotes(..., cutNotes=0)` を呼び、残存ノートを完全に終了させるために delay を延長する場合がある。
 - `MidiDelayHandler` と delay 更新の主要経路は確認できたが、sample-02 / sample-04 の問題 tick に対応する元レコード、実際の `MTS->curDly` / `remLen` 値はまだ取得していない。根本原因は未確定。
 - コード修正・private sample 再比較は未実施。次は代表差分の元レコード位置と累積 delay / ノート期限を照合する。
+
+## 2026-10-29 追記 — sample-27 の代表差分を元サンプル情報へ再対応付け
+
+- private sample-27 の `info.txt` と `event-compare.txt` を再取得し、sample-02 は `RCP_DATA/FC/FC.RCP`、sample-04 は `RCP_DATA/L_WING88/L_WING88.RCP` であることを確認。参照コンバーターは両方とも固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。
+- sample-02 の16件は全て tick が一致し、イベント順序差。track 2: tick 13092（CC / Note On velocity 0 / Pitch Bend）、13128（CC / Note On velocity 0）、13524（CC / Note On velocity 0）。track 5: tick 8892 に CC と複数の Note On velocity 0 が同居。track 6: tick 5135 と 5263 に Note On velocity 0 と CC の順序差。
+- sample-04 は track 12 / tick 3648 の3件で、parser `BC 07 61 → BC 20 00 → 9C 36 00`、reference `9C 36 00 → BC 07 61 → BC 20 00`。両者の総イベント数・トラック別イベント数は一致。
+- private の parser dump は各約1.8〜2.0 MBで存在と blob SHA を確認したが、GitHub connector から全内容を読み出せなかった。よって各差分を元 RCP の byte offset / record index に対応付ける作業はまだ完了していない。
+- 次はローカル/private runner で比較ツールに元 RCP レコード位置（track、record index、byte offset、4-byte record、累積 tick）を出力させ、問題 tick の直前・同tickのレコード列を採取する。公開リポジトリに曲データやダンプをコピーしない。
