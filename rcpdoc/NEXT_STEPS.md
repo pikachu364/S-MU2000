@@ -2,7 +2,7 @@
 
 更新日：2026-10-29  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-直近の比較確認：private sample-27 の sample-01〜04 は parser/reference の総イベント数・トラック別件数が一致する一方、順序比較は sample-01=627、sample-02=16、sample-03=598、sample-04=3 件不一致。2026-10-29 に現行ソースと ValleyBell の running-note 期限処理を追加調査。根本原因は未確定。直近 CI はユーザー報告の Actions #516（macOS job 未完了、その他ジョブ合格）。
+直近 CI：Actions #533 合格（ユーザー報告）。直近の比較確認：private sample-27 の sample-01〜04 は parser/reference の総イベント数・トラック別件数が一致する一方、順序比較は sample-01=627、sample-02=16、sample-03=598、sample-04=3 件不一致。2026-10-29 に現行ソースと ValleyBell の running-note 期限処理を追加調査。根本原因は未確定。直近 CI はユーザー報告の Actions #516（macOS job 未完了、その他ジョブ合格）。
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -402,7 +402,9 @@ echo $?
 - [x] private sample-27 の sample-01〜04 の比較結果を確認し、不一致数を記録する（01=627、02=16、03=598、04=3）。総イベント数・トラック別イベント数は各曲で一致。
 - [x] 現行 `src/rcp.cpp` の Note Off 相当イベント事前挿入と同一tick sort 条件を確認する。
 - [x] ValleyBell/MidiConverters の固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01` にある `CheckRunningNotes()` を確認する。参照側は各 RCP レコード処理前に期限到来ノートを出力し得る。
-- [ ] `MidiDelayHandler` の定義、delay の更新・消費処理の全経路を追跡する。
+- [x] `RcpTrk2MidTrk()`、`MidiDelayHandler()`、`WriteMidiDelay()` の主要呼び出し経路を追跡する。Note On 経路での直接呼び出し、イベント出力時の callback、コマンド処理後の `cmdP0Delay` 加算、トラック終端の `FlushRunningNotes()` を確認した。
+- [x] `MidiDelayHandler` の定義と主要な delay 更新・消費経路を追跡する。
+- [ ] 差分再現に必要な delay の詳細（イベント出力を伴わないコマンドやループ分岐も含む）を確認し、tick ごとの状態遷移表にする。
 - [ ] private sample-02 / sample-04 の差分イベントを元 RCP レコードへ対応付け、record index、byte offset、4-byte record、累積 tick を記録する。
 - [ ] 各差分直前の参照側 `*delay`、running note の `remLen`、期限判定・イベント発行順を取得し、現行実装との差を説明できるようにする。
 - [ ] sample-01 / sample-03 の多数差分も同じ原因か、イベント集合差と同一tick内の順序差を分離して検証する。
