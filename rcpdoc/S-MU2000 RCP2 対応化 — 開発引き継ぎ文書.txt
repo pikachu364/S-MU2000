@@ -63,3 +63,41 @@
 - コードの存在、合成テスト、CI成功、実ファイル再生を別々に記録する。
 - ローカルの未コミット変更を破棄・上書き・resetしない。PCが使えるときにGitHubとの差分を確認してから必要な変更だけ統合する。
 - CM6/GSDは初期スコープ外。RCP3はRCP2の基礎が固まってから検討する。
+
+
+## 6. 2026-10-29 追加調査 — 同一tickイベント順序（ChatGPT A）
+
+### 調査対象と変更範囲
+- 対象ブランチは引き続き `feature/rcp2-parser-skeleton`。
+- 今回の調査では現行 `src/rcp.cpp` と参照実装 `ValleyBell/MidiConverters` の `rcp2mid.c` / `midi_utils.h`、非公開サンプル比較ログ sample-28 を照合した。
+- **変更したのは調査報告書のみ。ソースコード、テスト、CI設定、サンプルデータは変更していない。**
+- 現行 `src/rcp.cpp` の確認済み blob SHA：`6b04fa6a82c694fc39c9c1441921db57de9a1533`。
+
+### 現行コードで確認した事実
+- `expand_note_gates()` はノート走査中に Note Off 相当イベントを事前に `expanded` へ追加し、tickだけを比較する `stable_sort` を行う。同一tickの順序は基本的に元配列順に依存する。
+- 同一tickに Control Change、Note Off、Note の3種類すべてが存在する場合だけ、CC → Note Off → Note の優先順位を適用する。3種類がそろわないグループにはこの並べ替えを適用しない。
+- Note Off相当のMIDI出力は `0x9n + note + velocity 0`。以前のメモに `0x8n` 出力と記載があった場合、今回確認した現行ソースとは一致しないため、現行コードの事実として再利用しない。
+
+### sample-28 の比較結果
+- sample-04 / `L_WING88.RCP`：parser/reference とも 22,536イベント、`mismatch_count=3`、完全一致ではない。track 12 / tick 3648で、parserは `BC 07 61 → BC 20 00 → 9C 36 00`、referenceは `9C 36 00 → BC 07 61 → BC 20 00`。このグループには新規Noteイベントがないため、現行コードの「CC・Note Off・Noteの3種類がそろう場合だけ」の条件は発動しない。
+- sample-02 / `FC.RCP`：parser/reference とも 20,299イベント、`mismatch_count=16`、完全一致ではない。例としてtrack 6 / tick 5135および5263で、parserは `96 3C 00` をCC `B6 0B ...` より先に出し、referenceは逆順。ほかにも複数tick・trackで差があり、既知の2 tickだけでは全16件を説明できない。
+- これらはイベント順序の不一致を示すが、**CCを常に先、またはNote Offを常に先にする固定優先順位が正しいことは示していない**。
+
+### 参照実装で確認した処理
+- `rcp2mid.c` は各RCPレコード処理前に `CheckRunningNotes(...)` を呼び、ノート開始時には `WriteEvent(..., 0x90, ...)` の後に `AddRunningNote(..., 0x80, duration)` で期限を登録する。トラック末尾では `FlushRunningNotes(...)` を呼ぶ。
+- `midi_utils.h` の `CheckRunningNotes()` は、現在のdelayとrunning noteの残り長を比較し、期限に達したノートのNote Off相当イベントを現在のレコード処理前に出力し得る。
+- この参照実装の処理タイミングは、現行実装のように将来のNote Offを配列へ事前挿入してからtick順に安定ソートする方式と異なる。
+- ただし、問題のtickでの実際の `remLen`、イベント処理前の `*delay`、各関数の実行時順序をまだ取得していない。したがって、期限処理は有力な調査対象だが、根本原因としては未確定。
+
+### 次の調査手順
+1. 参照側 `MidiDelayHandler` の定義とdelay更新処理を追い、各RCPレコードの処理前後でdelayがどう変化するかを確認する。
+2. sample-02 / sample-04 の不一致イベントを元RCPレコードへ対応付ける。必要な場合は診断ログにレコードindex、byte offset、4-byte record、累積tickを含める。
+3. 参照側では問題イベントの直前に `*delay` とrunning noteの `remLen`、期限処理の呼び出し順を記録し、parser/referenceの同一tick差と照合する。
+4. 証拠がそろうまではイベント優先順位を拡張・変更しない。実ファイル比較の完全一致と合成テスト/CI成功は別の合格条件として扱う。
+5. 詳細な調査経緯と比較例は、非公開リポジトリの「RCP2 同一tickイベント順序 修正調査・引き継ぎ指示書」も参照する。
+
+### 現在の判定
+- 同一tickイベント順序の差：**確認済み**。
+- 現行実装と参照実装の期限処理方式の違い：**確認済み**。
+- sample-02 / sample-04 の全不一致を説明する根本原因：**未確定**。
+- この調査によるコード修正・CI再実行：**未実施**。
