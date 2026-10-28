@@ -97,11 +97,11 @@
 
 ## 6. 比較と判定の注意
 
-- [ ] 資料の記述とS-MU2000のコード確認結果を分けて記録した。
+- [x] 資料の記述とS-MU2000のコード確認結果を分けて記録した。
 - [ ] 合成データの期待値・実際の結果・実行環境を記録した。
-- [ ] 既存コンバーターとの比較条件を記録した。
+- [x] 既存コンバーターとの比較条件を記録した（sample-02 / sample-04 のイベント数・不一致数・同tick差を記録。全差分の原因特定は未完了）。
 - [ ] 参照MIDIと異なる場合、RCPファイル自体のイベントも確認した。参照MIDIが必ず正しいとは限らない。
-- [ ] 同じtickのイベント順序やセットアップメッセージの配置など、JMPlayerコンバーター固有の選択をRCP形式そのものの仕様と混同していない。
+- [x] 同じtickのイベント順序やセットアップメッセージの配置など、JMPlayerコンバーター固有の選択をRCP形式そのものの仕様と混同していない。
 
 ## 7. 初期スコープ外
 
@@ -227,3 +227,33 @@
 - [x] Add a regression test for an `F7` record located after the loop terminator.
 - [ ] Confirm Actions after this follow-up; actual RCP2 parsing/playback remains unverified.
 - [x] Implement `0x99` external-command handling: group immediately following `F7` continuation records during F8/F9 loop expansion, emit no MIDI event, and preserve `p0` tick advancement. Synthetic regression tests are present; real-sample occurrence and payload semantics remain unverified.
+
+
+## 2026-10-29 追記 — 同一tickイベント順序の参照比較
+
+この節は、現行コード・参照コンバーター・sample-28 の比較結果を確認した範囲を記録する。**イベント順序の差は確認済みだが、根本原因は未確定。固定優先順位の追加・変更はまだ行わない。**
+
+| 確認項目 | コード | 比較・テスト | 状態・制約 |
+|---|---|---|---|
+| `expand_note_gates()` による Note Off 相当イベントの展開 | 確認済み | 実RCPサンプルの比較ログと照合 | Note Off相当イベントを先に配列へ追加し、tickのみで `stable_sort`。同tickの基本順序は元配列順に依存 |
+| 同一tickの優先順位条件 | 確認済み | sample-04 の差分に適用可否を照合 | CC・Note Off・新規Noteの3種類がすべてある場合のみ CC → Note Off → Note。3種類がそろわないグループには適用されない |
+| Note Off相当のMIDIバイト列 | 確認済み | 現行 `src/rcp.cpp` の `encode_midi_message()` を確認 | 現行ソースは `0x9n + note + velocity 0`。以前の記録に `0x8n` とあれば現行コードの説明としては訂正が必要 |
+| sample-04 / `L_WING88.RCP` | — | 22,536 events / mismatch_count=3 / exact_match=false | track 12, tick 3648：parserは CC7 → CC32 → Note On velocity 0相当、referenceは Note On velocity 0相当 → CC7 → CC32。新規Noteがないため現行の3種類条件は発動しない |
+| sample-02 / `FC.RCP` | — | 20,299 events / mismatch_count=16 / exact_match=false | track 6, ticks 5135・5263などで Note On velocity 0相当とCCの順序差。他のtick/trackにも差があり、全16件は代表例だけでは説明できない |
+| 参照側 running-note 期限処理 | 参照ソース確認済み | `rcp2mid.c` と `midi_utils.h` を確認 | 各RCPレコード処理前の `CheckRunningNotes()` が期限到達ノートのNote Off相当イベントを先に出力し得る。現行の事前挿入＋安定ソートとは処理タイミングが異なる |
+| 問題tickの実行時状態 | 未確認 | 未取得 | `*delay`、running noteの `remLen`、処理順を問題イベントと対応付ける必要がある |
+| 実RCPレコードへの完全な対応付け | 未完了 | parser-event-dumpの取得を試みたが、該当本文は空で返った | ファイルが存在しないとは断定しない。元RCPレコードのindex・byte offset・4-byte record・累積tickを別手段で対応付ける |
+| 実RCP2での完全一致 | 未達 | sample-02 / sample-04 とも exact_match=false | CI/合成テストの成功と実サンプル完全一致を別々に判定する |
+
+### この調査で確認できたこと
+- [x] 現行 `src/rcp.cpp` の同一tickソート条件を確認した。
+- [x] sample-02 / sample-04 のイベント数・不一致数・代表的な同tick順序差を記録した。
+- [x] 参照コンバーターの `CheckRunningNotes()` / `FlushRunningNotes()` の期限処理方式を確認した。
+- [x] 比較コンバーター固有のイベント出力タイミングをRCP2形式仕様と断定せず、未確定事項として区別した。
+- [ ] `MidiDelayHandler` の定義とdelay更新の全経路を追跡する。
+- [ ] 問題tickでの参照側 `*delay`・running note `remLen` を採取し、イベント順序差に対応付ける。
+- [ ] 不一致イベントを元RCPレコードへ対応付け、原因を確定する。
+- [ ] 根本原因を説明できる最小の合成回帰テストを追加し、CIを実行する。
+- [ ] 修正後に sample-02 / sample-04 の比較を再実行し、不一致数と完全一致状態を確認する。
+
+**合格条件:** 原因を元レコードと参照側の期限状態まで説明できること。修正を行う場合は、根拠に対応した最小変更と回帰テストを用意し、合成テスト・CI・実サンプル比較を別々に記録する。原因確定前に「CC優先」「Note Off優先」などの固定ルールを追加しない。
