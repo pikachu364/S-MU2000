@@ -534,3 +534,11 @@
 - `RcpTrk2MidTrk()` は各コマンド処理前に `CheckRunningNotes()` を実行し、期限切れ Note Off を現在のコマンドより前に出力する。複数の期限切れノートは running-note 配列順に処理される。
 - したがって、同一 tick の並べ替えだけで全差分を直すのではなく、Note Off の生成・期限判定・コマンド出力タイミングを再現する必要がある。
 - sample-26 の CC → Note Off 差分の原因はまだ断定していない。入力コマンド由来か自動生成 Note Off かを切り分けてから実装を変更する。今回、コード変更・CI再実行・private sample再比較は行っていない。
+
+
+## 2026-10-28 — Gearmulator RCP2 参照実装との照合
+
+- [gearmulator commit 619b1d9](https://github.com/masanaohayashi/gearmulator/commit/619b1d9b7f7755ea7eee3bd93d8dd2a705e79465) の `RcpFilePlayer.cpp` を確認。
+- `decodeTrackLength()` は格納値の bit 0-1 を bit 16-17 に移して拡張トラック長を復元する。S-MU2000 の現行コードは2 byte値を直接トラック長として使っていた。
+- Gearmulator には旧形式 ST+ の符号解釈、最大36トラック、R36 のポート/チャンネル割当、SysEx F0 の正規化、期限到来ノートの処理、FC 連鎖の実装もある。これらは今後の照合対象として記録し、今回の変更と混同しない。
+- この時点では参照実装の調査のみ。公式仕様との確定、CI 合格、実曲出力一致を意味しない。
