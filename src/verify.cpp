@@ -1432,7 +1432,7 @@ static void check_rcp_track_midi_mapping()
         output[0].port == 3 && err.empty();
 
     // Existing note is released on its original route after E6; later notes use the new route.
-    timeline.assign(6, {});
+    timeline.assign(6, rcp::timed_seconds_event{});
     timeline[0].time=0.0; timeline[0].source.track_index=0;
     timeline[0].source.event.kind=rcp::timeline_event_kind::note;
     timeline[0].source.event.note.note=60; timeline[0].source.event.note.velocity=90;
