@@ -405,6 +405,7 @@ echo $?
 - [x] `RcpTrk2MidTrk()`、`MidiDelayHandler()`、`WriteMidiDelay()` の主要呼び出し経路を追跡する。Note On 経路での直接呼び出し、イベント出力時の callback、コマンド処理後の `cmdP0Delay` 加算、トラック終端の `FlushRunningNotes()` を確認した。
 - [x] `MidiDelayHandler` の定義と主要な delay 更新・消費経路を追跡する。
 - [ ] 差分再現に必要な delay の詳細（イベント出力を伴わないコマンドやループ分岐も含む）を確認し、tick ごとの状態遷移表にする。
+- [x] sample-02 / sample-04 の `info.txt` と比較レポートを再確認し、元サンプルが FC.RCP / L_WING88.RCP であることと、代表差分 tick を確定する（sample-02: track 2 tick 13092/13128/13524、track 5 tick 8892、track 6 tick 5135/5263。sample-04: track 12 tick 3648）。
 - [ ] private sample-02 / sample-04 の差分イベントを元 RCP レコードへ対応付け、record index、byte offset、4-byte record、累積 tick を記録する。
 - [ ] 各差分直前の参照側 `*delay`、running note の `remLen`、期限判定・イベント発行順を取得し、現行実装との差を説明できるようにする。
 - [ ] sample-01 / sample-03 の多数差分も同じ原因か、イベント集合差と同一tick内の順序差を分離して検証する。
