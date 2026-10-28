@@ -1336,7 +1336,7 @@ namespace {
 bool expand_note_gates(const std::vector<timed_event> &timeline,
                        std::vector<timed_event> &out, std::string &err)
 {
-    struct running_note { u8 pitch; size_t note_off_index; u32 end_tick; };
+    struct running_note { u8 pitch; midi_route_event route; size_t note_off_index; u32 end_tick; };
     out.clear();
     err.clear();
     std::vector<timed_event> expanded;
@@ -1362,7 +1362,10 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
         const u32 new_end_tick = event.tick + event.note.duration;
         size_t active_index = running.size();
         for (size_t i = 0; i < running.size(); ++i) {
-            if (running[i].pitch == event.note.note) { active_index = i; break; }
+            if (running[i].pitch == event.note.note &&
+                running[i].route.channel == event.route.channel &&
+                running[i].route.port == event.route.port &&
+                running[i].route.enabled == event.route.enabled) { active_index = i; break; }
         }
         if (active_index != running.size()) {
             running_note &active = running[active_index];
@@ -1380,12 +1383,14 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
         note_off.tick = new_end_tick;
         note_off.kind = timeline_event_kind::note_off;
         note_off.note = event.note;
+        note_off.route = event.route;
+        note_off.route_fixed = event.route_fixed;
         note_off.note.delay = 0;
         note_off.note.duration = 0;
         note_off.note.velocity = 0;
         const size_t note_off_index = expanded.size();
         expanded.push_back(note_off);
-        running.push_back({event.note.note, note_off_index, new_end_tick});
+        running.push_back({event.note.note, event.route, note_off_index, new_end_tick});
     }
     // First preserve source order for every event sharing a tick.
     std::stable_sort(expanded.begin(), expanded.end(),
@@ -1472,6 +1477,24 @@ bool expand_intermediate_timeline(const intermediate_document &document,
                 return false;
             }
             event.note.note = adjusted_note;
+        }
+        // Resolve the active route on every Note On before note gates generate Note Offs.
+        // This preserves the original route across a later E6 change and keeps
+        // same-pitch notes on different routes independent.
+        {
+            const u8 raw_route = document.tracks[i].header.midi_channel;
+            midi_route_event active_route;
+            active_route.channel = raw_route & 0x0f;
+            active_route.port = raw_route >> 4;
+            active_route.enabled = (raw_route & 0x80) == 0;
+            for (timed_event &event : timeline) {
+                if (event.kind == timeline_event_kind::route_change) {
+                    active_route = event.route;
+                } else if (event.kind == timeline_event_kind::note) {
+                    event.route = active_route;
+                    event.route_fixed = true;
+                }
+            }
         }
         std::vector<timed_event> gated_timeline;
         if (!expand_note_gates(timeline, gated_timeline, err)) {
@@ -1598,7 +1621,15 @@ bool encode_timeline_to_midi_events(
             active_mapping[track].enabled = source.source.event.route.enabled;
             continue;
         }
-        if (!active_mapping[track].enabled)
+        const bool fixed_note_route =
+            source.source.event.kind == timeline_event_kind::note_off &&
+            source.source.event.route_fixed;
+        const track_midi_mapping route = fixed_note_route
+            ? track_midi_mapping{source.source.event.route.channel,
+                                 source.source.event.route.port,
+                                 source.source.event.route.enabled}
+            : active_mapping[track];
+        if (!route.enabled)
             continue;
         std::vector<u8> bytes;
         if (kind == timeline_event_kind::sysex) {
@@ -1606,10 +1637,10 @@ bool encode_timeline_to_midi_events(
             if (bytes.size() < 2 || bytes.front() != 0xf0 || bytes.back() != 0xf7) {
                 out.clear(); err = "RCP SysEx イベントの開始/終端が不正です"; return false;
             }
-            out.push_back({source.time, std::move(bytes), active_mapping[track].port});
+            out.push_back({source.time, std::move(bytes), route.port});
             continue;
         }
-        if (!encode_midi_message(source.source.event, active_mapping[track].channel, bytes, err)) {
+        if (!encode_midi_message(source.source.event, fixed_note_route ? route.channel : active_mapping[track].channel, bytes, err)) {
             out.clear();
             err = "RCP2 トラック " + std::to_string(track + 1) + " の MIDI 符号化失敗: " + err;
             return false;
