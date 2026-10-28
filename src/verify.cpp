@@ -2123,9 +2123,9 @@ static void check_rcp2_e6_note_off_route()
         (output[3].bytes[0] == 0x80 || output[3].bytes[0] == 0x90) && output[3].port == 0 &&
         err.empty();
     rcp_e6_note_off_route_test_ok = rcp_e6_note_off_route_test_ok && route_ok;
-    std::printf("RCP2 E6 Note Off 回帰: 解析/展開/秒変換/MIDI %s・Note Off 発音時ポート維持 %s\\n",
+    std::printf("RCP2 E6 Note Off 回帰: 解析/展開/秒変換/MIDI %s・Note Off 発音時ポート維持 %s\n",
         encoded ? "合" : "NG", route_ok ? "合" : "NG");
-    if (!encoded) std::printf("RCP2 E6 route test error: %s\\n", err.c_str());
+    if (!encoded) std::printf("RCP2 E6 route test error: %s\n", err.c_str());
 }
 
 
