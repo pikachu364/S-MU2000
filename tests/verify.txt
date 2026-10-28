@@ -53,7 +53,7 @@ RCP2 DD/DE/DF GS SysEx: state/checksum/tick 合・7-bit 範囲外拒否 合
 RCP2 MIDIメッセージ符号化: Note On 合・Note Off 合・CC 合・Program Change 合・Pitch Bend 合・不正チャンネル拒否 合・メタデータ分離 合
 RCP2 tick→秒変換: テンポ変更前後 合・PPQ 0 拒否 合・初期 BPM 0 拒否 合・逆順 tick 拒否 合・テンポ値 0 拒否 合
 RCP2 秒イベント→MIDI出力: 割当/メタデータ除外 合・割当不足拒否 合・逆順時刻拒否 合
-RCP2 トラック MIDI 割当: ポート/チャンネル分離 合・E6 動的切替/dummy 除外 合
+RCP2 トラック MIDI 割当: ポート/チャンネル分離 合・E6 動的切替/dummy 除外 合・Note Off 発音時ルート維持 合
 RCP2 トラック走査: 複数トラック/FE 後の余剰 合・短い長さ拒否 合・末尾越え拒否 合・FE なし拒否 合
 RCP2 中間表現: 生レコード保持/順序 合・不正入力時に出力を消去 合
 RCP2 プレイヤー経路（解析→秒→MIDI）: 解析 合・展開 合・時刻 合・割当 合・変換 合・Note On/Off 合・F8/F9 順序/時刻 合
