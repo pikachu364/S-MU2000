@@ -367,3 +367,13 @@ echo $?
 - [sample-02 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-02/event-compare.txt)
 - [sample-03 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-03/event-compare.txt)
 - [sample-04 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-04/event-compare.txt)
+
+
+## 2026-10-28 — Actions #510 合格後：参照コンバーターの Note Off 発行順をソース確認
+
+- ユーザー報告により Actions #510 合格を記録。今回の調査は参照コンバーターのソース読解であり、新しいコード変更や sample-26 再比較を行ったという意味ではない。
+- 参照先：`ValleyBell/MidiConverters` の commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`、`rcp2mid.c` と `midi_utils.h`。
+- `RcpTrk2MidTrk()` は各 RCP コマンドを処理する前に `CheckRunningNotes()` を呼ぶ。ノート残り長がそのコマンドまでの遅延内で期限切れになる場合、参照コンバーターは現在のコマンドを書き出す前に Note Off を出力する。複数の期限切れノートは `RunNotes` 配列の順で処理され、削除時に配列を詰める。
+- これは「同じ tick の全イベントに固定優先順位を適用する」方式とは異なる。Note Off の位置は、RCP コマンド処理中の期限判定・発行タイミングに依存する。
+- ただし sample-26 の FC で観測した CC → Note Off の例が、すべてこの running-note 経路で説明できるとは未確認。明示的な Note Off 相当イベント、ノート再利用/延長、同一 tick の複数コマンドの遅延状態を切り分ける必要がある。
+- 次工程：既知差分の tick について、RCP ソースレコード順と各コマンドの delay/duration を対応付け、Note Off が参照コンバーターの running-note 自動生成か、入力由来イベントかを判定する。その後に限り実装規則を変更する。現時点では推測による優先順位変更を行わない。
