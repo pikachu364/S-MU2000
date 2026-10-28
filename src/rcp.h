@@ -54,9 +54,9 @@ struct document_header {
 bool parse_header(const u8 *data, size_t size, document_header &out, std::string &err);
 
 // RCP2 トラックヘッダー（0x2c bytes）。意味が確定していない値は生バイトで保持する。
-// encoded_length はヘッダーを含む長さフィールドの格納値。拡張長の解釈は別途検証する。
+// encoded_length は下位2 bitを16/17 bitへ展開した、ヘッダーを含む実効トラック長。
 struct track_header {
-	u16 encoded_length = 0;
+	u32 encoded_length = 0;
 	u8 track_id = 0;
 	u8 rhythm_mode = 0;
 	u8 midi_channel = 0;
