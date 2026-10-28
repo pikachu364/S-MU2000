@@ -560,3 +560,14 @@
 - 期限処理と現行実装の事前挿入方式はタイミングが異なるため、差分原因の候補ではある。ただし各問題 tick の実際の `remLen`、`*delay`、元 RCP レコードとの対応付けは未取得であり、根本原因とは断定しない。
 - 参照コンバーターの `MidiDelayHandler` 定義と delay 更新の全経路、および private sample-02 / sample-04 の問題イベントと元 RCP レコードの対応付けは未完了。
 - ソースコード修正、CI 再実行、サンプル再比較は今回実施していない。推測による固定優先順位は追加しない。RCP データとイベントダンプは private repository 内に保持する。
+
+## 2026-10-29 — Actions #533 合格、参照側 delay callback の呼び出し経路を追跡
+
+- ユーザー報告により Actions #533 の合格を記録。これは CI 成功の報告であり、sample-27 のイベント順序差分が解消したことを意味しない。
+- ValleyBell/MidiConverters の固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01` で `rcp2mid.c`、`midi_utils.h`、`midi_funcs.h` を確認。
+- `RcpTrk2MidTrk()` は各 RCP レコードから `cmdP0Delay` と `cmdDurat` を読み、イベント出力時の `WriteMidiDelay()` 経由で `MidiDelayHandler()` が呼ばれる。ハンドラーは `midiTickCount += *delay` の後に `CheckRunningNotes()` を呼び、残った delay 分を running note の `remLen` から減算する。
+- ノートレコードでは通常の MIDI Note On 出力より前に `CheckRunningNotes(fInf, &MTS->curDly, ...)` が直接呼ばれる。既存ノートと同じ音高なら、Note On を追加せず `remLen = MTS->curDly + cmdDurat` として期限を延長する。
+- 各コマンド処理後には `MTS->curDly += cmdP0Delay` が実行される。したがって、遅延の処理は「すべての RCP レコードごとに同じタイミングで一律実行」ではなく、Note On 経路、MIDI イベント出力経路、delay callback の組合せに依存する。
+- トラック終端では `FlushRunningNotes(..., cutNotes=0)` を呼び、残存ノートを完全に終了させるために delay を延長する場合がある。
+- `MidiDelayHandler` と delay 更新の主要経路は確認できたが、sample-02 / sample-04 の問題 tick に対応する元レコード、実際の `MTS->curDly` / `remLen` 値はまだ取得していない。根本原因は未確定。
+- コード修正・private sample 再比較は未実施。次は代表差分の元レコード位置と累積 delay / ノート期限を照合する。
