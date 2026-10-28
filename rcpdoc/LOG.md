@@ -542,3 +542,12 @@
 - `decodeTrackLength()` は格納値の bit 0-1 を bit 16-17 に移して拡張トラック長を復元する。S-MU2000 の現行コードは2 byte値を直接トラック長として使っていた。
 - Gearmulator には旧形式 ST+ の符号解釈、最大36トラック、R36 のポート/チャンネル割当、SysEx F0 の正規化、期限到来ノートの処理、FC 連鎖の実装もある。これらは今後の照合対象として記録し、今回の変更と混同しない。
 - この時点では参照実装の調査のみ。公式仕様との確定、CI 合格、実曲出力一致を意味しない。
+
+
+## 2026-10-28 — sample-27 参照比較レポート確認
+
+- ユーザー報告：Actions #516 は macOS job が混雑で未完了、その他ジョブは合格。
+- private `sample-27/reference-comparisons` の sample-01〜04 を確認。参照コンバーター commit は `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。各曲で parser / reference の総イベント数とトラック別イベント数は一致。
+- それでも完全一致ではなく、順序比較の mismatch は sample-01=627、sample-02=16、sample-03=598、sample-04=3。全差分の tick 値は各ペアで一致しており、まず同一 tick 内のイベント順を調べる。
+- sample-04 は track 12 / tick 3648 に `BC 07 61`、`BC 20 00`、`9C 36 00` の順序違いが3件。sample-02 でも CC / Note On / Pitch Bend の同一tick順序違いが見られる。現時点では原因を単一の固定優先順位に一般化しない。
+- 比較レポート確認と NEXT_STEPS への記録を実施。ソース変更・CI再実行・実再生は未実施。
