@@ -551,3 +551,12 @@
 - それでも完全一致ではなく、順序比較の mismatch は sample-01=627、sample-02=16、sample-03=598、sample-04=3。全差分の tick 値は各ペアで一致しており、まず同一 tick 内のイベント順を調べる。
 - sample-04 は track 12 / tick 3648 に `BC 07 61`、`BC 20 00`、`9C 36 00` の順序違いが3件。sample-02 でも CC / Note On / Pitch Bend の同一tick順序違いが見られる。現時点では原因を単一の固定優先順位に一般化しない。
 - 比較レポート確認と NEXT_STEPS への記録を実施。ソース変更・CI再実行・実再生は未実施。
+
+## 2026-10-29 — sample-27 同一tick差分の参照処理を追加調査
+
+- 公開リポジトリの現行 `src/rcp.cpp` を確認。`expand_note_gates()` は Note On の走査中に Note Off 相当イベントを `expanded` 配列へ事前挿入し、後段の `stable_sort` は tick のみを比較するため、同一 tick は原則として元配列順を保つ。
+- 現行の CC → Note Off → 新規 Note の優先順位処理は、3種類すべてが同一 tick に存在するグループに限られる。今回の sample-04 の CC2件と Note On velocity 0 の差分や、sample-02 の CC / Note Off 差分を一般的に説明できない。
+- ValleyBell/MidiConverters の固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01` にある `midi_utils.h` の `CheckRunningNotes()` を追加確認。参照実装は各 RCP レコード処理前にノート残り長と delay を更新し、期限到来の Note Off 相当を現在のレコードの出力より前に発行し得る。
+- 期限処理と現行実装の事前挿入方式はタイミングが異なるため、差分原因の候補ではある。ただし各問題 tick の実際の `remLen`、`*delay`、元 RCP レコードとの対応付けは未取得であり、根本原因とは断定しない。
+- 参照コンバーターの `MidiDelayHandler` 定義と delay 更新の全経路、および private sample-02 / sample-04 の問題イベントと元 RCP レコードの対応付けは未完了。
+- ソースコード修正、CI 再実行、サンプル再比較は今回実施していない。推測による固定優先順位は追加しない。RCP データとイベントダンプは private repository 内に保持する。
