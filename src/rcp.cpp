@@ -117,8 +117,12 @@ bool parse_track_header(const u8 *data, size_t size, track_header &out, std::str
 		return false;
 	}
 
-	out.encoded_length = static_cast<u16>(data[0]) |
-	                     (static_cast<u16>(data[1]) << 8);
+	const u16 encoded_length = static_cast<u16>(data[0]) |
+	                          (static_cast<u16>(data[1]) << 8);
+	// Ordinary RCP2 track lengths are multiples of four, leaving bits 0-1
+	// unused. Recomposer-compatible writers use them as length bits 16-17.
+	out.encoded_length = static_cast<u32>((encoded_length & ~u16(0x03)) |
+	                                      ((encoded_length & 0x03) << 16));
 	out.track_id = data[2];
 	out.rhythm_mode = data[3];
 	out.midi_channel = data[4];
