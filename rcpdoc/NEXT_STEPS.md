@@ -1,8 +1,8 @@
 # 次の作業
 
-更新日：2026-10-28  
+更新日：2026-10-29  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-直近の CI：Actions #462 合格（ユーザー報告）。プライベート sample-check #10 も合格（ユーザー報告）。sample-9 の代表曲イベントダンプを精査し、27,974イベント・連番・tick/秒の単調性・エンコード件数一致を確認。参照コンバーターとの出力一致や実曲再生は未確認。
+直近の比較確認：private sample-27 の sample-01〜04 は parser/reference の総イベント数・トラック別件数が一致する一方、順序比較は sample-01=627、sample-02=16、sample-03=598、sample-04=3 件不一致。2026-10-29 に現行ソースと ValleyBell の running-note 期限処理を追加調査。根本原因は未確定。直近 CI はユーザー報告の Actions #516（macOS job 未完了、その他ジョブ合格）。
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -394,3 +394,21 @@ echo $?
 - mismatch_count: sample-01=627、sample-02=16、sample-03=598、sample-04=3。各 mismatch は同一 tick に集中しており、イベント数差より同一 tick 内の並び順・生成順を優先して調査する。
 - sample-02 には CC / Note On / Pitch Bend 等の並び違い、sample-04 は track 12 tick 3648 で CC・Note On の並び違いが3件。これだけで参照側が正しいと断定せず、元 RCP レコード順と Note Off 自動生成時点を追跡する。
 - sample-27 は比較レポートと参照 MIDI を用意した段階。今回の確認ではコード変更・CI再実行・実再生は行っていない。次は代表差分を元レコードへ対応付けて分類する。
+
+## T-009 — 同一tickイベント順序差分の原因特定（最優先）
+
+**状態:** 参照側の running-note 期限処理と現行実装のイベント生成タイミングに差があることを確認。sample-27 の不一致原因は未確定。コード修正は保留。
+
+- [x] private sample-27 の sample-01〜04 の比較結果を確認し、不一致数を記録する（01=627、02=16、03=598、04=3）。総イベント数・トラック別イベント数は各曲で一致。
+- [x] 現行 `src/rcp.cpp` の Note Off 相当イベント事前挿入と同一tick sort 条件を確認する。
+- [x] ValleyBell/MidiConverters の固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01` にある `CheckRunningNotes()` を確認する。参照側は各 RCP レコード処理前に期限到来ノートを出力し得る。
+- [ ] `MidiDelayHandler` の定義、delay の更新・消費処理の全経路を追跡する。
+- [ ] private sample-02 / sample-04 の差分イベントを元 RCP レコードへ対応付け、record index、byte offset、4-byte record、累積 tick を記録する。
+- [ ] 各差分直前の参照側 `*delay`、running note の `remLen`、期限判定・イベント発行順を取得し、現行実装との差を説明できるようにする。
+- [ ] sample-01 / sample-03 の多数差分も同じ原因か、イベント集合差と同一tick内の順序差を分離して検証する。
+- [ ] 根本原因と回帰テストが確定した後に限り、必要最小限の実装修正を行う。固定のイベント種別優先順位を推測で追加しない。
+- [ ] 修正後に Actions CI と private sample 比較を再実行し、差分数・イベント数・比較条件を記録する。
+
+**合格条件:** 代表差分を元 RCP レコードと参照側の期限処理に対応付け、順序が決まる因果関係を説明できること。修正した場合は、合成回帰テストと private sample の比較結果で改善を確認すること。CI 合格だけで互換性合格とはしない。
+
+**データ保護:** 元 RCP ファイル、private のイベントダンプ、比較レポートは private repository / artifact 内だけに保持し、公開リポジトリへコピーしない。
