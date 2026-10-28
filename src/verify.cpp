@@ -2082,8 +2082,55 @@ static void check_rcp_tempo_conversion()
 
 
 // The complete core conversion used by the UI player, exercised without UI or ROMs.
-static void check_rcp2_player_event_pipeline()
+static void check_rcp2_e6_note_off_route()
 {
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 16;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[0x1c0] = 0xe0;
+    data[0x1c1] = 120;
+    data[0x1e6] = 1;
+    data[0x1e7] = 1;
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    const size_t seq = at + track_header_size;
+    data[seq + 0] = 60;  data[seq + 1] = 10; data[seq + 2] = 20; data[seq + 3] = 90;
+    data[seq + 4] = 0xe6; data[seq + 5] = 0; data[seq + 6] = 0x13; data[seq + 7] = 0;
+    data[seq + 8] = 62;  data[seq + 9] = 0; data[seq + 10] = 5; data[seq + 11] = 80;
+    data[seq + 12] = 0xfe;
+
+    rcp::intermediate_document document;
+    std::vector<rcp::timed_track_event> timeline;
+    std::vector<rcp::timed_seconds_event> seconds;
+    std::vector<rcp::track_midi_mapping> mapping;
+    std::vector<rcp::midi_output_event> output;
+    std::string err;
+    const bool built = rcp::build_intermediate(data.data(), data.size(), document, err);
+    const bool expanded = built && rcp::expand_intermediate_timeline(document, timeline, err);
+    const bool timed = expanded && rcp::convert_timeline_to_seconds(document.header, timeline, seconds, err);
+    const bool mapped = timed && rcp::map_track_midi_outputs(document, mapping, err);
+    const bool encoded = mapped && rcp::encode_timeline_to_midi_events(seconds, mapping, output, err);
+    const bool route_ok = encoded && output.size() == 4 &&
+        output[0].bytes == std::vector<u8>({0x90, 60, 90}) && output[0].port == 0 &&
+        output[1].bytes == std::vector<u8>({0x92, 62, 80}) && output[1].port == 1 &&
+        output[2].bytes.size() == 3 && output[2].bytes[1] == 62 &&
+        (output[2].bytes[0] == 0x82 || output[2].bytes[0] == 0x92) && output[2].port == 1 &&
+        output[3].bytes.size() == 3 && output[3].bytes[1] == 60 &&
+        (output[3].bytes[0] == 0x80 || output[3].bytes[0] == 0x90) && output[3].port == 0 &&
+        err.empty();
+    rcp_e6_note_off_route_test_ok = rcp_e6_note_off_route_test_ok && route_ok;
+    std::printf("RCP2 E6 Note Off 回帰: 解析/展開/秒変換/MIDI %s・Note Off 発音時ポート維持 %s\\n",
+        encoded ? "合" : "NG", route_ok ? "合" : "NG");
+    if (!encoded) std::printf("RCP2 E6 route test error: %s\\n", err.c_str());
+}
+
+
+// The complete core conversion used by the UI player, exercised without UI or ROMs.
+
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
