@@ -967,9 +967,10 @@ bool expand_note_key_signature_tempo_timeline(
                         sysex.sysex.push_back(0xf7);
                         break;
                     } else if ((byte & 0x80) != 0) {
-                        out.clear();
-                        err = "RCP 98 SysEx に未知の置換コードがあります";
-                        return false;
+                        // The reference RCP2 converter warns and skips unknown
+                        // high-bit SysEx template bytes (for example 0xFF).
+                        // Do not emit them as MIDI data or reject the whole file.
+                        continue;
                     }
                     append_data(value);
                 }
