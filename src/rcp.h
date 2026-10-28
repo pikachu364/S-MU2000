@@ -168,6 +168,8 @@ struct timed_event {
     midi_channel_event channel;
     std::vector<u8> sysex;
     midi_route_event route;
+    // Notes and their generated Note Offs retain the route active at Note On.
+    bool route_fixed = false;
 };
 
 // Experimental decoder for EA Channel Aftertouch, EB Control Change, EC standard
