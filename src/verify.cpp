@@ -2130,7 +2130,8 @@ static void check_rcp2_e6_note_off_route()
 
 
 // The complete core conversion used by the UI player, exercised without UI or ROMs.
-
+static void check_rcp2_player_event_pipeline()
+{
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
     const size_t header_size = 0x586;
     const size_t track_header_size = 0x2c;
