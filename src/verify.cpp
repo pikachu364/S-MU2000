@@ -4,6 +4,7 @@
 static bool rcp_mute_flags_test_ok = true;
 static bool rcp_player_api_test_ok = true;
 static bool rcp_loop_budget_test_ok = true;
+static bool rcp_e6_note_off_route_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -1426,11 +1427,45 @@ static void check_rcp_track_midi_mapping()
     timeline[3].source.event.kind=rcp::timeline_event_kind::note;
     timeline[3].source.event.note.note=62; timeline[3].source.event.note.velocity=90;
     std::vector<rcp::midi_output_event> output;
-    const bool routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
+    const bool basic_routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
         output.size() == 1 && output[0].bytes == std::vector<u8>({0x94, 60, 90}) &&
         output[0].port == 3 && err.empty();
-    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s\n",
-        mapped ? "合" : "NG", routed ? "合" : "NG");
+
+    // Existing note is released on its original route after E6; later notes use the new route.
+    timeline.assign(6, {});
+    timeline[0].time=0.0; timeline[0].source.track_index=0;
+    timeline[0].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[0].source.event.note.note=60; timeline[0].source.event.note.velocity=90;
+    timeline[0].source.event.route={3, 2, true}; timeline[0].source.event.route_fixed=true;
+    timeline[1].time=0.1; timeline[1].source.track_index=0;
+    timeline[1].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[1].source.event.route={2, 1, true};
+    timeline[2].time=0.15; timeline[2].source.track_index=0;
+    timeline[2].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[2].source.event.note.note=62; timeline[2].source.event.note.velocity=80;
+    timeline[2].source.event.route={2, 1, true}; timeline[2].source.event.route_fixed=true;
+    timeline[3].time=0.2; timeline[3].source.track_index=0;
+    timeline[3].source.event.kind=rcp::timeline_event_kind::note_off;
+    timeline[3].source.event.note.note=60; timeline[3].source.event.route={3, 2, true};
+    timeline[3].source.event.route_fixed=true;
+    timeline[4].time=0.25; timeline[4].source.track_index=0;
+    timeline[4].source.event.kind=rcp::timeline_event_kind::note_off;
+    timeline[4].source.event.note.note=62; timeline[4].source.event.route={2, 1, true};
+    timeline[4].source.event.route_fixed=true;
+    timeline[5].time=0.3; timeline[5].source.track_index=0;
+    timeline[5].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[5].source.event.route={0, 0, false};
+    const bool fixed_route_ok = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
+        output.size() == 4 &&
+        output[0].bytes == std::vector<u8>({0x93, 60, 90}) && output[0].port == 2 &&
+        output[1].bytes == std::vector<u8>({0x92, 62, 80}) && output[1].port == 1 &&
+        output[2].bytes.size() == 3 && (output[2].bytes[0] == 0x83 || output[2].bytes[0] == 0x93) &&
+        output[2].bytes[1] == 60 && output[2].port == 2 &&
+        output[3].bytes.size() == 3 && (output[3].bytes[0] == 0x82 || output[3].bytes[0] == 0x92) &&
+        output[3].bytes[1] == 62 && output[3].port == 1 && err.empty();
+    rcp_e6_note_off_route_test_ok = mapped && basic_routed && fixed_route_ok;
+    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s・Note Off 発音時ルート維持 %s\n",
+        mapped ? "合" : "NG", basic_routed ? "合" : "NG", fixed_route_ok ? "合" : "NG");
 }
 
 static void check_rcp_tracks()
@@ -2487,5 +2522,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok) ? 0 : 1;
 }
