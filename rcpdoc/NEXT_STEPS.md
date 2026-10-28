@@ -347,3 +347,23 @@ echo $?
 - 比較器は Note Off の表現差（MIDI 0x8n Note Off と 0x9n velocity 0）を比較時のみ正規化する。S-MU2000 の再生出力は従来どおり 0x8n Note Off を維持し、比較器の正規化を再生出力へ持ち込まない。
 - この結果は sample-13 の比較条件におけるイベント一致を示す。全サンプル・全 RCP2 コマンドの互換性や、実機での再生成功を保証するものではない。
 - 次は、比較レポートの条件と対象ファイルを private 側で保持したまま、別サンプルにも同じ比較を適用する。差分が出た場合は、イベント種別・tick・チャンネルデータ・SysEx を分け、仕様差と実装不具合候補を区別する。
+
+
+## 2026-10-28 — sample-26 の同一tickイベント順序差分
+
+- private 側の `S-MU2000-private-data/Sample report files/rcp2-sample-report/sample-26/reference-comparisons/` にある4サンプルの比較結果を確認。
+- sample-01 BUTTFLY: parser/reference とも 27,974 events、不一致627。
+- sample-02 FC: 両方20,299 events、不一致16。
+- sample-03 WINGS_55: 両方23,745 events、不一致598。
+- sample-04 L_WING88: 両方22,536 events、不一致3。
+- L_WING88 の track 12 / tick 3648 は parser が `bc0761 → bc2000 → 9c3600`、reference が `9c3600 → bc0761 → bc2000`。イベント数・tick・イベント集合は一致し、順序が異なる。
+- FC の track 6 / tick 5135 および 5263 では CC と Note Off の順序が逆。L_WING88 と FC の例で優先順が異なるため、「同じtickならCC優先」などの固定優先順位を推測で導入しない。
+- 現行 `expand_note_gates()` の優先順位調整は CC・Note Off・新規 Note の3種類が同一tickに共存する場合に限定され、今回の少数差分を説明しない。
+- 次の作業: 参照コンバーターの `rcp2mid.c` で running note の終了・イベント出力処理を追い、各差分tickに対応する元RCPレコード順と比較する。イベント集合の差と順序だけの差を分離し、多数差分も同じ原因か検証する。
+- 実装変更・CI再実行はまだ行っていない。比較資料と曲データは private repository 内に保持し、公開リポジトリへコピーしない。
+
+比較資料:
+- [sample-01 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-01/event-compare.txt)
+- [sample-02 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-02/event-compare.txt)
+- [sample-03 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-03/event-compare.txt)
+- [sample-04 event-compare](https://github.com/pikachu364/S-MU2000-private-data/blob/main/Sample%20report%20files/rcp2-sample-report/sample-26/reference-comparisons/sample-04/event-compare.txt)
