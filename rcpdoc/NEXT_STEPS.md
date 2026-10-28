@@ -385,3 +385,12 @@ echo $?
 - `decodeTrackLength()` は格納値の bit 0-1 を bit 16-17 に移して拡張トラック長を復元する。S-MU2000 は2 byte値をそのまま使っていたため、ここを先に修正する。
 - 併せて旧形式 ST+ の判定、最大36トラック、R36 のポート/チャンネル割当、SysEx F0、ノート期限処理、FC 連鎖を差分候補として記録。これらは未修正・未検証。
 - 参照実装の挙動を採用したことは、RCP2 公式仕様として確定したことを意味しない。修正後の CI と実サンプル比較は別途確認する。
+
+
+## 2026-10-28 — sample-27 参照比較結果
+
+- ユーザー報告：Actions #516 は macOS job が混雑で未完了、その他ジョブは合格。
+- private sample-27 の `reference-comparisons` を確認。sample-01〜04 の parser dump と参照 MIDI は各曲で総イベント数が一致するが、順序比較は全曲 exact match ではない。
+- mismatch_count: sample-01=627、sample-02=16、sample-03=598、sample-04=3。各 mismatch は同一 tick に集中しており、イベント数差より同一 tick 内の並び順・生成順を優先して調査する。
+- sample-02 には CC / Note On / Pitch Bend 等の並び違い、sample-04 は track 12 tick 3648 で CC・Note On の並び違いが3件。これだけで参照側が正しいと断定せず、元 RCP レコード順と Note Off 自動生成時点を追跡する。
+- sample-27 は比較レポートと参照 MIDI を用意した段階。今回の確認ではコード変更・CI再実行・実再生は行っていない。次は代表差分を元レコードへ対応付けて分類する。
