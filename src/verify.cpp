@@ -2231,7 +2231,7 @@ static void check_rcp2_player_event_pipeline()
 
 
 // Read real RCP2 files on demand without placing private song data in the repository.
-// Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
+// Usage: verify --rcp2-sample|--rcp2-event-dump|--rcp2-raw-record-dump <file.rcp> [another.rcp ...]
 static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false,
                                   bool dump_raw_records = false)
 {
