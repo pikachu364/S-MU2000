@@ -46,7 +46,7 @@ RCP2 E6 MIDI route: port/channel 切替・dummy 切替・tick 進行 合
 RCP2 90..97 ユーザー SysEx: header/置換/チェックサム/tick 合・dummy 抑止 合・7-bit 拒否 合
 RCP2 98 可変長 SysEx: F7連結/置換/チェックサム/tick 合・孤立F7スキップ 合
 RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない 合
-RCP2 98 ループ境界: 各反復でSysEx再生成 合・不正データ拒否 合
+RCP2 98 ループ境界: 各反復でSysEx再生成 合・不正パラメーター拒否 合・未知高位バイトをスキップ 合
 RCP2 98 空 payload: SysEx省略/tick維持 合
 RCP2 99 外部コマンド: F7連結/MIDI出力なし/tick 合・ループ境界 合
 RCP2 DD/DE/DF GS SysEx: state/checksum/tick 合・7-bit 範囲外拒否 合
