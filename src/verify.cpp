@@ -1177,19 +1177,35 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない %s\n",
         track_sysex_continuation_outside_loop_ok ? "合" : "NG");
 
-    // A continuation with an invalid high-bit value is rejected atomically.
+    // Invalid 7-bit parameters on the 0x98 command must still be rejected.
+    // Unknown high-bit bytes in the continuation payload are handled separately
+    // for compatibility with the reference converter.
     const std::vector<rcp::sequence_event> invalid_track_sysex_sequence = {
-        raw_event(0x98, 0, 0x12, 0x34),
-        raw_event(0xf7, 0, 0x41, 0x90),
+        raw_event(0x98, 0, 0x90, 0x34),
+        raw_event(0xf7, 0, 0x41, 0x01),
         raw_event(0xfe, 0, 0, 0)
     };
     const bool invalid_track_sysex_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(
             invalid_track_sysex_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
-    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\n",
+
+    const std::vector<rcp::sequence_event> unknown_track_sysex_byte_sequence = {
+        raw_event(0x98, 0, 0x12, 0x34),
+        raw_event(0xf7, 0, 0x41, 0xff),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const bool unknown_track_sysex_byte_skipped =
+        rcp::expand_note_key_signature_tempo_timeline(
+            unknown_track_sysex_byte_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::sysex &&
+        timeline[0].sysex == std::vector<u8>({0xf0, 0x41, 0xf7}) &&
+        err.empty();
+    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正パラメーター拒否 %s・未知高位バイトをスキップ %s\\n",
         track_sysex_loop_boundary_ok ? "合" : "NG",
-        invalid_track_sysex_rejected ? "合" : "NG");
+        invalid_track_sysex_rejected ? "合" : "NG",
+        unknown_track_sysex_byte_skipped ? "合" : "NG");
     // A 0x98 event whose continuation records contain only F7 padding
     // emits no empty SysEx, but its step still advances the following event.
     const std::vector<rcp::sequence_event> empty_track_sysex_sequence = {
