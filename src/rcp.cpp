@@ -1407,26 +1407,11 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
                expanded[last].tick == expanded[first].tick)
             ++last;
 
-        bool has_control = false, has_note_off = false;
-        for (size_t i = first; i < last; ++i) {
-            has_control |= expanded[i].kind == timeline_event_kind::control_change;
-            has_note_off |= expanded[i].kind == timeline_event_kind::note_off;
-        }
-        if (has_control && has_note_off) {
-            std::stable_sort(expanded.begin() + first, expanded.begin() + last,
-                [](const timed_event &a, const timed_event &b) {
-                    auto priority = [](timeline_event_kind kind) {
-                        if (kind == timeline_event_kind::note_off)
-                            return 0;
-                        if (kind == timeline_event_kind::control_change)
-                            return 1;
-                        if (kind == timeline_event_kind::note)
-                            return 2;
-                        return 1;
-                    };
-                    return priority(a.kind) < priority(b.kind);
-                });
-        }
+        // Keep the stable order established by the source timeline. A fixed
+        // Note Off-before-controller priority does not match the reference
+        // converter: a controller can be emitted before a gate Note Off when
+        // the note's expiration is reached later in delay processing.
+        // The reference comparison suite validates these same-tick cases.
         first = last;
     }
 
