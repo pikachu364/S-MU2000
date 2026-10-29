@@ -99,3 +99,29 @@ JMPlayer 資料では `0xF5`、`0xF6`/`0xF7`、`0xF8`/`0xF9`、`0xFD` などに�
 - 同 tick のイベント順、tempo event、port/channel mapping、dummy track の除外を維持する。
 - 未対応イベントを黙って落とさず、明示的に拒否する。
 - 合成テストと CI を通し、実 RCP2 ファイルでの再生確認とは別に記録する。
+
+
+## 2026-10-29 — sample-04 同一tick順序差分の仮説（未確定）
+
+### 仮説 H-RCP-ORDER-20261029-A
+
+sample-04 Track 12 / tick 3648 の CC7、CC32、Note On velocity 0 の順序差は、Note Off相当イベントを先に生成して並べ替える参照コンバーターと、現行S-MU2000の Note Gate 展開後に tick のみで stable sort する方式の差に関係する可能性がある。
+
+**根拠**
+- parser: `BC 07 61 → BC 20 00 → 9C 36 00`
+- reference: `9C 36 00 → BC 07 61 → BC 20 00`
+- 現行の特別な順序変更条件には、この「CC2件 + Note Off相当」だけの組み合わせは含まれない。
+- ValleyBell参照コードの `CheckRunningNotes()` はレコード処理・イベント出力の経路に結び付いているため、Note Off発行時点の違いが順序差につながる可能性がある。
+
+**未確認**
+- 問題イベントの元 RCP レコード index / byte offset と同tickの生レコード列。
+- 該当ノートの実際の開始 tick、duration / remaining length、期限判定の値。
+- この仮説が sample-02 の16件にも適用できるか。
+
+**検証方法**
+1. private runnerで event dump に元RCPの track、record index、byte offset、raw 4-byte record、累積 tick を関連付ける。
+2. sample-04の該当レコードについて、参照側の running-note期限判定と出力順を追う。
+3. sample-02でも同じ順序生成経路かを照合する。
+4. 証拠が揃ってから修正案・回帰テストを決める。
+
+**制約:** これは仮説であり、直接原因として確定していない。現時点でイベント種別に基づく固定優先順位を追加する根拠にはしない。
