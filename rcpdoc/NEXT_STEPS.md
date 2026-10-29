@@ -415,3 +415,14 @@ echo $?
 **合格条件:** 代表差分を元 RCP レコードと参照側の期限処理に対応付け、順序が決まる因果関係を説明できること。修正した場合は、合成回帰テストと private sample の比較結果で改善を確認すること。CI 合格だけで互換性合格とはしない。
 
 **データ保護:** 元 RCP ファイル、private のイベントダンプ、比較レポートは private repository / artifact 内だけに保持し、公開リポジトリへコピーしない。
+
+
+## 2026-10-29 — sample-04 順序差分の絞り込み（調査継続）
+
+**状態:** 原因未確定。ソース変更なし。
+
+- 最新 private Action #42 artifact を取得し、ZIP整合性と31ファイルを確認。比較値は sample-01=627、sample-02=16、sample-03=598、sample-04=3（各サンプルで総イベント数一致）。
+- sample-04 の代表差分は Track 12 / tick 3648: parser `BC 07 61 → BC 20 00 → 9C 36 00`、reference `9C 36 00 → BC 07 61 → BC 20 00`。
+- 現行 `expand_note_gates()` は tick だけで stable sort し、CC→Note Off→新規 Note の優先処理は3種類が全てある場合だけ実施する。CC2件と Note On velocity 0 の組み合わせには適用されない。
+- 次の優先作業: private runner 上でイベントと元 RCP レコード（track、record index、byte offset、4 byte、累積 tick）を対応付ける。元レコード順と、期限切れ Note Off の生成時点を照合し、差分が最初に生じる段階を特定する。
+- 原因確定前に固定優先順位や Note Off の生成処理を変更しない。CI 合格、比較イベント数一致、実際の再生確認を別々に記録する。
