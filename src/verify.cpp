@@ -1948,7 +1948,7 @@ static void check_rcp_same_tick_order()
         timeline[3].event.kind == rcp::timeline_event_kind::control_change &&
         timeline[3].event.tick == 10 && timeline[3].event.channel.data1 == 32 &&
         timeline[3].event.channel.data2 == 0 && err.empty();
-    std::printf("RCP2 同一 tick の順序（Note Off→CC7→CC32）: %s\\n",
+    std::printf("RCP2 同一 tick の順序（Note Off→CC7→CC32）: %s\n",
                 expired_off_before_controls_ok ? "合" : "NG");
 }
 
