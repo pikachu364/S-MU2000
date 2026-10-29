@@ -461,3 +461,11 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - sample-04 L_WING88: 両方 22,536 events、不一致 0。
 - 4サンプルすべて総イベント数とトラック別件数が一致。合計 94,554 events、比較上の不一致は4件。これは参照コンバーターとの比較結果であり、実機再生の確認ではない。
 - 次は sample-02 の Track 6 の元RCPレコード・累積tick・ノート期限判定を対応付け、固定イベント優先順位を追加せず原因を特定する。
+
+
+## 2026-10-29 — 明示的 Note Off の順序修正を実装（CI待ち）
+
+- `src/rcp.cpp`: active note と同音高の duration=0 レコードを処理した際、保留中 Note Off の tick だけでなく `expanded` 内の位置も現在の timeline 末尾へ移動するよう変更。削除による他の `running_note.note_off_index` の補正を追加。
+- `src/verify.cpp`: Note On の delay で tick 5 に進み、CC と duration=0 同音高レコードを同tickに置く回帰テストを追加。期待順序は Note On → CC → Note Off。
+- コミット: `d0761a04521bda02b8db3dfac8310edfb4c0e3f7`（実装）、`d01b1578e9ca5e897344b4a49c3277828b26337d`（回帰テスト）、`eb5b1c72ad7659134305155708dc94f9a5056f37`（テストtick設定の修正）。
+- 現時点で Actions 実行結果は確認できていない。ビルド・回帰テスト・private 4サンプル比較が通るまでは修正成功と判定しない。
