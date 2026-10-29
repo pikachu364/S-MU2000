@@ -1,3 +1,13 @@
+## 2026-10-29 — Actions #556 合格、4サンプル比較で不一致を4件まで削減
+
+- ユーザー報告により公開リポジトリ Actions #556 の合格を記録。
+- private sample-check run [40868277263](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263) の成果物 [artifact 12894966176](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263/artifacts/12894966176) を取得し、`event-compare.txt` 4件を確認した。
+- ValleyBell参照 commit は `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。sample-01 BUTTFLY は 27,974 events / mismatch 0、sample-02 FC は 20,299 / mismatch 4、sample-03 WINGS_55 は 23,745 / mismatch 0、sample-04 L_WING88 は 22,536 / mismatch 0。
+- 全4曲で parser/reference の総イベント数とトラック別イベント数は一致。比較対象は合計 94,554 events、不一致は4件。
+- 残る4件は sample-02 Track 6 の tick 5135 と 5263。parser は `96 3C 00` → `B6 0B 7F` / `B6 0B 17`、reference は CC → `96 3C 00` の順。tickやイベント数の差ではなく、同一tick内の順序差。
+- `src/rcp.cpp` では固定 Note Off 優先順位を外して安定順を保持する変更を反映済み。この結果、sample-01 / 03 / 04 は完全一致し、sample-02 は16件から4件へ減少した。原因の完全解明や実機再生確認とは区別する。
+- 次は sample-02 Track 6 の元RCPレコードと ValleyBell の running-note 期限処理を照合する。RCPデータと成果物はプライベートリポジトリに保持する。
+
 ## 2026-10-26 — Actions #460 / private sample-check #10 合格、sample-9 ダンプ確認
 
 - ユーザー報告により公開リポジトリ Actions #460 と private sample-check #10 の合格を確認。
