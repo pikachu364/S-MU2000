@@ -435,3 +435,17 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - [x] Compare reference ProcessRcpSysEx() with S-MU2000 src/rcp.cpp 0x98 expansion.
 - [ ] Recover full three SysEx payloads and determine whether 0xFF has any documented intended meaning beyond being skipped by the reference converter.
 - [ ] Check whether the warning has any relation to sample-04 same-tick ordering differences; currently no relation established.
+
+
+## 2026-10-29 — ValleyBell Issue #16 を踏まえた参照コンバーターの位置づけ
+
+**状態:** 重要な比較方針を追加。サンプル04のPC上での手動変換は未実施。
+
+- [ValleyBell/MidiConverters Issue #16](https://github.com/ValleyBell/MidiConverters/issues/16) の本文と作者コメントを確認。ValleyBell氏は2024-03-24、自身のRCP converterについて「shingo45endo/rcm2smf より少し劣る」と自己評価し、より特殊なSysExコマンドの確認に sayleen を使う可能性に言及している。
+- このコメントは当時の作者自身による評価であり、現在の全バージョンや sample-04 の出力が誤っていることを証明するものではない。一方、ValleyBell版を唯一の正解オラクルとして扱わない根拠になる。
+- 次の比較は3系統を区別する: (1) ValleyBell rcp2mid、(2) shingo45endo rcm2smf、(3) sayleen。各ツールのバージョン/コミット、変換ログ、生成MIDI、未対応・警告を記録し、差分が出たイベントを仕様資料と元RCPレコードで判定する。
+- 最初にWindows PC上で sample-04 を ValleyBell版で実変換し、続いて同じ入力を rcm2smf と sayleen でも比較できるか確認する。sample-04 の原本は private に保持し、公開リポジトリへ置かない。
+- [ ] PC上で ValleyBell rcp2mid をビルド/実行し、sample-04 の終了状態・警告・MIDI生成を確認する。
+- [ ] 同じ sample-04 を rcm2smf でも変換し、出力イベントを比較する。
+- [ ] 特殊SysExについて sayleen の結果を比較できるか調査する。
+- [ ] ツール間の差分を、RCP生レコード・形式資料・実再生結果と照合する。単純な多数決で正解を決めない。
