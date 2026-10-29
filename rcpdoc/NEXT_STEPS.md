@@ -2,7 +2,7 @@
 
 更新日：2026-10-29  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-直近 CI：Actions #556 合格（ユーザー報告）。private sample-check run [40868277263](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263) の成果物を確認。ValleyBell 参照コンバーター（commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`）との比較は、sample-01 BUTTFLY=27,974イベント・不一致0、sample-02 FC=20,299・不一致4、sample-03 WINGS_55=23,745・不一致0、sample-04 L_WING88=22,536・不一致0。全4曲で総イベント数・トラック別件数は一致。残る4件は sample-02 Track 6 の tick 5135 と 5263 における Note Off相当（Note On velocity 0）と CC の順序差。原因は未確定。
+直近 CI：Actions #567 合格（ユーザー報告）。private sample-check run [40885695400](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40885695400/artifacts/12902283152) の成果物を確認。ValleyBell 参照コンバーター（commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`）との比較は、sample-01 BUTTFLY=27,974イベント・不一致0、sample-02 FC=20,299・不一致0、sample-03 WINGS_55=23,745・不一致0、sample-04 L_WING88=22,536・不一致0。全4サンプル合計94,554イベントで、各トラックの件数を含め完全一致。以前 sample-02 Track 6 / tick 5135 と 5263 に残っていた同一tick順序差も解消。参照コンバーターとの比較結果であり、実機再生やRCP2全体の互換性を保証するものではない。
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -87,7 +87,7 @@
 
 ## T-006 — 実サンプルの参照出力比較
 
-**状態:** 比較基盤と4サンプルの比較を実施済み。sample-01 / sample-03 / sample-04 は完全一致。sample-02 に同一tick内の順序差が4件残るため、次は元RCPレコードと参照側の Note Off 生成タイミングを対応付ける。
+**状態:** 選定した4サンプルは Actions #567 の成果物で参照出力と完全一致。全RCP2データへの一般化・実機再生は未確認。次は未完了の仕様境界テスト（FC展開予算、FC端点、F8 step値）と実ファイルでのプレイヤーAPI経路を優先する。
 
 - [x] `verify --rcp2-event-dump` でイベント単位ダンプ（index / track / absolute tick / seconds / port / MIDI bytes）を出力し、private sample-9 の BUTTFLY で確認。27,974イベントすべての index 連番、tick/秒の非減少、空 bytes なし、`count=27974 encoded_count=27974 consistency=OK` を確認。
 - [ ] 参照コンバーターと現行実装の比較をプライベート環境で実行する手順を整える。現在は参照コンバーターの MIDI を同じサンプルから生成し、イベントを正規化して比較する処理が未整備。
