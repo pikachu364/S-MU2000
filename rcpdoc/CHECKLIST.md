@@ -272,3 +272,12 @@
 - [ ] 実際の再生確認は別途実施した場合のみ記録する。
 
 制約: 上記の比較・ソース確認は、元レコードへの完全な対応付けや原因確定を意味しない。今回コード修正・CI再実行・実再生は行っていない。
+
+
+## 2026-10-29 follow-up — SysEx 0xFF behavior in S-MU2000
+
+- [x] Source review: src/rcp.cpp 0x98 expansion explicitly skips unknown high-bit template bytes (example 0xFF), matching reference converter behavior.
+- [ ] Restore full SysEx sequences and evaluate original-data intent.
+- [ ] Verify any relation to event-order mismatch before considering changes.
+
+**Status:** No code change. This is currently a reference-converter warning for behavior S-MU2000 already appears to mirror.
