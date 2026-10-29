@@ -875,6 +875,22 @@ static void check_rcp_document_timeline()
     std::printf("RCP2 ノート長展開: duration 0 抑止 %s・同音高の終了更新 %s・note-off 時刻/音高 %s\n",
         note_gate_ok ? "合" : "NG", note_gate_ok ? "合" : "NG",
         note_gate_ok ? "合" : "NG");
+    doc.tracks[0].events = {
+        raw(60, 0, 10, 90), raw(0xeb, 5, 0x0b, 0x7f),
+        raw(60, 0, 0, 0), raw(0xfe, 0, 0, 0)
+    };
+    const bool explicit_note_off_order_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 3 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note &&
+        merged[0].event.tick == 0 &&
+        merged[1].event.kind == rcp::timeline_event_kind::control_change &&
+        merged[1].event.tick == 5 &&
+        merged[2].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[2].event.tick == 5 && err.empty();
+    std::printf("RCP2 明示的 Note Off 同tick順序: CC の後に Note Off %s\\n",
+        explicit_note_off_order_ok ? "合" : "NG");
+
 
     std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
