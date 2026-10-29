@@ -477,3 +477,16 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - 失敗原因は回帰テストの出力文字列で改行を `\\n` と二重エスケープしており、実際の出力に文字列 `\n` が混ざったこと、および `tests/verify.txt` の期待出力を同期していなかったこと。
 - `src/verify.cpp` の改行エスケープを修正（commit `58343ca34a18c1dcac304cec69879e5bf699968d`）、`tests/verify.txt` に期待行を追加（commit `ac716012995c0404a4d51bb819a514fac5ad136a`）。
 - この修正後の CI は未確認。#564 を合格扱いにせず、次の Actions で verify 指紋比較と他ジョブを確認する。
+
+
+## 2026-10-29 — Actions #567 / private sample-check run 40885695400
+
+- ユーザー報告で公開リポジトリ Actions #567 合格。
+- private artifact [run 40885695400 / artifact 12902283152](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40885695400/artifacts/12902283152) を取得して比較レポートを確認。
+- sample-01 BUTTFLY: parser/reference 27,974 events、mismatch 0。
+- sample-02 FC: parser/reference 20,299 events、mismatch 0。前回残っていた Track 6 / tick 5135, 5263 の同一tick順序差が解消。
+- sample-03 WINGS_55: parser/reference 23,745 events、mismatch 0。
+- sample-04 L_WING88: parser/reference 22,536 events、mismatch 0。
+- 合計 94,554 events。全4サンプルで総数・各トラック数が一致し、全イベント列が完全一致（exact_match=true）。参照コンバーターは固定 commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。
+- これにより直近の Note Off 展開変更は、合成回帰テストと今回の4サンプル参照比較で良好な結果。実機再生・全RCP2互換性までは証明しない。
+- 次は比較結果を履歴文書へ反映したうえで、次の未完了タスクに進む。
