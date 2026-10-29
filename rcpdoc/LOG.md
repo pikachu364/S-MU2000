@@ -589,3 +589,11 @@
 - この順序差が Note Gate 展開と参照側 running-note 期限処理の違いに由来する可能性はあるが、元RCPのレコード位置・実際の期限値は未取得であり、原因は未確定。
 - `NEXT_STEPS.md`、`CHECKLIST.md`、`FACTS.md`、`HYPOTHESES.md` に優先タスク、確認済み事実、未確認仮説、次の検証方法を追記した。
 - 今回は記録更新のみ。ソースコード・テスト変更、CI再実行、実再生は行っていない。次は private runner で元RCPレコードとイベント差分を対応付ける。
+
+
+## 2026-10-29 — follow-up on sample-04 SysEx 0xFF
+
+- Reviewed current S-MU2000 src/rcp.cpp around the 0x98 SysEx expansion loop. It explicitly skips unknown high-bit template bytes such as 0xFF and documents that this matches the reference RCP2 converter behavior.
+- Reviewed the reference converter ProcessRcpSysEx() at commit a73c748960d57bd194fb64931ce07d2c1fa1bd01; it warns for unknown high-bit bytes and does not append them to output.
+- **Conclusion:** the warning is not currently evidence of a S-MU2000/reference behavior mismatch. The meaning/origin of the source bytes and relation to event-order mismatches remain unknown.
+- No source code change, test run, or playback check was performed.
