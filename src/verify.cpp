@@ -876,7 +876,7 @@ static void check_rcp_document_timeline()
         note_gate_ok ? "合" : "NG", note_gate_ok ? "合" : "NG",
         note_gate_ok ? "合" : "NG");
     doc.tracks[0].events = {
-        raw(60, 0, 10, 90), raw(0xeb, 5, 0x0b, 0x7f),
+        raw(60, 5, 10, 90), raw(0xeb, 0, 0x0b, 0x7f),
         raw(60, 0, 0, 0), raw(0xfe, 0, 0, 0)
     };
     const bool explicit_note_off_order_ok =
