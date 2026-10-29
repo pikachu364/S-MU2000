@@ -1428,6 +1428,15 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
                     };
                     return priority(a.kind) < priority(b.kind);
                 });
+        } else if (has_control && has_note_off && !has_note) {
+            // If no new Note On occurs at this tick, emit an expired Note Off
+            // before controllers while preserving their original relative order.
+            std::stable_sort(expanded.begin() + first, expanded.begin() + last,
+                [](const timed_event &a, const timed_event &b) {
+                    const bool a_note_off = a.kind == timeline_event_kind::note_off;
+                    const bool b_note_off = b.kind == timeline_event_kind::note_off;
+                    return a_note_off && !b_note_off;
+                });
         }
         first = last;
     }

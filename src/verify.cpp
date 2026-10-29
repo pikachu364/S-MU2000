@@ -1928,6 +1928,28 @@ static void check_rcp_same_tick_order()
 
     std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
+
+    doc.tracks[0].events = {
+        raw(60, 10, 10, 90),
+        raw(0xeb, 0, 7, 97),
+        raw(0xeb, 0, 32, 0),
+        raw(0xfe, 0, 0, 0)
+    };
+    const bool expired_off_before_controls_ok =
+        rcp::expand_intermediate_timeline(doc, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].event.kind == rcp::timeline_event_kind::note &&
+        timeline[0].event.tick == 0 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[1].event.tick == 10 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[2].event.tick == 10 && timeline[2].event.channel.data1 == 7 &&
+        timeline[2].event.channel.data2 == 97 &&
+        timeline[3].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[3].event.tick == 10 && timeline[3].event.channel.data1 == 32 &&
+        timeline[3].event.channel.data2 == 0 && err.empty();
+    std::printf("RCP2 同一 tick の順序（Note Off→CC7→CC32）: %s\\n",
+                expired_off_before_controls_ok ? "合" : "NG");
 }
 
 
