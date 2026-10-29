@@ -579,3 +579,13 @@
 - sample-04 は track 12 / tick 3648 の3件で、parser `BC 07 61 → BC 20 00 → 9C 36 00`、reference `9C 36 00 → BC 07 61 → BC 20 00`。両者の総イベント数・トラック別イベント数は一致。
 - private の parser dump は各約1.8〜2.0 MBで存在と blob SHA を確認したが、GitHub connector から全内容を読み出せなかった。よって各差分を元 RCP の byte offset / record index に対応付ける作業はまだ完了していない。
 - 次はローカル/private runner で比較ツールに元 RCP レコード位置（track、record index、byte offset、4-byte record、累積 tick）を出力させ、問題 tick の直前・同tickのレコード列を採取する。公開リポジトリに曲データやダンプをコピーしない。
+
+
+## 2026-10-29 — Action #42 のZIP確認と同一tick差分の追跡
+
+- private Actions #42 の artifact `rcp2-sample-validation-reports` を GitHub から直接取得し、ZIP整合性検査が成功し31ファイルを収録していることを確認した。ユーザーが最初にアップロードしたZIPの不完全さとは区別して記録する。
+- 比較レポートで sample-01〜04 の parser/reference イベント総数が一致し、不一致数が 627 / 16 / 598 / 3 であることを再確認した。
+- sample-04 Track 12 / tick 3648 は parser `BC 07 61 → BC 20 00 → 9C 36 00`、reference `9C 36 00 → BC 07 61 → BC 20 00`。現行 `src/rcp.cpp` の同tick優先順位条件は CC・Note Off・新規 Note の3種類すべてが存在する場合に限定されることをソースで確認した。
+- この順序差が Note Gate 展開と参照側 running-note 期限処理の違いに由来する可能性はあるが、元RCPのレコード位置・実際の期限値は未取得であり、原因は未確定。
+- `NEXT_STEPS.md`、`CHECKLIST.md`、`FACTS.md`、`HYPOTHESES.md` に優先タスク、確認済み事実、未確認仮説、次の検証方法を追記した。
+- 今回は記録更新のみ。ソースコード・テスト変更、CI再実行、実再生は行っていない。次は private runner で元RCPレコードとイベント差分を対応付ける。
