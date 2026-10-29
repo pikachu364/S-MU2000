@@ -125,3 +125,16 @@ sample-04 Track 12 / tick 3648 の CC7、CC32、Note On velocity 0 の順序差�
 4. 証拠が揃ってから修正案・回帰テストを決める。
 
 **制約:** これは仮説であり、直接原因として確定していない。現時点でイベント種別に基づく固定優先順位を追加する根拠にはしない。
+
+
+## 2026-10-29 follow-up — source behavior for SysEx 0xFF
+
+### Hypothesis H-RCP-SYSEX-FF-20261029-B
+
+The sample-04 warning may be informational rather than evidence of an S-MU2000 incompatibility: S-MU2000's current 0x98 expansion loop explicitly skips unknown high-bit template bytes such as 0xFF, matching the reference converter's ProcessRcpSysEx() behavior.
+
+**Evidence:** source review of S-MU2000 src/rcp.cpp (0x98 expansion loop) and reference converter rcp2mid.c at commit a73c748960d57bd194fb64931ce07d2c1fa1bd01.
+
+**Not established:** original author intent for these 0xFF bytes, runtime byte-for-byte output equivalence for these exact sequences, and any causal link to event ordering differences.
+
+**Next check:** reconstruct the complete three SysEx payloads and only add a test if there is a concrete expected behavior not covered by the current source.
