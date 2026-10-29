@@ -888,7 +888,7 @@ static void check_rcp_document_timeline()
         merged[1].event.tick == 5 &&
         merged[2].event.kind == rcp::timeline_event_kind::note_off &&
         merged[2].event.tick == 5 && err.empty();
-    std::printf("RCP2 明示的 Note Off 同tick順序: CC の後に Note Off %s\\n",
+    std::printf("RCP2 明示的 Note Off 同tick順序: CC の後に Note Off %s\n",
         explicit_note_off_order_ok ? "合" : "NG");
 
 
