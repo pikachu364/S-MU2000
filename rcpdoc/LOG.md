@@ -607,3 +607,15 @@
 - Reviewed the reference converter ProcessRcpSysEx() at commit a73c748960d57bd194fb64931ce07d2c1fa1bd01; it warns for unknown high-bit bytes and does not append them to output.
 - **Conclusion:** the warning is not currently evidence of a S-MU2000/reference behavior mismatch. The meaning/origin of the source bytes and relation to event-order mismatches remain unknown.
 - No source code change, test run, or playback check was performed.
+
+
+## 2026-10-29 — Actions #567 合格・private sample 4件完全一致
+
+- ユーザー報告で公開リポジトリ Actions #567 の合格を確認。
+- private sample-check run [40885695400 / artifact 12902283152](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40885695400/artifacts/12902283152) のZIPを取得し、各 `event-compare.txt` を確認。
+- sample-01 BUTTFLY: 27,974 events / mismatch 0 / exact_match=true。
+- sample-02 FC: 20,299 events / mismatch 0 / exact_match=true。前回残っていた Track 6 / tick 5135 と 5263 の2箇所を含め、差分ゼロ。
+- sample-03 WINGS_55: 23,745 events / mismatch 0 / exact_match=true。
+- sample-04 L_WING88: 22,536 events / mismatch 0 / exact_match=true。
+- 合計 94,554 events。全サンプルで各トラックのイベント件数も一致。参照は ValleyBell rcp2mid commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。
+- 結論はこの4ファイルの参照出力との完全一致。実機再生、すべてのRCP2機能、他のRCPファイルまで保証するものではない。
