@@ -1398,44 +1398,33 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
             return a.tick < b.tick;
         });
 
-    // Only apply the reference converter's controller -> expired Note Off ->
-    // new Note On ordering when all three kinds collide at the same tick.
-    // Other same-tick combinations (e.g. Note, key signature, tempo) retain
-    // their original order.
+    // Expired gate Note Offs precede controllers at the same tick. Controllers
+    // keep their source order, and any new Note On follows them.
+    // Other same-tick combinations retain their original relative order.
     for (size_t first = 0; first < expanded.size();) {
         size_t last = first + 1;
         while (last < expanded.size() &&
                expanded[last].tick == expanded[first].tick)
             ++last;
 
-        bool has_control = false, has_note_off = false, has_note = false;
+        bool has_control = false, has_note_off = false;
         for (size_t i = first; i < last; ++i) {
             has_control |= expanded[i].kind == timeline_event_kind::control_change;
             has_note_off |= expanded[i].kind == timeline_event_kind::note_off;
-            has_note |= expanded[i].kind == timeline_event_kind::note;
         }
-        if (has_control && has_note_off && has_note) {
+        if (has_control && has_note_off) {
             std::stable_sort(expanded.begin() + first, expanded.begin() + last,
                 [](const timed_event &a, const timed_event &b) {
                     auto priority = [](timeline_event_kind kind) {
-                        if (kind == timeline_event_kind::control_change)
-                            return 0;
                         if (kind == timeline_event_kind::note_off)
+                            return 0;
+                        if (kind == timeline_event_kind::control_change)
                             return 1;
                         if (kind == timeline_event_kind::note)
                             return 2;
                         return 1;
                     };
                     return priority(a.kind) < priority(b.kind);
-                });
-        } else if (has_control && has_note_off && !has_note) {
-            // If no new Note On occurs at this tick, emit an expired Note Off
-            // before controllers while preserving their original relative order.
-            std::stable_sort(expanded.begin() + first, expanded.begin() + last,
-                [](const timed_event &a, const timed_event &b) {
-                    const bool a_note_off = a.kind == timeline_event_kind::note_off;
-                    const bool b_note_off = b.kind == timeline_event_kind::note_off;
-                    return a_note_off && !b_note_off;
                 });
         }
         first = last;
