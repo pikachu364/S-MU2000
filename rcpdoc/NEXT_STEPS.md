@@ -426,3 +426,12 @@ echo $?
 - 現行 `expand_note_gates()` は tick だけで stable sort し、CC→Note Off→新規 Note の優先処理は3種類が全てある場合だけ実施する。CC2件と Note On velocity 0 の組み合わせには適用されない。
 - 次の優先作業: private runner 上でイベントと元 RCP レコード（track、record index、byte offset、4 byte、累積 tick）を対応付ける。元レコード順と、期限切れ Note Off の生成時点を照合し、差分が最初に生じる段階を特定する。
 - 原因確定前に固定優先順位や Note Off の生成処理を変更しない。CI 合格、比較イベント数一致、実際の再生確認を別々に記録する。
+
+
+## 2026-10-29 follow-up — sample-04 SysEx 0xFF
+
+Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx template bytes such as 0xFF, with a comment explicitly matching reference-converter behavior. Do not change code for this warning unless new evidence shows a behavioral mismatch.
+
+- [x] Compare reference ProcessRcpSysEx() with S-MU2000 src/rcp.cpp 0x98 expansion.
+- [ ] Recover full three SysEx payloads and determine whether 0xFF has any documented intended meaning beyond being skipped by the reference converter.
+- [ ] Check whether the warning has any relation to sample-04 same-tick ordering differences; currently no relation established.
