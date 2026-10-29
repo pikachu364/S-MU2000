@@ -469,3 +469,11 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - `src/verify.cpp`: Note On の delay で tick 5 に進み、CC と duration=0 同音高レコードを同tickに置く回帰テストを追加。期待順序は Note On → CC → Note Off。
 - コミット: `d0761a04521bda02b8db3dfac8310edfb4c0e3f7`（実装）、`d01b1578e9ca5e897344b4a49c3277828b26337d`（回帰テスト）、`eb5b1c72ad7659134305155708dc94f9a5056f37`（テストtick設定の修正）。
 - 現時点で Actions 実行結果は確認できていない。ビルド・回帰テスト・private 4サンプル比較が通るまでは修正成功と判定しない。
+
+
+## 2026-10-29 — Actions #564 失敗の原因と修正
+
+- ユーザー報告の #564 Linux はコンパイル成功し、追加した「RCP2 明示的 Note Off 同tick順序」合成テスト自体も「合」だった。
+- 失敗原因は回帰テストの出力文字列で改行を `\\n` と二重エスケープしており、実際の出力に文字列 `\n` が混ざったこと、および `tests/verify.txt` の期待出力を同期していなかったこと。
+- `src/verify.cpp` の改行エスケープを修正（commit `58343ca34a18c1dcac304cec69879e5bf699968d`）、`tests/verify.txt` に期待行を追加（commit `ac716012995c0404a4d51bb819a514fac5ad136a`）。
+- この修正後の CI は未確認。#564 を合格扱いにせず、次の Actions で verify 指紋比較と他ジョブを確認する。
