@@ -138,3 +138,22 @@ The sample-04 warning may be informational rather than evidence of an S-MU2000 i
 **Not established:** original author intent for these 0xFF bytes, runtime byte-for-byte output equivalence for these exact sequences, and any causal link to event ordering differences.
 
 **Next check:** reconstruct the complete three SysEx payloads and only add a test if there is a concrete expected behavior not covered by the current source.
+
+
+## 2026-10-29 — sample-02 Track 6 の残存順序差分（未確定）
+
+**状態:** 最新比較では4件まで減少。直接原因は未確定。
+
+private sample-check run [40868277263](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263) の比較レポートでは、sample-02 `FC.RCP` の Track 6 に次の差分が残る。
+
+- tick 5135: parser `96 3C 00 → B6 0B 7F`、reference `B6 0B 7F → 96 3C 00`
+- tick 5263: parser `96 3C 00 → B6 0B 17`、reference `B6 0B 17 → 96 3C 00`
+
+`96 3C 00` は Note On velocity 0（Note Off相当）、`B6 0B xx` は CC。両イベントの tick は一致しており、イベント欠落ではなく同一tick内の順序差である。現行の固定優先順位を外した変更により、4サンプル中3サンプルが完全一致し、sample-02の不一致は16件から4件へ減少した。
+
+**次の検証**
+1. private runner の raw-record dump から Track 6 / tick 5135, 5263 の各イベントに対応する元RCPレコード、record index、byte offset、step、累積tickを確定する。
+2. 期限切れノートの開始tick・gate/remaining lengthと、ValleyBell `CheckRunningNotes()` / `MidiDelayHandler()` が Note Off を出力するタイミングを照合する。
+3. 修正案はこの2箇所だけに過剰適合させず、4サンプル全件で再比較する。
+
+**制約:** この差分だけでは RCP2 形式全体の仕様を確定できず、参照コンバーターが常に唯一の正解であることも意味しない。実機再生は未確認。
