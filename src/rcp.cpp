@@ -1368,11 +1368,22 @@ bool expand_note_gates(const std::vector<timed_event> &timeline,
                 running[i].route.enabled == event.route.enabled) { active_index = i; break; }
         }
         if (active_index != running.size()) {
-            running_note &active = running[active_index];
-            expanded[active.note_off_index].tick = new_end_tick;
-            active.end_tick = new_end_tick;
-            if (event.note.duration == 0)
+            const size_t note_off_index = running[active_index].note_off_index;
+            if (event.note.duration == 0) {
+                timed_event note_off = expanded[note_off_index];
+                note_off.tick = new_end_tick;
+                expanded.erase(expanded.begin() + note_off_index);
+                for (running_note &other : running) {
+                    if (other.note_off_index > note_off_index)
+                        --other.note_off_index;
+                }
                 running.erase(running.begin() + active_index);
+                expanded.push_back(note_off);
+            } else {
+                running_note &active = running[active_index];
+                expanded[note_off_index].tick = new_end_tick;
+                active.end_tick = new_end_tick;
+            }
             continue;
         }
         if (event.note.duration == 0)
