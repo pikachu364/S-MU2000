@@ -207,3 +207,14 @@
 - [Actions #256](https://github.com/pikachu364/S-MU2000/actions/runs/40059724255)、[#260](https://github.com/pikachu364/S-MU2000/actions/runs/40061803563)、[#262](https://github.com/pikachu364/S-MU2000/actions/runs/40064492056) は成功。#262 はLinux、Windows、Windows 32-bit、MSVC Win32/x64、README、macOSの全7ジョブ成功。
 - #257/#258 はテスト追加時の問題で失敗、#259/#261はキャンセル。履歴を消さず、後続の修正後成功と区別する。
 - **制約:** CI成功は対象コードのビルドと合成テストの成功であり、実RCP2ファイルの再生互換性やすべてのループ端点の仕様を保証しない。
+
+
+## 2026-10-29 — Action #42 と現行コードで確認した事実
+
+- private Action #42 artifact `rcp2-sample-validation-reports` はGitHubから取得でき、ZIP整合性検査に合格。31ファイルを収録。Artifact URL: https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40792718702
+- 比較レポートでは parser/reference のイベント総数が sample-01〜04 全て一致。不一致数は sample-01=627、sample-02=16、sample-03=598、sample-04=3。
+- sample-04 Track 12 / tick 3648 のイベント順は parser `BC 07 61 → BC 20 00 → 9C 36 00`、reference `9C 36 00 → BC 07 61 → BC 20 00`。MIDI bytes の意味は CC7、CC32、チャンネル12の Note On velocity 0（Note Off 相当）。
+- 現行 public branch `feature/rcp2-parser-skeleton` の `src/rcp.cpp`（取得時 blob SHA `6b04fa6a82c694fc39c9c1441921db57de9a1533`）では `expand_note_gates()` が tick を比較キーに stable sort する。追加の種別優先順位は同tickに CC、Note Off、新規 Note が全て存在する場合だけ適用される。
+- 現行 `encode_midi_message()` の Note Off 出力は `0x9n, note, 0` 表現。古い記録の「0x8n出力」という説明は現行コードの説明として使わない。
+- 確認方法: GitHub private workflow artifactの取得・ZIP検査、各比較レポートの読解、GitHub connectorによる現行ソース確認。
+- 制約: sample-04 の問題イベントを元RCPの4-byte record index / byte offsetに対応付けるところまでは未実施。原因確定、修正後CI、実再生の根拠ではない。
