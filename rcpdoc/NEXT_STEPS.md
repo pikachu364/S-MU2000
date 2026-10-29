@@ -2,7 +2,7 @@
 
 更新日：2026-10-29  
 対象ブランチ：`feature/rcp2-parser-skeleton`  
-直近 CI：Actions #533 合格（ユーザー報告）。直近の比較確認：private sample-27 の sample-01〜04 は parser/reference の総イベント数・トラック別件数が一致する一方、順序比較は sample-01=627、sample-02=16、sample-03=598、sample-04=3 件不一致。2026-10-29 に現行ソースと ValleyBell の running-note 期限処理を追加調査。根本原因は未確定。直近 CI はユーザー報告の Actions #516（macOS job 未完了、その他ジョブ合格）。
+直近 CI：Actions #556 合格（ユーザー報告）。private sample-check run [40868277263](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263) の成果物を確認。ValleyBell 参照コンバーター（commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`）との比較は、sample-01 BUTTFLY=27,974イベント・不一致0、sample-02 FC=20,299・不一致4、sample-03 WINGS_55=23,745・不一致0、sample-04 L_WING88=22,536・不一致0。全4曲で総イベント数・トラック別件数は一致。残る4件は sample-02 Track 6 の tick 5135 と 5263 における Note Off相当（Note On velocity 0）と CC の順序差。原因は未確定。
 
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
@@ -87,7 +87,7 @@
 
 ## T-006 — 実サンプルの参照出力比較
 
-**状態:** 次の優先作業。
+**状態:** 比較基盤と4サンプルの比較を実施済み。sample-01 / sample-03 / sample-04 は完全一致。sample-02 に同一tick内の順序差が4件残るため、次は元RCPレコードと参照側の Note Off 生成タイミングを対応付ける。
 
 - [x] `verify --rcp2-event-dump` でイベント単位ダンプ（index / track / absolute tick / seconds / port / MIDI bytes）を出力し、private sample-9 の BUTTFLY で確認。27,974イベントすべての index 連番、tick/秒の非減少、空 bytes なし、`count=27974 encoded_count=27974 consistency=OK` を確認。
 - [ ] 参照コンバーターと現行実装の比較をプライベート環境で実行する手順を整える。現在は参照コンバーターの MIDI を同じサンプルから生成し、イベントを正規化して比較する処理が未整備。
@@ -449,3 +449,15 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - [ ] 同じ sample-04 を rcm2smf でも変換し、出力イベントを比較する。
 - [ ] 特殊SysExについて sayleen の結果を比較できるか調査する。
 - [ ] ツール間の差分を、RCP生レコード・形式資料・実再生結果と照合する。単純な多数決で正解を決めない。
+
+
+## 2026-10-29 追記 — Actions #556 / private sample-check run 40868277263
+
+- ユーザー報告により Actions #556 合格を記録。
+- private sample-check の成果物 [run 40868277263](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40868277263/artifacts/12894966176) を取得して比較レポートを確認。
+- sample-01 BUTTFLY: parser/reference とも 27,974 events、不一致 0。
+- sample-02 FC: 両方 20,299 events、不一致 4。残る差分は Track 6 / tick 5135 と 5263 の各2イベントで、parser は Note Off相当 → CC、reference は CC → Note Off相当。
+- sample-03 WINGS_55: 両方 23,745 events、不一致 0。
+- sample-04 L_WING88: 両方 22,536 events、不一致 0。
+- 4サンプルすべて総イベント数とトラック別件数が一致。合計 94,554 events、比較上の不一致は4件。これは参照コンバーターとの比較結果であり、実機再生の確認ではない。
+- 次は sample-02 の Track 6 の元RCPレコード・累積tick・ノート期限判定を対応付け、固定イベント優先順位を追加せず原因を特定する。
