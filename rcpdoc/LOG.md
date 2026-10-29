@@ -619,3 +619,10 @@
 - sample-04 L_WING88: 22,536 events / mismatch 0 / exact_match=true。
 - 合計 94,554 events。全サンプルで各トラックのイベント件数も一致。参照は ValleyBell rcp2mid commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`。
 - 結論はこの4ファイルの参照出力との完全一致。実機再生、すべてのRCP2機能、他のRCPファイルまで保証するものではない。
+
+## 2026-10-30 — sample-04 SysEx 0xFF の追加調査
+
+- ValleyBell `ProcessRcpSysEx()` と `rcm2smf.js` の `convertSysEx()` をソースで比較。前者は未知の上位ビット付きバイトを警告してスキップ後に続行、後者は生成データの 7-bit 範囲検証で定義全体を無効にするため、警告後の挙動は異なる。
+- private sample-04 の3件では、`0xFF` を `0x7E` 相当として扱う仮説が後続チェックサムと整合する。ただし仕様上の根拠は確認できず、仮説に留める。private の生バイト列は公開文書に転記していない。
+- ValleyBell の固定版 `RCPFormat.txt` では、この `0xFF` 置換規則は見つからなかった。
+- S-MU2000 の現行処理は ValleyBell と同様に未知バイトをスキップしている。コード変更は行わず、仕様上の意味を追加調査する。イベント列の完全一致は SysEx の意味的正しさや実機再生を証明しない。
