@@ -218,3 +218,14 @@
 - 現行 `encode_midi_message()` の Note Off 出力は `0x9n, note, 0` 表現。古い記録の「0x8n出力」という説明は現行コードの説明として使わない。
 - 確認方法: GitHub private workflow artifactの取得・ZIP検査、各比較レポートの読解、GitHub connectorによる現行ソース確認。
 - 制約: sample-04 の問題イベントを元RCPの4-byte record index / byte offsetに対応付けるところまでは未実施。原因確定、修正後CI、実再生の根拠ではない。
+
+
+## F-020 — S-MU2000 handling of unknown high-bit bytes in 0x98 SysEx templates
+
+**Status:** Confirmed by source review; no runtime test added for this finding.
+
+- In src/rcp.cpp at the 0x98 SysEx expansion loop (current blob SHA at investigation time: 6b04fa6a82c694fc39c9c1441921db57de9a1533), bytes 0x80–0x84 and 0xF7 are handled specially. Other bytes with the high bit set are skipped; the source comment explicitly cites 0xFF and says this matches the reference RCP2 converter behavior.
+- Reference converter ProcessRcpSysEx() at ValleyBell/MidiConverters commit a73c748960d57bd194fb64931ce07d2c1fa1bd01 likewise warns for unknown high-bit template bytes and does not append them to output.
+- Therefore, source inspection suggests the warning does not by itself indicate a behavior difference between the two converters for these bytes.
+- Verification method: source-code review only, plus Action #42 raw dump/log inspection. No playback or new automated test was performed.
+- Limitation: the intended meaning/origin of 0xFF in this file and any relation to event-order mismatches remain unverified.
