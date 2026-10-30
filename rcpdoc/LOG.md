@@ -634,3 +634,13 @@
 - `rcm2smf.js` の `convertSysEx()` は `0xFF` を通常データとして評価し、7-bit 範囲外のため `null` を返す。呼び出し側はその SysEx 定義を無視する。
 - 先の記録にあった `0xFF → 0x7E` とチェックサムが整合するという記述は、独立再計算で確認できず撤回した。置換仮説の根拠として使わない。
 - RCPFormat.txt にも今回の `0xFF` の意味や置換規則は確認できていない。コード変更なし。次は RCP レコードの原位置と、MIDI 出力に実際に生成される SysEx を private 環境で抽出して仕様に照らす。公開リポジトリへサンプル本体・ダンプは転記しない。
+
+
+## 2026-10-30 — RCP2 SysEx 0xFF の形式資料・Gearmulator再確認
+
+- ValleyBell の `RCPFormat.txt` を確認。`0x98` は後続の `0xF7` 継続レコードに SysEx payload を持ち、テンプレート制御値として列挙されているのは `0x80`–`0x84`。今回の `0xFF` の置換規則は資料にない。
+- Gearmulator の現在の `rcpTrack.cpp` を確認。RCP2 `0x98` の `p1/p2` をペイロード先頭として使わず、後続の `0xF7` 継続レコードからデータを集める。テンプレート展開では未知の高ビット値をスキップする。
+- S-MU2000 の `src/rcp.cpp` も `0x98` のテンプレート展開で未知の高ビット値をスキップし、ValleyBell の参照動作に合わせている。
+- **結論:** `0xFF` を別の値へ置換する仕様上の根拠は見つからない。既知の制御値ではないため、未知の高ビット値としてスキップするのが現行参照規則。ただし元データの意図、スキップ後のチェックサムの妥当性、実機での影響は未確定。
+- 参照: [RCPFormat.txt](https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[S-MU2000 src/rcp.cpp](https://github.com/pikachu364/S-MU2000/blob/feature/rcp2-parser-skeleton/src/rcp.cpp)。
+- 今回はドキュメント更新のみ。ソースコード・テスト・CI・実機再生は変更・実行していない。
