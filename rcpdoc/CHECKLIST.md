@@ -326,3 +326,15 @@
 - [ ] private sample 内の他のDT1 SysExを長さ・checksum別に棚卸しする。
 - [ ] 過去のCheck Sum Error表示と対象曲・SysExを対応付ける（可能な場合）。
 - [ ] データ変更や checksum 補正は、原因と仕様根拠が確定するまで行わない。
+
+
+## 2026-10-30 追記 — sample-04 DT1 checksum 棚卸し
+
+- [x] Roland DT1を120件抽出。
+- [x] 117件（body長9 bytes以上）のchecksum合計がすべて0であることを確認。
+- [x] 3件（body長8 bytes）はchecksum byteなし。Gearmulatorの最低長条件で検査前return。
+- [x] 保存済みsample-04 event dump上、Check Sum Error条件に該当するDT1は0件と記録。
+- [ ] 他sampleのDT1 checksum棚卸し。
+- [ ] 過去のエラー表示が別曲由来か、追加情報があれば照合。
+
+**注意:** 静的event dumpの解析であり、88emu実再生試験ではない。
