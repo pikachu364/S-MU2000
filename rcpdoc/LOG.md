@@ -718,3 +718,13 @@
 - 機種差を明記: この changelog 項目は SC-55mkII の修正であり、SC-88 / SC-88Pro や今回の RCP2 sample に同じ問題があるとする根拠ではない。
 - **結論:** checksum error の当該DT1拒否後に後続SysExが処理される仕組みを統合テストソースでも確認。過去にユーザーが見た表示の発生源は依然未特定。今回の4 sampleは静的DT1 checksum不一致0件という既存結果を維持。
 - **作業範囲:** ソースレビューと文書更新のみ。S-MU2000のソース変更、ローカルビルド、Gearmulatorテスト実行、88emu実再生は行っていない。
+
+
+## 2026-10-30 — 4 sample の DT1 時間密度を比較
+
+- 保存済みsample-01〜04のparser event dumpからRoland DT1の時刻を集計。
+- 任意の100ms窓の最大件数: sample-01=5、sample-02=4、sample-03=6、sample-04=26。
+- 同一tickの最大件数: sample-01=1、sample-02=1、sample-03=2、sample-04=5。
+- sample-04の最大密度区間には、DT1アドレス上位byte 0x01 / 0x10 / 0x40 / 0x52 のメッセージが含まれ、0x10系も存在する。表示系アドレスの可能性はあるが、display dot animationと確定していない。
+- SC-55mkIIの高密度SysExタイミング競合に関するGearmulator changelogと照合する価値がある一方、機種差・実送信タイミング・実再生の未確認を明記する。
+- **制約:** 100msは観測用集計窓であり不具合閾値ではない。event dumpの時刻集計だけではMIDI wire timingやsub-MCU/CPU間競合は再現できない。
