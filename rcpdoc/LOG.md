@@ -644,3 +644,15 @@
 - **結論:** `0xFF` を別の値へ置換する仕様上の根拠は見つからない。既知の制御値ではないため、未知の高ビット値としてスキップするのが現行参照規則。ただし元データの意図、スキップ後のチェックサムの妥当性、実機での影響は未確定。
 - 参照: [RCPFormat.txt](https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[S-MU2000 src/rcp.cpp](https://github.com/pikachu364/S-MU2000/blob/feature/rcp2-parser-skeleton/src/rcp.cpp)。
 - 今回はドキュメント更新のみ。ソースコード・テスト・CI・実機再生は変更・実行していない。
+
+
+## 2026-10-30 — #581 合格後: 88emu の SysCheck error と処理継続を調査
+
+- ユーザー報告: Actions #581 合格。
+- Gearmulator 現行 `rcpDecoder.cpp` と `rcpTrack.cpp` を確認し、RCP構造解析の致命的エラーと、SysExテンプレート内の未知高ビット値の扱いを分離して整理した。
+- 構造解析では、切り詰めヘッダー・不正/切り詰めG36 track・安全上限超過・利用可能trackなし等は `false` を返す。一方、`0x98` テンプレート内の未知高ビット値は `expandSysExTemplate()` がスキップし、処理を継続する。
+- `0x98` payload は後続 `0xF7` 継続レコードから構成される。SysEx出力が空でも `addSysExTemplate()` は成功扱いとなり、後続イベント処理を止めない。
+- 現行 unit test には正常な Track Exclusive continuation のテストがあるが、未知高ビット値を含むケースの直接テストは今回確認できなかった。
+- GitHub code search では `SysCheck` の実装箇所を特定できず、88emu の SysCheck error 表示が parser 段階か、音源側の SysEx/checksum 判定かは未確定。
+- **結論:** 一部 SysEx 異常を無視して RCP の後続イベントを処理する実装パターンは実在する。ただし、それがユーザー観測の 88emu SysCheck error と同一原因かはまだ証明されていない。
+- 今回はソース調査と記録のみ。S-MU2000 ソース変更、ビルド、CI再実行、実機/88emu再生は行っていない。
