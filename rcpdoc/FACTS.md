@@ -356,9 +356,10 @@
 
 **状態:** Roland公式サポート資料およびGearmulator実装と照合。
 
-- sample-04 の最大100ms窓（DT1 26件）には、Roland model ID 0x56 のDT1が8件含まれる。
-- Roland公式サポートは、F0 41 10 56 12 01 <part> 00 10 <checksum> F7 を、Roland GM音源の指定パートを受信OFFにするメッセージとして掲載している。sample-04の当該区間にある model ID 0x56 / address 01 / data 10 の並びは、この形式と一致する。
-- したがって、少なくともこの8件は表示ドット描画ではなく、パート受信OFF設定と判断できる。連続するパート設定が短時間窓のDT1密度を高めている。
+- sample-04 のイベントダンプ全体に、Roland model ID 0x56 のDT1が26件ある。sample-01〜03では同形式のメッセージは検出されなかった。
+- 26件のうち16件は、Roland公式資料のパート受信OFF形式 `F0 41 10 56 12 01 <part> 00 10 <checksum> F7` と一致する。16パート分が一度ずつ並び、パート番号は資料上の並びに一致する。
+- この16件のうち8件が最大100ms窓に含まれる。したがって、密度区間に含まれる少なくとも8件だけでなく、sample-04全体で16件がパート受信OFF設定と分類できる。
+- 残る10件はmodel ID 0x56ではあるが、上記のパート受信OFF形式とは異なるアドレス／データ列である。現時点では用途を未特定とし、パートON/OFFや表示データなどと推測で分類しない。
 - 同じ窓にはmodel ID 0x42 のGS DT1と、model ID 0x16 のDT1も混在する。0x16 はRolandのD-110 / MT-32互換系で用いられるmodel IDとして資料上確認できるが、今回のアドレス0x10の個別用途は未特定。
 - GearmulatorのSC-88実装ではDisplay Letter / Display Dot Dataはmodel ID 0x45 として扱われ、address high byte 0x10系が表示データとして説明されている。sample-04の上記0x16メッセージはmodel IDが0x45ではないため、address 0x10だけを根拠にSC-88表示SysExとは分類できない。
 - Gearmulator changelogにはSC-88 / SC-88Proでmodel ID 0x45の表示メッセージを通す修正と、別機種SC-55mkIIの高密度SysEx時のタイミング競合修正が別項目として記録されている。後者を今回のsampleに適用する根拠はない。
