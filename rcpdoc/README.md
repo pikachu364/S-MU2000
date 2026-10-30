@@ -71,3 +71,8 @@
 - Gearmulator changelog には SC-55mkII の高密度SysEx時に、タイミング競合で同じbyteが二重に渡り Check Sum Error / DT1 Data Error が出る既知不具合の修正記録がある。SC-88系や今回のsampleにも同じ問題があるとは断定しない。
 - 過去のエラー表示の発生源は未特定。静的checksum不一致、個別DT1拒否、後続イベント継続、機種固有のタイミング不具合を区別する。
 - 詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[CHECKLIST.md](CHECKLIST.md)、[LOG.md](LOG.md) を参照。
+
+
+## 追加状況（2026-10-30）— DT1時間密度
+
+保存済み4 sampleのparser event dumpを集計したところ、100ms窓の最大DT1件数は sample-01=5、sample-02=4、sample-03=6、sample-04=26。sample-04には短時間にSysExが集中する区間がある。表示系アドレス0x10を含むが、display dot animationやエラー原因と確定したわけではない。Gearmulator changelogのSC-55mkII高密度SysEx不具合と照合するための調査手掛かりとして扱う。詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[LOG.md](LOG.md) を参照。
