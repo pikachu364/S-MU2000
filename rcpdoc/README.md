@@ -76,3 +76,8 @@
 ## 追加状況（2026-10-30）— DT1時間密度
 
 保存済み4 sampleのparser event dumpを集計したところ、100ms窓の最大DT1件数は sample-01=5、sample-02=4、sample-03=6、sample-04=26。sample-04には短時間にSysExが集中する区間がある。表示系アドレス0x10を含むが、display dot animationやエラー原因と確定したわけではない。Gearmulator changelogのSC-55mkII高密度SysEx不具合と照合するための調査手掛かりとして扱う。詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[LOG.md](LOG.md) を参照。
+
+
+## 追加状況（2026-10-30）— sample-04高密度SysExの用途
+
+sample-04の最大100ms窓にはDT1が26件あり、そのうちmodel ID 0x56の8件はRoland公式資料のパート受信OFFメッセージと一致した。GearmulatorのSC-88表示メッセージはmodel ID 0x45を使用するため、address 0x10だけで表示ドットデータと分類しない。Check Sum Errorとの因果は未確認。詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[LOG.md](LOG.md) を参照。
