@@ -209,3 +209,12 @@ private sample-check run [40868277263](https://github.com/pikachu364/S-MU2000-pr
 4. SysCheck が音源ファームウェア側の checksum 判定なら、RCP parser の読み込み成功とは別項目として扱う。
 
 **制約:** 「エラー表示があるのに再生できる」観測だけから、エラーを無視している・SysEx が安全にスキップされるとは断定しない。現時点で S-MU2000 のソース変更は行わない。
+
+
+### H-RCP-SYSCHECK-20261030-A — 重要な追加根拠
+
+Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に `0xE0 / param1=3` の "Check Sum Error" 通知を発生させ、その DT1 処理だけを拒否して return する。SysEx assembly は `F7` 受信時にクリアされ、後続 MIDI byte の入力処理は別途続く。
+
+このため、ユーザー観測がこの "Check Sum Error" を指すなら、「エラーが出ても 88emu で曲を聴ける」ことは自然に説明できる。エラーは曲全体の再生停止ではなく、個別 DT1 の不受理通知と考えられる。
+
+**まだ確認が必要:** ユーザーが見た表示の正確な文言が "Check Sum Error" かどうか。今回の RCP2 3件の SysEx がこの通知を発生させるかどうか。対象メッセージの checksum が不正と確定するまでは断定しない。
