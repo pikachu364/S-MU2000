@@ -708,3 +708,13 @@
 - [ ] 過去のエラー表示が起きた曲・条件が特定できる場合は、その入力を別途調査する。
 
 **注意:** 静的event dump解析であり、88emu実再生試験ではない。
+
+
+## 2026-10-30 — #607 合格後: Check Sum Error の継続処理と既知タイミング不具合を追加調査
+
+- ユーザー報告: Actions #607 合格。合格報告として記録し、今回の追加ソース調査とは分けて扱う。
+- Gearmulator の source/ronaldo/88emu/88lib/tests/sc88_system_dt1_test.cpp を確認。SC-88 / SC-88VL / SC-88Pro に対し、checksum を壊した DT1 は対象パラメータに反映されず、その後に送った正常な DT1 は反映されることを検査する統合テスト構成を確認した。ROM依存の optional test であり、今回実行したものではない。
+- Gearmulator changelog の SC-55mkII 項目を確認。高密度 SysEx（display dot animation 等）で「Check Sum Error」「DT1 Data Error」が発生した既知不具合は、sub-MCU / main CPU 間のタイミング競合で同じ byte が二重に渡ることが原因。実データの checksum 不正とは異なる。
+- 機種差を明記: この changelog 項目は SC-55mkII の修正であり、SC-88 / SC-88Pro や今回の RCP2 sample に同じ問題があるとする根拠ではない。
+- **結論:** checksum error の当該DT1拒否後に後続SysExが処理される仕組みを統合テストソースでも確認。過去にユーザーが見た表示の発生源は依然未特定。今回の4 sampleは静的DT1 checksum不一致0件という既存結果を維持。
+- **作業範囲:** ソースレビューと文書更新のみ。S-MU2000のソース変更、ローカルビルド、Gearmulatorテスト実行、88emu実再生は行っていない。
