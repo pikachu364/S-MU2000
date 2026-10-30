@@ -268,3 +268,21 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 3. 88emu 実再生試験を行った場合は、静的 dump 検査・ソースレビュー・統合テストソース確認と分けて結果を記録する。
 
 **制約:** 過去の表示原因は未確定。SC-55mkII の changelog 記録は、SC-88系や対象RCPの不具合を示すものではない。
+
+
+## H-RCP-SYSCHECK-20261030-H — sample-04 の高密度SysExがエラー表示に関係する可能性
+
+**状態:** 時間密度の静的集計で調査対象を絞り込んだ段階。原因は未確定。
+
+- sample-01〜04 の parser event dump を比較すると、100ms窓の最大DT1件数は順に 5 / 4 / 6 / 26 件、同一tickの最大DT1件数は 1 / 1 / 2 / 5 件。
+- sample-04 の最大100ms窓には 0x10 系アドレスを含む複数種のDT1が含まれる。Gearmulator changelog にある SC-55mkII の display dot animation 等の高密度SysEx問題と照合する手掛かりにはなる。
+- しかし、sample-04 が display dot animation を実行している、またはSC-55mkIIの既知競合を起こす、とまでは確認できていない。
+- event dump のtimestampは変換後イベントの時間であり、音源に到達するwire timingやsub-MCU / main CPU間の実行タイミングを再現しない。
+
+**次の検証**
+1. sample-04 の高密度区間に含まれる 0x10 系DT1の意味を、Gearmulatorの表示系アドレス処理と照合する。
+2. 必要なら private 環境で同区間の実際の送信byte数・wire durationを推定し、イベントtimestampだけの密度と区別する。
+3. 他sample・新規sampleでも同じ集計を行い、sample-04固有かどうか比較する。
+4. 88emu実再生でエラーが再現するか確認できた場合のみ、原因候補として強める。
+
+**制約:** 密度の相関だけでエラー原因と断定しない。SC-55mkIIの既知不具合をSC-88系へ一般化しない。
