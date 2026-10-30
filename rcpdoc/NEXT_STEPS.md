@@ -615,3 +615,13 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. model ID 0x56の全件についてパート番号とON/OFFを集計する。
 3. 新規sampleでもmodel ID・command・addressを組み合わせて分類する。
 4. Check Sum Errorとの関係は実再生・対象機種・実送信タイミングが揃うまで未確定とする。
+
+
+## 優先順位の見直し — Check Sum Errorの再生対象
+
+ユーザー報告では、sample-01〜04は88emu単独・Glosa経由のどちらでもエラー表示なし。過去の `Check Sum Error` は別曲で発生した可能性が高いため、sample-04の高密度区間をエラー原因の再現対象として追い続ける優先度を下げる。
+
+1. エラー表示を見た曲を特定できたら、そのRCPデータを対象に調査する。
+2. 曲が特定されるまでは、今回の4 sampleの静的checksum結果と過去のエラー表示を結び付けない。
+3. sample-04 model ID 0x16の用途調査は一般的なRCP/SysEx理解のための調査として分けて扱う。
+4. 原因の特定・再現がない段階で、checksum補正やSysEx書換えは行わない。
