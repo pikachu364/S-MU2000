@@ -289,3 +289,17 @@
 - チェックサム不一致時も拒否対象は当該 DT1 転送であり、RCP ファイル全体の解析失敗を意味しない。ユーザーはエラー表示後も演奏を聴けた経験があると報告。
 - 根拠: [Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[sc88.h](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/boards/sc88.h)。
 - **制約:** 88emuでユーザーが過去に見た表示の個別発生源、今回の3件以外の SysEx の checksum、実機相当の再生挙動は未確認。
+
+
+
+## F-026 — L_WING88 の Roland DT1 checksum 棚卸し
+
+**対象:** private sample validation artifact の sample-04 event dump（2026-10-29生成）。生RCPの内容・位置・raw bytesは公開しない。
+
+- event dump 内の Roland DT1（Roland ID 41 / DT1 command 12）を120件確認。
+- SysEx body長（F0/F7除外）は、9 bytes: 114件、12 bytes: 1件、264 bytes: 1件、92 bytes: 1件、8 bytes: 3件。
+- Gearmulator の SC-88 sub-MCU が checksum 検査する最低長9 bytes以上の117件は、アドレス先頭からchecksumまでの7-bit合計がすべて0。checksum不一致は0件。
+- 残る3件はbody長8 bytesでchecksum byteを含まず、Gearmulatorは最低長条件でchecksum検査前に無通知returnする。
+- したがって、このsample-04の変換済みDT1イベント120件の中に、Gearmulatorの `Check Sum Error` 通知条件に該当するDT1は見つからなかった。
+- sample-04の既存比較結果は parser/reference とも22,536 events、exact_match=true、mismatch_count=0。
+- **制約:** これは保存済みsample-04 event dumpの静的照合であり、88emuの実再生試験ではない。ユーザーが過去に見たCheck Sum Errorの発生源を特定したものではない。
