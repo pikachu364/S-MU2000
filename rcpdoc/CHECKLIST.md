@@ -350,3 +350,16 @@
 - [ ] 過去のエラー表示の発生源は、対象曲・条件が分かれば別途調査。
 
 **注意:** 静的event dump解析であり、88emu実再生試験ではない。
+
+
+## 2026-10-30 追記 — Check Sum Error 後の処理継続・タイミング競合
+
+- [x] Gearmulator sc88_system_dt1_test.cpp で、checksum不正DT1の拒否後に正常DT1を処理するテスト構成を確認。
+- [x] テスト対象が SC-88 / SC-88VL / SC-88Pro であることを確認。
+- [x] Gearmulator changelog に SC-55mkII の高密度SysEx時の誤った Check Sum Error / DT1 Data Error と、同一byte二重渡しのタイミング競合修正が記録されていることを確認。
+- [x] SC-55mkII の既知不具合と SC-88系の DT1 checksum拒否経路を別の事象として整理。
+- [ ] 過去にユーザーが見たエラー表示の正確な文言・機種・曲・発生タイミングを照合（情報が得られる場合）。
+- [ ] 新規sampleのSysEx時間密度を必要に応じて集計し、checksum不一致とは独立した観測値として記録。
+- [ ] 実再生確認を行った場合、静的checksum検査・ソースレビュー・テストソース確認とは別に記録。
+
+**注意:** 今回はテストソース・changelogの確認のみ。Gearmulator統合テストや88emu実再生を実行したわけではない。
