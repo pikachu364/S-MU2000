@@ -315,3 +315,14 @@
 - [ ] エラー後の後続ノートが 88emu で再生されることを今回の対象データで確認。
 
 **状態:** 「checksum error が出ても曲を聴ける」動作を説明するソース根拠を確認。対象データとの対応は未確認。
+
+
+
+## 2026-10-30 追記 — DT1 Check Sum Error の切り分け
+
+- [x] Gearmulator SC-88 sub-MCU の DT1最低長（9 bytes）を確認する。
+- [x] checksum不一致通知（0xE0 / param1=3）と最低長不足による無通知returnを区別する。
+- [x] 今回の3件は8-byte bodyのため checksum error 対象ではないと記録する。
+- [ ] private sample 内の他のDT1 SysExを長さ・checksum別に棚卸しする。
+- [ ] 過去のCheck Sum Error表示と対象曲・SysExを対応付ける（可能な場合）。
+- [ ] データ変更や checksum 補正は、原因と仕様根拠が確定するまで行わない。
