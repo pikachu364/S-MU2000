@@ -666,3 +666,18 @@
 - したがって、Roland DT1 の checksum error は個別 SysEx の拒否通知であり、RCP全体の再生停止を意味しない。ユーザーの観測「エラー表示が出ても88emuで聴ける」を説明できる実装根拠が見つかった。
 - **未確定:** ユーザーの言う "syscheck error" が実際に "Check Sum Error" 表示を指すか。今回の3件の SysEx が DT1 checksum error を起こすか。表示文言と該当出力 SysEx の照合が必要。
 - これは Gearmulator の SC-88 sub-MCU 実装のソース確認であり、実機検証や今回の private sample での発生確認ではない。
+
+
+
+### 2026-10-30 追記 — Check Sum Error の発生条件を訂正
+
+- [x] Gearmulator `Sc88SubMcu::decodedTransfer()` の最低長条件を確認。DT1 body が9 bytes未満なら checksum 検査前に無通知で return。
+- [x] checksum 不一致時の通知が `OpSysExError (0xE0), param1=3` であり、ファームウェアの `Check Sum Error` 表示に対応することを確認。
+- [x] private sample の対象3件は各8-byte bodyであり、Gearmulator の当該 checksum error 経路には入らないと判定。
+- [x] 以前の「対象3件が Check Sum Error を起こす可能性」という推測を撤回。これらは checksum 不一致ではなく、最低長不足で無通知 return する。
+- [x] ユーザー報告: 過去に `Check Sum Error` が表示されても演奏を聴けた。これは個別DT1の拒否と曲全体の停止が別であることと整合する。
+- [ ] 実際に表示されたエラーが今回のサンプル再生時に出たものか、別の曲・別のSysExによるものか確認。
+- [ ] private sample 内の他の DT1 SysEx を対象に、長さ・checksum・出力イベントを照合。
+- [ ] 88emu の表示通知後に後続MIDIが処理される経路を、必要ならファームウェア側まで追跡。
+
+**状態:** 発生条件のコード調査は完了。今回の3件との因果関係は否定的。ユーザーの過去の表示原因は未特定。ソース変更・データ修正は行っていない。
