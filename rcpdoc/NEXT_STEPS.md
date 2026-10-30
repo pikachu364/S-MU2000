@@ -530,3 +530,14 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - [ ] 上記が確認できてから、S-MU2000 に同じ継続仕様が必要か、既存挙動で十分かを判断する。
 
 **注意:** 「SysCheck error が出ても聴ける」という観測は、エラーが非致命である可能性を示すが、どの段階のエラーかは特定しない。エラー表示を隠す、異常バイトを置換する、checksum を自動修正する変更は行わない。
+
+
+### 追加確認 — 88emu "Check Sum Error" 表示との照合
+
+- [x] SC-88 sub-MCU が Roland DT1 checksum 不一致時に `0xE0 / param1=3` の "Check Sum Error" 通知を出し、その DT1 の処理だけを拒否することを確認。
+- [x] SysEx 終端後に assembly をクリアし、後続 MIDI byte を通常処理できる経路を確認。
+- [ ] ユーザーが見たエラーの正確な画面表示が "Check Sum Error" か確認する。
+- [ ] 対象3件の S-MU2000 / ValleyBell 生成 SysEx を private 環境で比較し、Roland DT1 として sub-MCU checksum 検査に入る形か確認する。
+- [ ] checksum 不一致なら、そのメッセージだけが拒否される想定と、後続ノートの再生継続を分けて確認する。
+
+**暫定結論:** エラー表示が Roland "Check Sum Error" なら、曲全体は停止せず、個別 DT1 だけ拒否されるため、88emuで再生を聴ける可能性が高い。まだ今回の3件が該当すると確定していない。
