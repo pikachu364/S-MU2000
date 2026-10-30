@@ -261,3 +261,18 @@
 **重要な区別:** これは「RCP parser が未知テンプレート値を無視して後続イベントを処理できる」ことのソース確認であり、88emu UI の SysCheck error が同じ検査を指すことや、音源ファームウェア側の SysEx checksum error が非致命であることを証明しない。
 
 **根拠:** [Gearmulator rcpDecoder.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpDecoder.cpp)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[Gearmulator midiFile_test.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/juce/jucePlayerLib/tests/midiFile_test.cpp)。
+
+
+## F-023 — 88emu の Roland DT1 checksum error は個別 SysEx の拒否通知
+
+**状態:** Gearmulator の SC-88 sub-MCU 実装で処理を確認。ユーザーの「syscheck error」が画面上の "Check Sum Error" を指す場合に対応する有力な説明。ただし実際の表示文言は未照合。
+
+- `Sc88SubMcu::midiIn()` は SysEx の終端 `F7` を受けると `endOfSysEx()` を呼び、組み立てた SysEx をクリアしてそのメッセージ処理を終了する。
+- Roland DT1 の `decodedTransfer()` は、アドレス・データ・checksum の合計下位7bitが0でない場合、`OpSysExError`（`0xE0`）通知を生成し、`param1=3`（"Check Sum Error"）を設定して、その DT1 の転送処理だけを `return` する。
+- コメントには、音源側は checksum 不一致のメッセージを無視し、sub-MCU がパネル通知を出す、と明記されている。
+- `midiIn()` の SysEx 終端処理は当該メッセージの assembly をクリアして戻る。次に到着する MIDI byte は通常の入力処理へ進むため、この経路は RCP ファイル全体や後続の MIDI 演奏を中止する処理ではない。
+- よって、Roland DT1 checksum error が出ても、問題の DT1 設定だけが反映されず、その後のノート等は引き続き処理される、という挙動が実装上成立する。
+
+**重要な区別:** これは RCP parser のエラーではなく、完成した Roland SysEx を音源側 sub-MCU が検査した段階の通知。ユーザーの言う "SysCheck error" が別の表示・別機種のエラーなら、同一視しない。
+
+**根拠:** [Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[sc88_submcu.h](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.h)。
