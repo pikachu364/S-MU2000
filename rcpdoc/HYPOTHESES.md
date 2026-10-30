@@ -230,3 +230,14 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 - Check Sum Error は checksum 不一致時の別経路（OpSysExError / param1=3）で発生する。
 - ユーザーは過去に Check Sum Error 表示後も演奏を聴けたと報告している。これは当該DT1の拒否と曲全体の停止が別であることと整合するが、今回の3件が表示原因という意味ではない。
 - 次は private sample 内の他のDT1 SysEx、または実際に表示された時の入力イベントを調べる。データ修正は根拠が得られるまで行わない。
+
+
+
+## H-RCP-SYSCHECK-20261030-E — sample-04 のDT1 checksum棚卸し
+
+**状態:** 保存済みsample-04 event dumpで静的確認済み。
+
+- Roland DT1を120件抽出。うち117件（body長9 bytes以上）はchecksum合計0、3件はbody長8 bytesでchecksum byteなし。
+- Gearmulator SC-88 sub-MCUの条件に照らすと、117件はchecksum error条件に該当せず、3件はchecksum検査前に無通知returnする。
+- よって、保存済みsample-04 event dump上ではCheck Sum Errorを起こすDT1は確認されなかった。
+- この結果は過去にユーザーが別の曲・別の入力で見たエラーの原因を否定するものではない。実再生試験とも区別する。
