@@ -63,3 +63,11 @@
 ## DT1 Check Sum Error 調査（2026-10-30）
 
 保存済みsample-01〜04のevent dumpからRoland DT1を503件抽出。500件はchecksum合格、3件はchecksum byteを持たない短いメッセージ。checksum不一致は0件。今回確認した4 sampleのevent dumpにはGearmulatorのCheck Sum Error通知条件に該当するDT1は見つかっていない。これは静的検査であり、88emu実再生試験や過去のエラー表示の発生源特定ではない。
+
+
+## Check Sum Error の継続処理に関する追加確認（2026-10-30）
+
+- Gearmulator の SC-88 / SC-88VL / SC-88Pro 向け統合テストソースには、checksum不正DT1が反映されず、その後の正常DT1は反映されることを確認するテスト構成がある。ソース確認であり、今回テストを実行したわけではない。
+- Gearmulator changelog には SC-55mkII の高密度SysEx時に、タイミング競合で同じbyteが二重に渡り Check Sum Error / DT1 Data Error が出る既知不具合の修正記録がある。SC-88系や今回のsampleにも同じ問題があるとは断定しない。
+- 過去のエラー表示の発生源は未特定。静的checksum不一致、個別DT1拒否、後続イベント継続、機種固有のタイミング不具合を区別する。
+- 詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[CHECKLIST.md](CHECKLIST.md)、[LOG.md](LOG.md) を参照。
