@@ -552,3 +552,15 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 4. 88emuで過去に表示された Check Sum Error がどの曲・どのタイミングだったかは、ユーザーが特定できる場合に限り照合する。特定できなくても調査を継続する。
 
 **完了条件:** エラー表示を発生させるDT1を特定するか、private sampleに含まれるDT1が表示条件に該当しないことを示す。RCP parser の成功、DT1個別の拒否、後続MIDIの演奏継続を別々に記録する。
+
+
+
+## 2026-10-30 — sample-04 DT1 checksum 棚卸し結果
+
+保存済みsample-04 validation artifactのevent dumpからRoland DT1を120件抽出した。body長9 bytes以上の117件はすべてchecksum合計0。残り3件は8-byte bodyでchecksum byteがなく、Gearmulator SC-88 sub-MCUではchecksum検査前に無通知returnする。したがって、同artifactのDT1イベントにはGearmulatorのCheck Sum Error通知条件に該当するものはなかった。
+
+次の候補:
+1. 他のsampleでも同じ棚卸しを行う。
+2. 過去のCheck Sum Errorが別曲で起きた可能性を残す。
+3. 実再生確認と静的checksum照合を混同しない。
+4. checksum補正やraw data変更は行わない。
