@@ -514,3 +514,19 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 4. イベント列の一致と SysEx の意味的妥当性・実機再生確認を別々に記録する。
 
 **制約:** 今回の更新は資料・ソースレビューに基づく。実機再生やローカルビルド・テストは実施していない。
+
+
+## 2026-10-30 — SysCheck error と再生継続の切り分け
+
+**目的:** 88emu の SysCheck error が、RCPファイル読み込み失敗なのか、特定 SysEx の生成/検査警告なのか、音源ファームウェア側の checksum error なのかを特定する。
+
+- [x] Gearmulator の RCP構造解析で全体失敗となる条件を確認。
+- [x] Gearmulator の `0x98` SysEx展開で未知高ビット値がスキップされ、後続イベント処理が継続する経路を確認。
+- [x] 正常な `0x98` / `0xF7` 継続レコードの既存 unit test を確認。
+- [ ] 88emu で表示される正確な SysCheck error 文言、表示位置、発生タイミングを特定する。
+- [ ] 88emu の parser / event expansion / MIDI dispatch / firmware response の各段階を分けてソース追跡する。
+- [ ] 対象 SysEx 前後のノート・CC等が再生経路に残るか確認する。
+- [ ] 未知高ビット値を含む最小合成 fixture を作り、RCP全体の読み込み成功・後続ノートの保持・SysEx出力の有無を個別にテストする。
+- [ ] 上記が確認できてから、S-MU2000 に同じ継続仕様が必要か、既存挙動で十分かを判断する。
+
+**注意:** 「SysCheck error が出ても聴ける」という観測は、エラーが非致命である可能性を示すが、どの段階のエラーかは特定しない。エラー表示を隠す、異常バイトを置換する、checksum を自動修正する変更は行わない。
