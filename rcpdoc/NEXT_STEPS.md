@@ -591,3 +591,15 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 4. 88emu 実再生や Gearmulator optional integration test を実行した場合は、その実行条件・結果をソースレビューとは別に記録する。
 
 **禁止事項:** 根拠なしの checksum 補正、SysEx byte 置換、警告抑制、SC-55mkII の既知不具合を SC-88系へ横展開する変更は行わない。
+
+
+## 追加確認 — sample-04 の SysEx 高密度区間
+
+保存済み4 sampleのparser event dump集計では、任意の100ms窓の最大Roland DT1件数が sample-01=5、sample-02=4、sample-03=6、sample-04=26。sample-04の同一tick最大件数は5件。最大密度区間には0x10系アドレスを含むDT1があるが、表示dot animationかどうかは未確定。
+
+1. sample-04 の0x10系DT1の意味を表示系アドレス処理と照合する。
+2. 必要に応じて private 環境で実際の送信byte数とwire durationを見積もり、parser event timestampと区別する。
+3. 新しいsampleにも同じ時間密度集計を適用する。
+4. 88emu実再生で再現を確認できるまでは、SC-55mkIIの既知不具合と今回のsampleを同一原因と扱わない。
+
+100ms窓は調査用の集計幅であり、不具合閾値ではない。
