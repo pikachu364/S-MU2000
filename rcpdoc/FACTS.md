@@ -350,3 +350,19 @@
 - Gearmulator changelog の SC-55mkII 高密度SysEx不具合は display dot animation 等を例に挙げているため、sample-04 の密度は追加調査の手掛かりになる。
 - ただし同 changelog の不具合は SC-55mkII のタイミング競合修正。SC-88系、今回のsample、ユーザーが過去に見たエラーと同じ原因である証拠ではない。
 - **制約:** parser event dump の timestamp/tick を使った静的集計。実際のMIDI wire transmission timing、88emuの内部処理タイミング、実再生結果を測定したものではない。100ms窓は観測用の集計幅であり、不具合発生閾値ではない。
+
+
+## F-030 — sample-04 高密度区間の SysEx 用途を照合
+
+**状態:** Roland公式サポート資料およびGearmulator実装と照合。
+
+- sample-04 の最大100ms窓（DT1 26件）には、Roland model ID 0x56 のDT1が8件含まれる。
+- Roland公式サポートは、F0 41 10 56 12 01 <part> 00 10 <checksum> F7 を、Roland GM音源の指定パートを受信OFFにするメッセージとして掲載している。sample-04の当該区間にある model ID 0x56 / address 01 / data 10 の並びは、この形式と一致する。
+- したがって、少なくともこの8件は表示ドット描画ではなく、パート受信OFF設定と判断できる。連続するパート設定が短時間窓のDT1密度を高めている。
+- 同じ窓にはmodel ID 0x42 のGS DT1と、model ID 0x16 のDT1も混在する。0x16 はRolandのD-110 / MT-32互換系で用いられるmodel IDとして資料上確認できるが、今回のアドレス0x10の個別用途は未特定。
+- GearmulatorのSC-88実装ではDisplay Letter / Display Dot Dataはmodel ID 0x45 として扱われ、address high byte 0x10系が表示データとして説明されている。sample-04の上記0x16メッセージはmodel IDが0x45ではないため、address 0x10だけを根拠にSC-88表示SysExとは分類できない。
+- Gearmulator changelogにはSC-88 / SC-88Proでmodel ID 0x45の表示メッセージを通す修正と、別機種SC-55mkIIの高密度SysEx時のタイミング競合修正が別項目として記録されている。後者を今回のsampleに適用する根拠はない。
+
+**結論:** sample-04の高密度区間は、少なくとも8件のパート受信OFF設定を含む混在SysEx列である。SC-88表示ドットアニメーションと同一視する従来の可能性は弱まり、当該区間の密度はパート設定列で説明できる部分がある。ユーザーが過去に見たCheck Sum Errorとの因果関係は未確認。
+
+**根拠:** [Roland公式: Part Rx On/Off System Exclusive Messages](https://support.roland.com/hc/en-us/articles/201968459-Part-Rx-On-Off-System-Exclusive-Messages-for-Roland-GM-Instruments)、[Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[Gearmulator changelog](https://github.com/dsp56300/gearmulator/blob/main/doc/changelog.txt)。
