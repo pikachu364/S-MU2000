@@ -541,3 +541,14 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - [ ] checksum 不一致なら、そのメッセージだけが拒否される想定と、後続ノートの再生継続を分けて確認する。
 
 **暫定結論:** エラー表示が Roland "Check Sum Error" なら、曲全体は停止せず、個別 DT1 だけ拒否されるため、88emuで再生を聴ける可能性が高い。まだ今回の3件が該当すると確定していない。
+
+
+
+## 2026-10-30 — Check Sum Error 調査の訂正と次の確認
+
+1. Gearmulator SC-88 sub-MCU の DT1 最低長条件と checksum error 通知条件を区別する。
+2. 今回の3件（各8-byte body）は最低長不足で checksum 検査前に無通知 return するため、Check Sum Error の原因候補から外す。
+3. private sample に含まれる他の DT1 SysEx を抽出し、body長・checksum・参照MIDIとの対応を調べる。元データの値は推測で変更しない。
+4. 88emuで過去に表示された Check Sum Error がどの曲・どのタイミングだったかは、ユーザーが特定できる場合に限り照合する。特定できなくても調査を継続する。
+
+**完了条件:** エラー表示を発生させるDT1を特定するか、private sampleに含まれるDT1が表示条件に該当しないことを示す。RCP parser の成功、DT1個別の拒否、後続MIDIの演奏継続を別々に記録する。
