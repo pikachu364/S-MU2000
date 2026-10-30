@@ -281,3 +281,11 @@
 - [ ] Verify any relation to event-order mismatch before considering changes.
 
 **Status:** No code change. This is currently a reference-converter warning for behavior S-MU2000 already appears to mirror.
+
+
+### 2026-10-30 追記 — 0x98 SysEx 内の未知高ビット値
+
+- ValleyBell の `RCPFormat.txt` で確認できるテンプレート制御値は `0x80`–`0x84`。今回の `0xFF` を別値へ置換する規則は確認できていない。
+- `0x98` のペイロードはコマンドレコードの `p1/p2` ではなく、後続 `0xF7` 継続レコードから読む。Gearmulator の現行実装にもこの規則が明示されている。
+- S-MU2000 と ValleyBell は未知の高ビット値をスキップする。これはソース上の挙動一致であり、元データの意図、チェックサムの妥当性、実機での動作を証明しない。
+- **状態:** 形式資料とコードの照合は完了。private サンプルの出力 SysEx 比較と実機再生は未実施。根拠が見つかるまでは値の置換・チェックサム自動修正を行わない。
