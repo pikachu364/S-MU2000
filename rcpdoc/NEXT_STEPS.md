@@ -4,6 +4,33 @@
 対象ブランチ：`feature/rcp2-parser-skeleton`  
 直近 CI：Actions #567 合格（ユーザー報告）。private sample-check run [40885695400](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/40885695400/artifacts/12902283152) の成果物を確認。ValleyBell 参照コンバーター（commit `a73c748960d57bd194fb64931ce07d2c1fa1bd01`）との比較は、sample-01 BUTTFLY=27,974イベント・不一致0、sample-02 FC=20,299・不一致0、sample-03 WINGS_55=23,745・不一致0、sample-04 L_WING88=22,536・不一致0。全4サンプル合計94,554イベントで、各トラックの件数を含め完全一致。以前 sample-02 Track 6 / tick 5135 と 5263 に残っていた同一tick順序差も解消。参照コンバーターとの比較結果であり、実機再生やRCP2全体の互換性を保証するものではない。
 
+## T-007 — RCP version 2（.rcp / .r36）と version 3（.g36）の実サンプル検証
+
+**優先度:** 最優先。RCP3実装着手前にRCP2共通性とサンプルの特徴を整理する。
+
+**現在確認できていること**
+- .rcp と .r36 は RCP file version 2。.g36 は RCP file version 3。
+- ユーザー報告では88emu Playerで今回のG36/R36サンプル全曲を再生でき、S-MU2000開発版ではR36がエラーなく再生できる。
+- S-MU2000開発版でG36を開くと「開けない：MThdがない。標準MIDIファイルではないらしい」と表示され、再生されない。G36は現状未対応。
+- 変換ログには無限ループ検出、recursive Repeat Measure、存在しない小節参照、Rhythm Mode情報などが記録された例がある。ログは converter の観測として扱い、原本破損と即断しない。
+
+**作業順**
+1. [ ] RCP / R36 の実サンプルを比較し、version 2 のヘッダー・トラック境界・イベントレコードが共通か確認する。
+2. [ ] 現行 parser の version 判定・parser入口・player接続経路を確認し、R36が再生できる理由をコード経路で説明できるようにする。
+3. [ ] R36 4サンプルの converterログを全件確認し、警告の種類・対象track/offset・変換終了状態を一覧化する。
+4. [ ] G36 4サンプルの converterログを全件確認し、RCP3固有の情報と converterごとの未対応・警告を整理する。
+5. [ ] G36のヘッダー・トラック境界・イベントレコードを private 環境で解析し、RCP2との差分表を作る。
+6. [ ] 形式資料と複数converterの挙動を照合し、RCP3 parserの最小実装範囲と共通化境界を決める。
+7. [ ] 合成fixtureでRCP3の識別・境界検査を先に実装し、その後イベント展開へ進む。RCP2の既存テストを回帰確認する。
+8. [ ] G36対応後に player のファイル選択拡張子（.rcp/.r36/.g36）を確認する。現時点で選択UI対応済みとは仮定しない。
+
+**注意**
+- version 2 が同じでも、RCPとR36の全構造・全イベントが同一とは限らない。
+- converterの出力MIDIが異なることや警告があることだけで、どちらかを正解と決めない。
+- 88emu再生成功、S-MU2000再生成功、イベント列比較、音の一致は別々の検証項目。
+- private原本・MIDI・詳細dumpはprivate repository/artifact内に保持し、公開リポジトリへコピーしない。
+
+
 優先順位順。資料上の仕様、コードの存在、合成テスト、CI、実ファイルでの再生を区別し、実際に確認したときだけ完了チェックを付ける。
 
 ## T-001 — MinGW/MSYS2 CI の安定化
