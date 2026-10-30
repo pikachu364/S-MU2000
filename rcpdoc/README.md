@@ -58,3 +58,8 @@
 - Gearmulator の現行処理は `0x98` のデータを後続 `0xF7` 継続レコードから組み立て、未知の高ビット値をスキップする。S-MU2000 と ValleyBell も同様のスキップ動作を行う。
 - 元データでの意図、スキップ後のチェックサムの妥当性、実機での動作は未確定。根拠が見つかるまでは置換やチェックサム自動修正をしない。
 - 詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[LOG.md](LOG.md) を参照。
+
+
+## DT1 Check Sum Error 調査（2026-10-30）
+
+保存済みsample-01〜04のevent dumpからRoland DT1を503件抽出。500件はchecksum合格、3件はchecksum byteを持たない短いメッセージ。checksum不一致は0件。今回確認した4 sampleのevent dumpにはGearmulatorのCheck Sum Error通知条件に該当するDT1は見つかっていない。これは静的検査であり、88emu実再生試験や過去のエラー表示の発生源特定ではない。
