@@ -303,3 +303,15 @@
 - [ ] SysCheck の結果と RCP parser の成功/失敗を別々に記録する。
 
 **状態:** parser 内の継続経路はソース確認済み。88emu の実際の SysCheck error と同一原因か、実再生でどう振る舞うかは未確認。
+
+
+### 2026-10-30 追記 — Roland DT1 "Check Sum Error" と後続再生
+
+- [x] Gearmulator SC-88 sub-MCU の Roland DT1 checksum 検査を確認。
+- [x] checksum 不一致時に `0xE0 / param1=3` ("Check Sum Error") 通知を発生させ、当該 DT1 の転送処理だけを拒否することを確認。
+- [x] SysEx 終端後に組み立て状態をクリアし、後続 MIDI 入力を処理できることを確認。
+- [ ] ユーザーが見たエラーの正確な表示文言を確認。
+- [ ] 今回の3件の SysEx が当該 checksum error を起こすか private 環境で照合。
+- [ ] エラー後の後続ノートが 88emu で再生されることを今回の対象データで確認。
+
+**状態:** 「checksum error が出ても曲を聴ける」動作を説明するソース根拠を確認。対象データとの対応は未確認。
