@@ -728,3 +728,14 @@
 - sample-04の最大密度区間には、DT1アドレス上位byte 0x01 / 0x10 / 0x40 / 0x52 のメッセージが含まれ、0x10系も存在する。表示系アドレスの可能性はあるが、display dot animationと確定していない。
 - SC-55mkIIの高密度SysExタイミング競合に関するGearmulator changelogと照合する価値がある一方、機種差・実送信タイミング・実再生の未確認を明記する。
 - **制約:** 100msは観測用集計窓であり不具合閾値ではない。event dumpの時刻集計だけではMIDI wire timingやsub-MCU/CPU間競合は再現できない。
+
+
+## 2026-10-30 — #619 合格後: sample-04高密度SysExの用途を照合
+
+- ユーザー報告: Actions #619 合格。
+- sample-04の最大100ms窓（DT1 26件）を再確認。model ID 0x56のDT1が8件含まれる。
+- Roland公式サポート掲載のPart Rx OFFメッセージ（model ID 56H、address 01、data 10）とsample内の8件が一致することを確認。少なくともこの8件は各パートの受信OFF設定。
+- 同区間はmodel ID 0x42、0x16も混在。GearmulatorのSC-88表示データはmodel ID 0x45とaddress 0x10系を条件にしているため、model ID 0x16のaddress 0x10を表示データと誤分類しない。
+- 以前の「0x10系アドレスがあるため表示系かもしれない」という仮説を修正。addressだけでなくmodel IDも必ず見る。
+- **結論:** 高密度区間の少なくとも8件は表示アニメーションではなくパート受信OFF設定。Check Sum Errorとの因果は未確認。
+- **作業範囲:** 保存済みevent dumpの静的再確認、Gearmulatorソースレビュー、Roland公式資料との照合、文書更新。実機/88emu再生・ビルド・Actions実行はしていない。
