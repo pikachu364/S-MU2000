@@ -276,3 +276,16 @@
 **重要な区別:** これは RCP parser のエラーではなく、完成した Roland SysEx を音源側 sub-MCU が検査した段階の通知。ユーザーの言う "SysCheck error" が別の表示・別機種のエラーなら、同一視しない。
 
 **根拠:** [Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[sc88_submcu.h](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.h)。
+
+
+
+## F-025 — Gearmulator の SC-88「Check Sum Error」と短い DT1 の扱い
+
+**状態:** Gearmulator の現行ソース確認済み。今回の private sample の3件との対応は未確認。
+
+- `Sc88SubMcu::decodedTransfer()` は、DT1 のアドレス先頭位置を 5 とし、SysEx body が9 bytes未満の場合、チェックサム計算より前に何も通知せず return する。
+- チェックサム不一致の場合は `OpSysExError (0xE0)`、`param1=3` を通知する。この通知がファームウェア上の `Check Sum Error` 表示に対応する。
+- よって、private sample の対象3件（F0/F7を除いた出力bodyが各8 bytes）は、このコード経路では checksum mismatch の通知を発生させない。短すぎるため検査前に return する。
+- チェックサム不一致時も拒否対象は当該 DT1 転送であり、RCP ファイル全体の解析失敗を意味しない。ユーザーはエラー表示後も演奏を聴けた経験があると報告。
+- 根拠: [Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[sc88.h](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/boards/sc88.h)。
+- **制約:** 88emuでユーザーが過去に見た表示の個別発生源、今回の3件以外の SysEx の checksum、実機相当の再生挙動は未確認。
