@@ -241,3 +241,13 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 - Gearmulator SC-88 sub-MCUの条件に照らすと、117件はchecksum error条件に該当せず、3件はchecksum検査前に無通知returnする。
 - よって、保存済みsample-04 event dump上ではCheck Sum Errorを起こすDT1は確認されなかった。
 - この結果は過去にユーザーが別の曲・別の入力で見たエラーの原因を否定するものではない。実再生試験とも区別する。
+
+
+## H-RCP-SYSCHECK-20261030-F — 4 sample全体のDT1 checksum棚卸し
+
+**状態:** 保存済みsample-01〜04 event dumpの静的検査完了。
+
+- Roland DT1 503件のうち、500件はGearmulatorの最低長条件を満たし、checksum合計0。
+- 3件はbody長8 bytesでchecksum byteがなく、Gearmulatorではchecksum検査前に無通知return。
+- checksum不一致は0件。したがって、保存済み4 sampleのevent dump内にCheck Sum Error通知条件に該当するDT1は見つからない。
+- 過去のエラー表示は別曲・別のSysEx・別の実行条件で発生した可能性が残る。静的検査結果を実機/88emu再生結果と同一視しない。
