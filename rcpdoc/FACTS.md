@@ -367,3 +367,15 @@
 **結論:** sample-04の高密度区間は、少なくとも8件のパート受信OFF設定を含む混在SysEx列である。SC-88表示ドットアニメーションと同一視する従来の可能性は弱まり、当該区間の密度はパート設定列で説明できる部分がある。ユーザーが過去に見たCheck Sum Errorとの因果関係は未確認。
 
 **根拠:** [Roland公式: Part Rx On/Off System Exclusive Messages](https://support.roland.com/hc/en-us/articles/201968459-Part-Rx-On-Off-System-Exclusive-Messages-for-Roland-GM-Instruments)、[Gearmulator sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)、[Gearmulator changelog](https://github.com/dsp56300/gearmulator/blob/main/doc/changelog.txt)。
+
+
+## F-031 — sample-01〜04の実再生ではエラー表示なし
+
+**状態:** ユーザーからの実再生結果報告。
+
+- sample-01〜04は、88emu単独再生で4曲ともエラー表示なし。
+- 同じ4曲は、Glosa経由で88emuを再生した場合も4曲ともエラー表示なし。
+- したがって、過去に見た `Check Sum Error` は今回の4曲とは別の曲で発生した可能性が高い。
+- この結果は、報告された4曲・再生条件でエラー表示がなかったことを示す。別のRCP曲での発生までは否定しない。
+
+**制約:** 過去のエラーが発生した曲は未特定。
