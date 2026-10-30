@@ -251,3 +251,20 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 - 3件はbody長8 bytesでchecksum byteがなく、Gearmulatorではchecksum検査前に無通知return。
 - checksum不一致は0件。したがって、保存済み4 sampleのevent dump内にCheck Sum Error通知条件に該当するDT1は見つからない。
 - 過去のエラー表示は別曲・別のSysEx・別の実行条件で発生した可能性が残る。静的検査結果を実機/88emu再生結果と同一視しない。
+
+
+## H-RCP-SYSCHECK-20261030-G — Check Sum Error 後に演奏・後続SysExが続く理由の追加根拠
+
+**状態:** 後続処理が継続する実装根拠を追加確認。過去にユーザーが見たエラーの発生源は未特定。
+
+- Gearmulator の SC-88系統合テスト sc88_system_dt1_test.cpp は、意図的に checksum を壊した DT1 を送った後、同じパラメータへの正常な DT1 を送信し、前者は反映されず後者は反映されることを確認するテスト構成。
+- これは checksum error が当該 DT1 の拒否であり、後続の SysEx 処理まで一律に停止するものではないことを補強する。テストソースの確認であり、今回の実行結果ではない。
+- Gearmulator changelog には SC-55mkII の高密度 SysEx 時に「Check Sum Error」「DT1 Data Error」が誤って出るタイミング競合の修正記録がある。sub-MCU が同一 byte を二重に main CPU へ渡す競合であり、実際の送信 checksum 不正とは別原因。
+- SC-55mkII の既知不具合を SC-88 / SC-88Pro にそのまま一般化しない。今回のサンプルで発生した証拠もない。
+
+**次の検証**
+1. 過去のエラー表示の正確な文言・機種・曲・発生タイミングが分かる場合に、DT1 checksum 不一致と高密度 SysEx のどちらに近いか照合する。
+2. 新しい sample の DT1 棚卸しでは、checksum の静的妥当性に加え、同一tick / 短時間内の SysEx 密度も記録できるか検討する。
+3. 88emu 実再生試験を行った場合は、静的 dump 検査・ソースレビュー・統合テストソース確認と分けて結果を記録する。
+
+**制約:** 過去の表示原因は未確定。SC-55mkII の changelog 記録は、SC-88系や対象RCPの不具合を示すものではない。
