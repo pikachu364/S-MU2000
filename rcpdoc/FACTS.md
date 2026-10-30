@@ -332,3 +332,21 @@
 **結論の範囲:** 「Check Sum Error が出ても後続処理が続く」ことは、SC-88系の統合テスト構成と sub-MCU の処理経路から説明できる。また、別機種では高密度 SysEx のタイミング競合による誤表示事例も存在する。どちらが過去のユーザー観測に該当するかは未確定。
 
 **根拠:** [Gearmulator sc88_system_dt1_test.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/tests/sc88_system_dt1_test.cpp)、[Gearmulator changelog](https://github.com/dsp56300/gearmulator/blob/main/doc/changelog.txt)、[sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)。
+
+
+## F-029 — 4 sample の Roland DT1 時間密度（静的 event dump 集計）
+
+**対象:** 保存済み private sample validation artifact（sample-01〜04）の parser event dump。元RCPやraw bytesは公開しない。
+
+| Sample | Roland DT1件数 | 任意の100ms窓での最大DT1件数 | 同一tickの最大DT1件数 |
+|---|---:|---:|---:|
+| sample-01 | 29 | 5 | 1 |
+| sample-02 | 46 | 4 | 1 |
+| sample-03 | 308 | 6 | 2 |
+| sample-04 | 120 | 26 | 5 |
+
+- sample-04 は最大100ms窓に26件、同一tickに最大5件のDT1が存在し、今回の4サンプル中では短時間密度が最も高い。
+- sample-04 の最大100ms窓には、DT1アドレス上位byteが 0x01 / 0x10 / 0x40 / 0x52 のメッセージが含まれる。表示系に関係する可能性のある 0x10 系アドレスも含まれるが、これだけで display dot animation と確定しない。
+- Gearmulator changelog の SC-55mkII 高密度SysEx不具合は display dot animation 等を例に挙げているため、sample-04 の密度は追加調査の手掛かりになる。
+- ただし同 changelog の不具合は SC-55mkII のタイミング競合修正。SC-88系、今回のsample、ユーザーが過去に見たエラーと同じ原因である証拠ではない。
+- **制約:** parser event dump の timestamp/tick を使った静的集計。実際のMIDI wire transmission timing、88emuの内部処理タイミング、実再生結果を測定したものではない。100ms窓は観測用の集計幅であり、不具合発生閾値ではない。
