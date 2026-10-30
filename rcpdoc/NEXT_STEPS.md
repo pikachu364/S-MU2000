@@ -564,3 +564,14 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. 過去のCheck Sum Errorが別曲で起きた可能性を残す。
 3. 実再生確認と静的checksum照合を混同しない。
 4. checksum補正やraw data変更は行わない。
+
+
+## 2026-10-30 — 4 sample DT1 checksum 棚卸し結果
+
+保存済みsample-01〜04のparser event dumpからRoland DT1を503件抽出。500件はGearmulatorの最低長条件を満たし、全件checksum合計0。残る3件はsample-04の8-byte bodyでchecksum byteなし、Gearmulatorでは検査前に無通知return。checksum不一致は0件。
+
+次の候補:
+1. 新しいsampleが追加されたら同じ棚卸しを実施する。
+2. 過去に表示されたCheck Sum Errorが別曲・別SysEx由来である可能性を残す。
+3. 実再生確認と静的event dump検査を区別する。
+4. checksum補正やraw data変更は行わない。
