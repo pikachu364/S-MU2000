@@ -245,3 +245,19 @@
 **根拠:** [ValleyBell RCPFormat.txt](https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt)、[ValleyBell rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[S-MU2000 src/rcp.cpp](https://github.com/pikachu364/S-MU2000/blob/feature/rcp2-parser-skeleton/src/rcp.cpp)。
 
 **制約:** ソースコード・形式資料の照合であり、実機再生・今回のSysExの意味的正しさ・置換値は未確認。公開文書には private sample の生バイト列を記載しない。
+
+
+## F-022 — SysEx テンプレートの異常と RCP 読み込み継続は別判定
+
+**状態:** Gearmulator 現行ソースの処理経路を確認。88emu の画面に表示される個別の「SysCheck error」との対応関係は未確認。
+
+- Gearmulator の `rcpDecoder.cpp` は、ヘッダー切れ、G36トラックの不正・切り詰め、イベント安全上限、利用可能トラックなし等を RCP 文書読み込み失敗として扱う。
+- 一方、`rcpTrack.cpp` の `expandSysExTemplate()` は、既知のテンプレート値以外の上位ビット付きバイトを `continue` でスキップする。これ自体ではエラー文字列を設定せず、テンプレート展開ループを継続する。
+- `0x98` は後続の `0xF7` 継続レコードから payload を組み立て、テンプレート展開後にその継続レコード群を読み飛ばす。未知値を含む SysEx だけが省略されても、後続の RCP イベント処理は続く構造。
+- 展開結果が空の場合も `addSysExTemplate()` は成功扱いで戻る。従って未知高ビット値の存在だけで、RCP 全体の読み込み失敗にはならない。
+- `readRcp()` は構造解析失敗や track expansion の明示的失敗では全体を失敗させるが、上記の未知テンプレート値スキップはその失敗条件に含まれていない。
+- 現行の Gearmulator unit test は `0x98` の F7 継続データを使う正常系を確認している。ただし、未知高ビット値を含むケースを直接テストする回帰ケースは今回確認できていない。
+
+**重要な区別:** これは「RCP parser が未知テンプレート値を無視して後続イベントを処理できる」ことのソース確認であり、88emu UI の SysCheck error が同じ検査を指すことや、音源ファームウェア側の SysEx checksum error が非致命であることを証明しない。
+
+**根拠:** [Gearmulator rcpDecoder.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpDecoder.cpp)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[Gearmulator midiFile_test.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/juce/jucePlayerLib/tests/midiFile_test.cpp)。
