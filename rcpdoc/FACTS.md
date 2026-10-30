@@ -229,3 +229,19 @@
 - Therefore, source inspection suggests the warning does not by itself indicate a behavior difference between the two converters for these bytes.
 - Verification method: source-code review only, plus Action #42 raw dump/log inspection. No playback or new automated test was performed.
 - Limitation: the intended meaning/origin of 0xFF in this file and any relation to event-order mismatches remain unverified.
+
+
+## F-021 — RCP2 Track Exclusive のテンプレート規則と 0xFF
+
+**状態:** 形式資料と複数実装のソース照合で確認。今回の 0xFF の元データ作成意図、および実機での影響は未確定。
+
+- ValleyBell/MidiConverters の `RCPFormat.txt` は、RCP2 コマンド `0x98` の SysEx データが後続の `0xF7` 継続イベントに格納されること、`p1/p2` がテンプレート内で使われるデータ値であることを説明している。
+- 同資料が列挙するテンプレート制御値は `0x80`（p1）、`0x81`（p2）、`0x82`（MIDI channel）、`0x83`（Roland checksum 初期化）、`0x84`（checksum 出力）であり、`0xFF` の置換規則は記載されていない。
+- ValleyBell の `ProcessRcpSysEx()` は未知の高ビット付きテンプレート値を警告してスキップする。S-MU2000 の `src/rcp.cpp` の `0x98` 展開も、`0x80`–`0x84` と `0xF7` 以外の高ビット値をスキップする。
+- Gearmulator の `rcpTrack.cpp` は `0x98` 本体の `p1/p2` を SysEx データの先頭として扱わず、後続 `0xF7` 継続レコードからペイロードを組み立てる。その後のテンプレート展開でも未知の高ビット値をスキップする。参照: https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp
+- 以上から、現時点で最も根拠のある扱いは「`0xFF` は確認できた RCP2 テンプレート制御値ではなく、既存の参照規則では未知の高ビット値としてスキップされる」。これは、ファイル作者が `0xFF` を何の目的で記録したか、またはスキップが楽曲の意図に合うかを証明しない。
+- 今回の3件について、`0xFF` 除去後に既存チェックサムが不一致となる計算結果はあるが、置換先を特定する証拠にはならない。
+
+**根拠:** [ValleyBell RCPFormat.txt](https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt)、[ValleyBell rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)、[Gearmulator rcpTrack.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/framework/synthLib/midi/rcpTrack.cpp)、[S-MU2000 src/rcp.cpp](https://github.com/pikachu364/S-MU2000/blob/feature/rcp2-parser-skeleton/src/rcp.cpp)。
+
+**制約:** ソースコード・形式資料の照合であり、実機再生・今回のSysExの意味的正しさ・置換値は未確認。公開文書には private sample の生バイト列を記載しない。
