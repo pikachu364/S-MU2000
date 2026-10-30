@@ -695,3 +695,16 @@
 - [ ] ユーザーが過去に見たCheck Sum Errorの対象曲・発生時点が分かる場合は、その入力を別途調査する。
 
 **注意:** 静的event dumpのchecksum検査であり、88emu実再生試験ではない。
+
+
+### 2026-10-30 追記 — sample-01〜04 全体のDT1 checksum棚卸し
+
+- [x] sample-01〜04のparser event dumpからRoland DT1を合計503件抽出。
+- [x] 500件（Gearmulator最低長9 bytes以上）のchecksum合計がすべて0であることを確認。
+- [x] 3件はsample-04内の8-byte bodyでchecksum byteなし。Gearmulatorではchecksum検査前に無通知return。
+- [x] checksum不一致は0件。保存済み4 sampleのevent dumpにはCheck Sum Error通知条件に該当するDT1はないと整理。
+- [x] ユーザー報告: #596合格。
+- [ ] 他sample追加時は同じchecksum棚卸しを行う。
+- [ ] 過去のエラー表示が起きた曲・条件が特定できる場合は、その入力を別途調査する。
+
+**注意:** 静的event dump解析であり、88emu実再生試験ではない。
