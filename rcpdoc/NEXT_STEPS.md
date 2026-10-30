@@ -603,3 +603,15 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 4. 88emu実再生で再現を確認できるまでは、SC-55mkIIの既知不具合と今回のsampleを同一原因と扱わない。
 
 100ms窓は調査用の集計幅であり、不具合閾値ではない。
+
+
+## 追加確認 — sample-04 model ID別のSysEx用途
+
+- sample-04の最大100ms窓にあるmodel ID 0x56の8件は、Roland公式資料のPart Rx OFFメッセージに一致する。これらは表示ドットデータではなくパート受信設定。
+- GearmulatorのSC-88表示データはmodel ID 0x45を使用するため、model ID 0x16のaddress 0x10を表示系と判断しない。
+
+**次の作業**
+1. sample-04のmodel ID 0x16のDT1 address/dataの用途を一次資料で確認する。
+2. model ID 0x56の全件についてパート番号とON/OFFを集計する。
+3. 新規sampleでもmodel ID・command・addressを組み合わせて分類する。
+4. Check Sum Errorとの関係は実再生・対象機種・実送信タイミングが揃うまで未確定とする。
