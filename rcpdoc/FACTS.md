@@ -82,6 +82,32 @@
 - 同じ出力には DLL / verify.exe のビルドと `VSTi probe passed: S-MU2000, stereo, MIDI, state, editor` も含まれていた。
 - 根拠はユーザー共有のローカル端末ログであり、実行環境の完全な再現情報や終了コードを独立に確認したものではない。実際の RCP2 楽曲ファイルでの互換性や MIDI 再生は未確認。
 
+## F-019 — RCP / R36 / G36 の形式バージョンと実サンプル再生状況（2026-10-30）
+
+**状態:** 形式バージョンはユーザー提示情報および変換ログ、再生状況はユーザーによる実機確認報告に基づく。
+
+- .rcp は RCP file version 2。
+- .r36 は RCP file version 2。R36_DATA の ValleyBell 変換ログにも RCP file version 2. と記録されている。
+- .g36 は RCP file version 3。G36_DATA の ValleyBell 変換ログにも RCP file version 3. と記録されている。
+- 拡張子だけでなくファイル内の version を識別して扱う必要がある。.rcp と .r36 が同じ version 2 であることは、既存RCP2経路でR36を再生できた理由の候補だが、構造・イベント意味論の完全な同一性は未確認。
+- ユーザー報告では、88emu Player で今回の G36_DATA / R36_DATA の全曲を再生できた。
+- ユーザー報告では、S-MU2000開発版はR36をエラーなく再生できた。一方、G36は未対応で、読み込み時に「開けない：MThdがない。標準MIDIファイルではないらしい」と表示され、再生されない。エラー表示だけで原本破損とは判断しない。
+- 今回の8サンプル（G36_DATA 4件、R36_DATA 4件）は、ユーザー報告では rcm2smf と ValleyBell の各コンバーターで変換され、変換時のエラーログが存在するケースには コンバート状況.txt が添付されている。原本・変換MIDI・ログは private repository に保持する。
+
+**変換ログで確認した例**
+- G36_DATA/85SO018A/rcm2smf: "Detected an infinite loop. Set number of loops to 2." が10回。
+- G36_DATA/TAKARAJI/valleybell: "RCP file version 3."、Track 3/10/13 の Rhythm Mode 情報、最後に "Done."。
+- R36_DATA/EVAN88/valleybell: "RCP file version 2."。recursive Repeat Measure を抜ける警告、および存在しない小節番号を参照する警告が多数。最後に "Done."。
+- R36_DATA/RUSTY_GS/valleybell: "RCP file version 2."、Track 10 の Rhythm Mode 0x81、最後に "Done."。
+
+**制約**
+- コンバーターの警告は、そのツールの解釈・制限を示すものであり、原本の破損やS-MU2000の不具合を直接証明しない。
+- "Done." は変換処理の終了表示であり、出力MIDIの意味的正しさを保証しない。
+- 88emuで再生できることは、S-MU2000での全機能対応や音色・演奏内容の一致を証明しない。
+- R36の再生確認はユーザー報告に基づく。全RCP2 version 2ファイルとの互換性を証明するものではない。
+- G36のS-MU2000再生は未対応・未確認であり、RCP3解析・実装が必要。
+
+
 ## 更新ルール
 
 新しい事実を追加するときは、確認方法・根拠リンク・制約を記録します。過去のテスト結果を現在の検証結果として再利用しません。
