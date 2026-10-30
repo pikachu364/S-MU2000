@@ -376,3 +376,14 @@
 - [ ] 88emu実再生で高密度区間のエラーが再現するか確認（実施した場合のみ結果記録）。
 
 **注意:** 静的event dumpの集計。密度だけでCheck Sum Errorの原因と断定しない。
+
+
+## 2026-10-30 追記 — sample-04高密度SysEx用途の照合
+
+- [x] 最大100ms窓のmodel ID 0x56の8件をRoland公式Part Rx OFF形式と照合。
+- [x] 当該8件を表示ドット描画ではなくパート受信OFF設定と分類。
+- [x] Gearmulator SC-88表示経路のmodel ID 0x45条件を確認。
+- [x] address 0x10だけで表示データと判断しないよう仮説を修正。
+- [ ] model ID 0x56の全件のパート番号・ON/OFFを集計。
+- [ ] model ID 0x16のaddress/data用途を一次資料で確認。
+- [ ] Check Sum Errorとの因果は実再生等の証拠が得られるまで未確定。
