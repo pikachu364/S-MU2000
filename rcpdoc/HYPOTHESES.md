@@ -286,3 +286,19 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 4. 88emu実再生でエラーが再現するか確認できた場合のみ、原因候補として強める。
 
 **制約:** 密度の相関だけでエラー原因と断定しない。SC-55mkIIの既知不具合をSC-88系へ一般化しない。
+
+
+## H-RCP-SYSCHECK-20261030-I — sample-04高密度区間はパート受信設定を含む混在SysEx列
+
+**状態:** 一部の用途を公式資料で確認。全体の役割・エラーとの因果は未確定。
+
+- 最大100ms窓の26件中8件はmodel ID 0x56、address 01、data 10のパート受信OFFメッセージとRoland公式資料で照合できる。
+- よって、これら8件はSC-88表示ドット描画ではない。パート受信OFF設定が連続することで短時間密度を上げている。
+- 同区間にはmodel ID 0x42および0x16のDT1も混在する。model ID 0x16のaddress 0x10系をSC-88表示データとみなす根拠はない。GearmulatorのSC-88表示経路はmodel ID 0x45とaddress 0x10系を条件としている。
+- SC-55mkIIの高密度SysExタイミング競合は別機種の既知修正であり、今回のsampleの原因と断定しない。
+
+**次の検証**
+1. sample-04のmodel ID 0x16メッセージのアドレス体系・機能を、D-110 / MT-32互換系の一次資料で確認する。
+2. model ID 0x56の全メッセージについて、公式のPart Rx On/Off形式と照合し、ON/OFFの区別を集計する。
+3. 新規sampleでもmodel IDとcommand/addressを分けて集計し、addressだけで表示系と分類しない。
+4. Check Sum Errorとの因果は、対象機種・実再生・実送信条件が確認できるまで未確定のままにする。
