@@ -4,6 +4,7 @@
 static bool rcp_mute_flags_test_ok = true;
 static bool rcp_player_api_test_ok = true;
 static bool rcp_loop_budget_test_ok = true;
+static bool rcp_e6_note_off_route_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -874,6 +875,22 @@ static void check_rcp_document_timeline()
     std::printf("RCP2 ノート長展開: duration 0 抑止 %s・同音高の終了更新 %s・note-off 時刻/音高 %s\n",
         note_gate_ok ? "合" : "NG", note_gate_ok ? "合" : "NG",
         note_gate_ok ? "合" : "NG");
+    doc.tracks[0].events = {
+        raw(60, 5, 10, 90), raw(0xeb, 0, 0x0b, 0x7f),
+        raw(60, 0, 0, 0), raw(0xfe, 0, 0, 0)
+    };
+    const bool explicit_note_off_order_ok =
+        rcp::expand_intermediate_timeline(doc, merged, err) &&
+        merged.size() == 3 &&
+        merged[0].event.kind == rcp::timeline_event_kind::note &&
+        merged[0].event.tick == 0 &&
+        merged[1].event.kind == rcp::timeline_event_kind::control_change &&
+        merged[1].event.tick == 5 &&
+        merged[2].event.kind == rcp::timeline_event_kind::note_off &&
+        merged[2].event.tick == 5 && err.empty();
+    std::printf("RCP2 明示的 Note Off 同tick順序: CC の後に Note Off %s\n",
+        explicit_note_off_order_ok ? "合" : "NG");
+
 
     std::printf("RCP2 文書時間展開: 複数トラック統合/トラック識別 %s・符号付き開始オフセット %s・オフセット境界 %s・全イベント種別オフセット %s・未対応コマンド拒否 %s・空文書 %s\n",
         order_ok ? "合" : "NG", offset_ok ? "合" : "NG",
@@ -1177,19 +1194,35 @@ static void check_rcp_aftertouch_commands()
     std::printf("RCP2 98 ループ外F7: 前のループ内SysExへ誤接続しない %s\n",
         track_sysex_continuation_outside_loop_ok ? "合" : "NG");
 
-    // A continuation with an invalid high-bit value is rejected atomically.
+    // Invalid 7-bit parameters on the 0x98 command must still be rejected.
+    // Unknown high-bit bytes in the continuation payload are handled separately
+    // for compatibility with the reference converter.
     const std::vector<rcp::sequence_event> invalid_track_sysex_sequence = {
-        raw_event(0x98, 0, 0x12, 0x34),
-        raw_event(0xf7, 0, 0x41, 0x90),
+        raw_event(0x98, 0, 0x90, 0x34),
+        raw_event(0xf7, 0, 0x41, 0x01),
         raw_event(0xfe, 0, 0, 0)
     };
     const bool invalid_track_sysex_rejected =
         !rcp::expand_note_key_signature_tempo_timeline(
             invalid_track_sysex_sequence, 120, timeline, err) &&
         timeline.empty() && !err.empty();
-    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正データ拒否 %s\n",
+
+    const std::vector<rcp::sequence_event> unknown_track_sysex_byte_sequence = {
+        raw_event(0x98, 0, 0x12, 0x34),
+        raw_event(0xf7, 0, 0x41, 0xff),
+        raw_event(0xfe, 0, 0, 0)
+    };
+    const bool unknown_track_sysex_byte_skipped =
+        rcp::expand_note_key_signature_tempo_timeline(
+            unknown_track_sysex_byte_sequence, 120, timeline, err) &&
+        timeline.size() == 1 &&
+        timeline[0].kind == rcp::timeline_event_kind::sysex &&
+        timeline[0].sysex == std::vector<u8>({0xf0, 0x41, 0xf7}) &&
+        err.empty();
+    std::printf("RCP2 98 ループ境界: 各反復でSysEx再生成 %s・不正パラメーター拒否 %s・未知高位バイトをスキップ %s\n",
         track_sysex_loop_boundary_ok ? "合" : "NG",
-        invalid_track_sysex_rejected ? "合" : "NG");
+        invalid_track_sysex_rejected ? "合" : "NG",
+        unknown_track_sysex_byte_skipped ? "合" : "NG");
     // A 0x98 event whose continuation records contain only F7 padding
     // emits no empty SysEx, but its step still advances the following event.
     const std::vector<rcp::sequence_event> empty_track_sysex_sequence = {
@@ -1410,11 +1443,45 @@ static void check_rcp_track_midi_mapping()
     timeline[3].source.event.kind=rcp::timeline_event_kind::note;
     timeline[3].source.event.note.note=62; timeline[3].source.event.note.velocity=90;
     std::vector<rcp::midi_output_event> output;
-    const bool routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
+    const bool basic_routed = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
         output.size() == 1 && output[0].bytes == std::vector<u8>({0x94, 60, 90}) &&
         output[0].port == 3 && err.empty();
-    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s\n",
-        mapped ? "合" : "NG", routed ? "合" : "NG");
+
+    // Existing note is released on its original route after E6; later notes use the new route.
+    timeline.assign(6, rcp::timed_seconds_event{});
+    timeline[0].time=0.0; timeline[0].source.track_index=0;
+    timeline[0].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[0].source.event.note.note=60; timeline[0].source.event.note.velocity=90;
+    timeline[0].source.event.route={3, 2, true}; timeline[0].source.event.route_fixed=true;
+    timeline[1].time=0.1; timeline[1].source.track_index=0;
+    timeline[1].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[1].source.event.route={2, 1, true};
+    timeline[2].time=0.15; timeline[2].source.track_index=0;
+    timeline[2].source.event.kind=rcp::timeline_event_kind::note;
+    timeline[2].source.event.note.note=62; timeline[2].source.event.note.velocity=80;
+    timeline[2].source.event.route={2, 1, true}; timeline[2].source.event.route_fixed=true;
+    timeline[3].time=0.2; timeline[3].source.track_index=0;
+    timeline[3].source.event.kind=rcp::timeline_event_kind::note_off;
+    timeline[3].source.event.note.note=60; timeline[3].source.event.route={3, 2, true};
+    timeline[3].source.event.route_fixed=true;
+    timeline[4].time=0.25; timeline[4].source.track_index=0;
+    timeline[4].source.event.kind=rcp::timeline_event_kind::note_off;
+    timeline[4].source.event.note.note=62; timeline[4].source.event.route={2, 1, true};
+    timeline[4].source.event.route_fixed=true;
+    timeline[5].time=0.3; timeline[5].source.track_index=0;
+    timeline[5].source.event.kind=rcp::timeline_event_kind::route_change;
+    timeline[5].source.event.route={0, 0, false};
+    const bool fixed_route_ok = rcp::encode_timeline_to_midi_events(timeline, mapping, output, err) &&
+        output.size() == 4 &&
+        output[0].bytes == std::vector<u8>({0x93, 60, 90}) && output[0].port == 2 &&
+        output[1].bytes == std::vector<u8>({0x92, 62, 80}) && output[1].port == 1 &&
+        output[2].bytes.size() == 3 && (output[2].bytes[0] == 0x83 || output[2].bytes[0] == 0x93) &&
+        output[2].bytes[1] == 60 && output[2].port == 2 &&
+        output[3].bytes.size() == 3 && (output[3].bytes[0] == 0x82 || output[3].bytes[0] == 0x92) &&
+        output[3].bytes[1] == 62 && output[3].port == 1 && err.empty();
+    rcp_e6_note_off_route_test_ok = mapped && basic_routed && fixed_route_ok;
+    std::printf("RCP2 トラック MIDI 割当: ポート/チャンネル分離 %s・E6 動的切替/dummy 除外 %s・Note Off 発音時ルート維持 %s\n",
+        mapped ? "合" : "NG", basic_routed ? "合" : "NG", fixed_route_ok ? "合" : "NG");
 }
 
 static void check_rcp_tracks()
@@ -1865,18 +1932,40 @@ static void check_rcp_same_tick_order()
         timeline.size() == 5 &&
         timeline[0].event.kind == rcp::timeline_event_kind::note &&
         timeline[0].event.note.note == 60 && timeline[0].event.tick == 0 &&
-        timeline[1].event.kind == rcp::timeline_event_kind::control_change &&
-        timeline[1].event.tick == 10 && timeline[1].event.channel.data1 == 11 &&
-        timeline[2].event.kind == rcp::timeline_event_kind::note_off &&
-        timeline[2].event.tick == 10 && timeline[2].event.note.note == 60 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[1].event.tick == 10 && timeline[1].event.note.note == 60 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[2].event.tick == 10 && timeline[2].event.channel.data1 == 11 &&
         timeline[3].event.kind == rcp::timeline_event_kind::note &&
         timeline[3].event.tick == 10 && timeline[3].event.note.note == 61 &&
         timeline[4].event.kind == rcp::timeline_event_kind::note_off &&
         timeline[4].event.tick == 12 && timeline[4].event.note.note == 61 &&
         err.empty();
 
-    std::printf("RCP2 同一 tick の順序（CC→Note Off→次の Note On）: %s\n",
+    std::printf("RCP2 同一 tick の順序（Note Off→CC→次の Note On）: %s\n",
                 same_tick_order_ok ? "合" : "NG");
+
+    doc.tracks[0].events = {
+        raw(60, 10, 10, 90),
+        raw(0xeb, 0, 7, 97),
+        raw(0xeb, 0, 32, 0),
+        raw(0xfe, 0, 0, 0)
+    };
+    const bool expired_off_before_controls_ok =
+        rcp::expand_intermediate_timeline(doc, timeline, err) &&
+        timeline.size() == 4 &&
+        timeline[0].event.kind == rcp::timeline_event_kind::note &&
+        timeline[0].event.tick == 0 &&
+        timeline[1].event.kind == rcp::timeline_event_kind::note_off &&
+        timeline[1].event.tick == 10 &&
+        timeline[2].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[2].event.tick == 10 && timeline[2].event.channel.data1 == 7 &&
+        timeline[2].event.channel.data2 == 97 &&
+        timeline[3].event.kind == rcp::timeline_event_kind::control_change &&
+        timeline[3].event.tick == 10 && timeline[3].event.channel.data1 == 32 &&
+        timeline[3].event.channel.data2 == 0 && err.empty();
+    std::printf("RCP2 同一 tick の順序（Note Off→CC7→CC32）: %s\n",
+                expired_off_before_controls_ok ? "合" : "NG");
 }
 
 
@@ -2031,6 +2120,54 @@ static void check_rcp_tempo_conversion()
 
 
 // The complete core conversion used by the UI player, exercised without UI or ROMs.
+static void check_rcp2_e6_note_off_route()
+{
+    const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
+    const size_t header_size = 0x586;
+    const size_t track_header_size = 0x2c;
+    const size_t track_length = track_header_size + 16;
+    std::vector<u8> data(header_size + track_length, 0);
+    std::memcpy(data.data(), signature, sizeof(signature) - 1);
+    data[0x1c0] = 0xe0;
+    data[0x1c1] = 120;
+    data[0x1e6] = 1;
+    data[0x1e7] = 1;
+    const size_t at = header_size;
+    data[at] = u8(track_length);
+    data[at + 1] = u8(track_length >> 8);
+    const size_t seq = at + track_header_size;
+    data[seq + 0] = 60;  data[seq + 1] = 10; data[seq + 2] = 20; data[seq + 3] = 90;
+    data[seq + 4] = 0xe6; data[seq + 5] = 0; data[seq + 6] = 0x13; data[seq + 7] = 0;
+    data[seq + 8] = 62;  data[seq + 9] = 0; data[seq + 10] = 5; data[seq + 11] = 80;
+    data[seq + 12] = 0xfe;
+
+    rcp::intermediate_document document;
+    std::vector<rcp::timed_track_event> timeline;
+    std::vector<rcp::timed_seconds_event> seconds;
+    std::vector<rcp::track_midi_mapping> mapping;
+    std::vector<rcp::midi_output_event> output;
+    std::string err;
+    const bool built = rcp::build_intermediate(data.data(), data.size(), document, err);
+    const bool expanded = built && rcp::expand_intermediate_timeline(document, timeline, err);
+    const bool timed = expanded && rcp::convert_timeline_to_seconds(document.header, timeline, seconds, err);
+    const bool mapped = timed && rcp::map_track_midi_outputs(document, mapping, err);
+    const bool encoded = mapped && rcp::encode_timeline_to_midi_events(seconds, mapping, output, err);
+    const bool route_ok = encoded && output.size() == 4 &&
+        output[0].bytes == std::vector<u8>({0x90, 60, 90}) && output[0].port == 0 &&
+        output[1].bytes == std::vector<u8>({0x92, 62, 80}) && output[1].port == 1 &&
+        output[2].bytes.size() == 3 && output[2].bytes[1] == 62 &&
+        (output[2].bytes[0] == 0x82 || output[2].bytes[0] == 0x92) && output[2].port == 1 &&
+        output[3].bytes.size() == 3 && output[3].bytes[1] == 60 &&
+        (output[3].bytes[0] == 0x80 || output[3].bytes[0] == 0x90) && output[3].port == 0 &&
+        err.empty();
+    rcp_e6_note_off_route_test_ok = rcp_e6_note_off_route_test_ok && route_ok;
+    std::printf("RCP2 E6 Note Off 回帰: 解析/展開/秒変換/MIDI %s・Note Off 発音時ポート維持 %s\n",
+        encoded ? "合" : "NG", route_ok ? "合" : "NG");
+    if (!encoded) std::printf("RCP2 E6 route test error: %s\n", err.c_str());
+}
+
+
+// The complete core conversion used by the UI player, exercised without UI or ROMs.
 static void check_rcp2_player_event_pipeline()
 {
     const char signature[] = "RCM-PC98V2.0(C)COME ON MUSIC\r\n";
@@ -2132,8 +2269,9 @@ static void check_rcp2_player_event_pipeline()
 
 
 // Read real RCP2 files on demand without placing private song data in the repository.
-// Usage: verify --rcp2-sample <file.rcp> [another.rcp ...]
-static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false)
+// Usage: verify --rcp2-sample|--rcp2-event-dump|--rcp2-raw-record-dump <file.rcp> [another.rcp ...]
+static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false,
+                                  bool dump_raw_records = false)
 {
 	bool event_dump_failed = false;
 	std::ifstream file(path, std::ios::binary);
@@ -2167,6 +2305,27 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 
 	std::printf("RCP2 sample: %s (%zu bytes) OK; parsed_tracks=%zu; intermediate_tracks=%zu\n",
 	            path, bytes.size(), tracks.size(), document.tracks.size());
+
+	// Opt-in source-record trace. This deliberately reports raw record provenance
+	// without guessing command timing or changing the normal parser/timeline path.
+	if (dump_raw_records) {
+		size_t track_file_offset = info.minimum_header_size;
+		std::printf("  raw_record_dump: begin; fields=track,record,file_offset,code,p0,p1,p2\n");
+		for (size_t track_index = 0; track_index < tracks.size(); ++track_index) {
+			const rcp::track &track = tracks[track_index];
+			const size_t sequence_offset = track_file_offset + 0x2c;
+			for (size_t record_index = 0; record_index < track.sequence.size(); ++record_index) {
+				const rcp::sequence_event &raw = track.sequence[record_index];
+				const size_t file_offset = sequence_offset + record_index * 4;
+				std::printf("  raw_record: track=%02zu record=%zu file_offset=0x%zx code=%02X p0=%02X p1=%02X p2=%02X\n",
+				            track_index, record_index, file_offset,
+				            unsigned(raw.code), unsigned(raw.p0),
+				            unsigned(raw.p1), unsigned(raw.p2));
+			}
+			track_file_offset += track.header.encoded_length;
+		}
+		std::printf("  raw_record_dump: end\n");
+	}
 
 	// Diagnostic-only end-to-end probe: keep structural parsing success separate
 	// from timeline/MIDI support. A failure here is reported per sample but does
@@ -2394,11 +2553,13 @@ static int check_rcp2_sample_file(const char *path, bool dump_event_trace = fals
 int main(int argc, char **argv)
 {
 	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
-	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0)) {
+	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0 ||
+	                  std::strcmp(argv[1], "--rcp2-raw-record-dump") == 0)) {
 		const bool dump_event_trace = std::strcmp(argv[1], "--rcp2-event-dump") == 0;
+		const bool dump_raw_records = std::strcmp(argv[1], "--rcp2-raw-record-dump") == 0;
 		int failures = 0;
 		for (int i = 2; i < argc; ++i)
-			failures += check_rcp2_sample_file(argv[i], dump_event_trace);
+			failures += check_rcp2_sample_file(argv[i], dump_event_trace, dump_raw_records);
 		return failures == 0 ? 0 : 1;
 	}
 	std::vector<u8>  wave(64 * 1024 * 1024, 0);   // 波形 ROM 相当のダミー
@@ -2455,6 +2616,7 @@ int main(int argc, char **argv)
 	check_rcp_track_midi_mapping();
 	check_rcp_tracks();
 	check_rcp_intermediate();
+	check_rcp2_e6_note_off_route();
 	check_rcp2_player_event_pipeline();
 	check_font_parses();
 
@@ -2471,5 +2633,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok) ? 0 : 1;
 }
