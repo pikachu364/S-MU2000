@@ -303,3 +303,17 @@
 - したがって、このsample-04の変換済みDT1イベント120件の中に、Gearmulatorの `Check Sum Error` 通知条件に該当するDT1は見つからなかった。
 - sample-04の既存比較結果は parser/reference とも22,536 events、exact_match=true、mismatch_count=0。
 - **制約:** これは保存済みsample-04 event dumpの静的照合であり、88emuの実再生試験ではない。ユーザーが過去に見たCheck Sum Errorの発生源を特定したものではない。
+
+
+## F-027 — 4 sample 全体の Roland DT1 checksum 棚卸し
+
+**対象:** 保存済み private sample validation artifact（sample-01〜04）の parser event dump。raw bytesやprivate pathは公開しない。
+
+- Roland DT1（ID 41 / command 12）を合計503件抽出。
+- sample-01: 29件（body長9:16件、24:13件）。全29件 checksum合格。
+- sample-02: 46件（body長9:40件、24:6件）。全46件 checksum合格。
+- sample-03: 308件（body長9:307件、24:1件）。全308件 checksum合格。
+- sample-04: 120件（body長9:114件、12:1件、92:1件、264:1件、8:3件）。9 bytes以上の117件は全件 checksum合格。8 bytesの3件はchecksum byteなし。
+- 合計500件は Gearmulator のchecksum検査条件を満たし、全件7-bit checksum合計0。残る3件はbody長8 bytesで検査最低長未満。checksum不一致は0件。
+- **結論:** 保存済み4 sampleの変換済みevent dumpには、Gearmulator SC-88 sub-MCUの `Check Sum Error` 条件に該当するDT1は確認されなかった。
+- **制約:** 静的event dumpの解析。88emu実再生試験ではなく、ユーザーが過去に見たエラー表示の発生源を特定したものでもない。
