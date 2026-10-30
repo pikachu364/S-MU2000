@@ -86,7 +86,7 @@ public:
 	std::string ask_midi_file_path() override
 	{
 		static const sdl_popup::file_filter f[] = {
-			{ "MIDI files", "mid;midi" },
+			{ "MIDI and RCP files", "mid;midi;rcp;r36" },
 			{ "All files", "*" },
 		};
 		return sdl_popup::open_file(win, quit, f, 2, "");
