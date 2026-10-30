@@ -656,3 +656,13 @@
 - GitHub code search では `SysCheck` の実装箇所を特定できず、88emu の SysCheck error 表示が parser 段階か、音源側の SysEx/checksum 判定かは未確定。
 - **結論:** 一部 SysEx 異常を無視して RCP の後続イベントを処理する実装パターンは実在する。ただし、それがユーザー観測の 88emu SysCheck error と同一原因かはまだ証明されていない。
 - 今回はソース調査と記録のみ。S-MU2000 ソース変更、ビルド、CI再実行、実機/88emu再生は行っていない。
+
+
+## 2026-10-30 追記 — SC-88 sub-MCU の "Check Sum Error" 処理を確認
+
+- Gearmulator `source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp` の `midiIn()`、`endOfSysEx()`、`decodedTransfer()` を追跡。
+- Roland DT1 の checksum が不一致の場合、`decodedTransfer()` は `OpSysExError (0xE0)` / `param1=3` を sink に送り、当該 DT1 の転送だけを拒否して return する。ソースコメントは音源が不正 checksum のメッセージを無視し、パネルへ "Check Sum Error" 通知を出すと説明。
+- SysEx 終端 F7 を受けた `midiIn()` は `endOfSysEx()` 実行後に assembly を clear し、当該 byte の処理を終了する。後続 MIDI byte は次回 `midiIn()` 呼び出しで通常処理へ進む。
+- したがって、Roland DT1 の checksum error は個別 SysEx の拒否通知であり、RCP全体の再生停止を意味しない。ユーザーの観測「エラー表示が出ても88emuで聴ける」を説明できる実装根拠が見つかった。
+- **未確定:** ユーザーの言う "syscheck error" が実際に "Check Sum Error" 表示を指すか。今回の3件の SysEx が DT1 checksum error を起こすか。表示文言と該当出力 SysEx の照合が必要。
+- これは Gearmulator の SC-88 sub-MCU 実装のソース確認であり、実機検証や今回の private sample での発生確認ではない。
