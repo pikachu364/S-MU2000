@@ -317,3 +317,18 @@
 - 合計500件は Gearmulator のchecksum検査条件を満たし、全件7-bit checksum合計0。残る3件はbody長8 bytesで検査最低長未満。checksum不一致は0件。
 - **結論:** 保存済み4 sampleの変換済みevent dumpには、Gearmulator SC-88 sub-MCUの `Check Sum Error` 条件に該当するDT1は確認されなかった。
 - **制約:** 静的event dumpの解析。88emu実再生試験ではなく、ユーザーが過去に見たエラー表示の発生源を特定したものでもない。
+
+
+## F-028 — Gearmulator の checksum error 後の処理継続と SC-55mkII の別系統不具合
+
+**状態:** 現行ソース、統合回帰テスト、changelogを確認。
+
+- Gearmulator の sc88_system_dt1_test.cpp は、SC-88 / SC-88VL / SC-88Pro の各 firmware に対し、正常な DT1、checksum を意図的に壊した DT1、その後の正常な DT1 を順に送るテスト構成になっている。
+- 壊した DT1 の直後は対象パラメータが変更されていないことを確認し、その後に正常な DT1 を送るとパラメータが変更されることを確認する。これは checksum 不一致が当該 DT1 の適用を拒否しても、後続の SysEx 処理が続くことを示す統合テストである。
+- このテストは ROM を指定して実行する optional integration test。今回こちらで実行したわけではなく、テストソースの内容を確認した。
+- Gearmulator changelog には、別機種 SC-55mkII で高密度 SysEx（例: display dot animation）中に「Check Sum Error」と「DT1 Data Error」が発生する不具合が記録されている。原因は sub-MCU が status 読み取りと data 読み取りの間に起床し、同じ byte を main CPU に二重に渡すタイミング競合。これは実際の送信 checksum が不正であることとは異なる。
+- changelog は SC-55mkII の修正記録であり、SC-88 / SC-88Pro に同じ不具合があった証拠ではない。今回の RCP2 sample やユーザーが過去に見た表示との因果関係も未確認。
+
+**結論の範囲:** 「Check Sum Error が出ても後続処理が続く」ことは、SC-88系の統合テスト構成と sub-MCU の処理経路から説明できる。また、別機種では高密度 SysEx のタイミング競合による誤表示事例も存在する。どちらが過去のユーザー観測に該当するかは未確定。
+
+**根拠:** [Gearmulator sc88_system_dt1_test.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/tests/sc88_system_dt1_test.cpp)、[Gearmulator changelog](https://github.com/dsp56300/gearmulator/blob/main/doc/changelog.txt)、[sc88_submcu.cpp](https://github.com/dsp56300/gearmulator/blob/main/source/ronaldo/88emu/88lib/mcu/sc88_submcu.cpp)。
