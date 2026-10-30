@@ -575,3 +575,19 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. 過去に表示されたCheck Sum Errorが別曲・別SysEx由来である可能性を残す。
 3. 実再生確認と静的event dump検査を区別する。
 4. checksum補正やraw data変更は行わない。
+
+
+## 2026-10-30 追加調査 — Check Sum Error 後の継続処理
+
+**確認済み**
+- Gearmulator SC-88系統合テストソースは、checksum 不正 DT1 が反映されないことと、その後の正常 DT1 が反映されることを順に検査する構成。
+- Gearmulator changelog には、SC-55mkII で高密度 SysEx 時に同じ byte が二重に渡され、Check Sum Error / DT1 Data Error が出るタイミング競合の修正記録がある。
+- 後者は SC-55mkII 固有の修正履歴として扱い、SC-88系や今回の sample へ一般化しない。
+
+**次の作業**
+1. 新規 sample が追加されたら、既存の Roland DT1 body length / checksum 検査を継続する。
+2. 過去のエラー表示について機種・正確な文言・発生タイミングが分かれば、DT1 checksum不一致と高密度SysExタイミング競合を切り分ける。
+3. 必要なら private event dump から SysEx の時間密度（同一tickおよび短時間窓の件数）を集計する。ただし density だけでエラー原因とは断定しない。
+4. 88emu 実再生や Gearmulator optional integration test を実行した場合は、その実行条件・結果をソースレビューとは別に記録する。
+
+**禁止事項:** 根拠なしの checksum 補正、SysEx byte 置換、警告抑制、SC-55mkII の既知不具合を SC-88系へ横展開する変更は行わない。
