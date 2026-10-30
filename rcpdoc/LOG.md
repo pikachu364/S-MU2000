@@ -681,3 +681,17 @@
 - [ ] 88emu の表示通知後に後続MIDIが処理される経路を、必要ならファームウェア側まで追跡。
 
 **状態:** 発生条件のコード調査は完了。今回の3件との因果関係は否定的。ユーザーの過去の表示原因は未特定。ソース変更・データ修正は行っていない。
+
+
+
+### 2026-10-30 追記 — sample-04 DT1 checksum 棚卸し
+
+- [x] 保存済みsample-04 event dumpからRoland DT1（41 / 12）を120件抽出。
+- [x] body長9 bytes以上の117件をchecksum検査し、全件7-bit合計0を確認。
+- [x] body長8 bytesの3件はchecksum byteを含まず、Gearmulatorではchecksum検査前に無通知returnすることを確認。
+- [x] sample-04のevent比較は22,536 events、parser/reference exact match、mismatch 0（既存artifact記録）。
+- [x] sample-04の静的イベント一覧にはGearmulatorのCheck Sum Error条件に該当するDT1はないと整理。
+- [ ] 必要に応じて別sampleも同じ基準で棚卸しする。
+- [ ] ユーザーが過去に見たCheck Sum Errorの対象曲・発生時点が分かる場合は、その入力を別途調査する。
+
+**注意:** 静的event dumpのchecksum検査であり、88emu実再生試験ではない。
