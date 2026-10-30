@@ -338,3 +338,15 @@
 - [ ] 過去のエラー表示が別曲由来か、追加情報があれば照合。
 
 **注意:** 静的event dumpの解析であり、88emu実再生試験ではない。
+
+
+## 2026-10-30 追記 — 4 sample DT1 checksum 棚卸し
+
+- [x] sample-01〜04からRoland DT1を合計503件抽出。
+- [x] 500件（最低長以上）のchecksum合計がすべて0。
+- [x] 3件は8-byte bodyでchecksum byteなし。検査前に無通知return。
+- [x] checksum不一致0件。保存済み4 sample内にCheck Sum Error通知条件に該当するDT1はない。
+- [ ] 新sample追加時の同じ棚卸し。
+- [ ] 過去のエラー表示の発生源は、対象曲・条件が分かれば別途調査。
+
+**注意:** 静的event dump解析であり、88emu実再生試験ではない。
