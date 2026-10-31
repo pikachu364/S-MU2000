@@ -86,7 +86,7 @@ public:
 	std::string ask_midi_file_path() override
 	{
 		static const sdl_popup::file_filter f[] = {
-			{ UI_TEXT(dlg_midi_desc, "MIDI files"), "mid;midi;rcp;r36" },
+			{ UI_TEXT(dlg_midi_desc, "MIDI files"), "mid;midi;smf;rcp;r36;m3u;m3u8" },
 			{ "All files", "*" },
 		};
 		return sdl_popup::open_file(win, quit, f, 2, "");
