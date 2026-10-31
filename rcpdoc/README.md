@@ -81,3 +81,12 @@
 ## 追加状況（2026-10-30）— sample-04高密度SysExの用途
 
 sample-04の最大100ms窓にはDT1が26件あり、そのうちmodel ID 0x56の8件はRoland公式資料のパート受信OFFメッセージと一致した。GearmulatorのSC-88表示メッセージはmodel ID 0x45を使用するため、address 0x10だけで表示ドットデータと分類しない。Check Sum Errorとの因果は未確認。詳細は [FACTS.md](FACTS.md)、[HYPOTHESES.md](HYPOTHESES.md)、[NEXT_STEPS.md](NEXT_STEPS.md)、[LOG.md](LOG.md) を参照。
+
+
+## GUIプレイヤーのRCP/R36ファイル選択（2026-10-31 更新）
+
+- Windowsの「ファイルを足す」複数選択フィルターに .rcp / .r36 を含め、既存の .mid / .midi / .smf とプレイリスト .m3u / .m3u8 も維持した。
+- Linuxのこの開発ブランチは、直近の別ブランチとファイル選択実装が異なる。src/ui/pc_window_linux.cpp ではなく、実際の src/ui/app_linux.h のMIDI選択フィルターを更新し、mid;midi;smf;rcp;r36;m3u;m3u8 とした。
+- ユーザー報告: Windows実機でRCP/R36が選択できることを確認。Actions #664 合格。
+- Linuxはユーザーが実機環境を持たないため実機未確認。今回の開発ブランチ向け変更後のCI結果も未報告。コード反映と動作確認を混同しない。
+- 元の別ブランチでの変更: [Linux 57ed97d](https://github.com/pikachu364/S-MU2000/commit/57ed97d57d08c9a469824380c6f2f1e983e818dc)、[Windowsの既存プレイリスト拡張子復元 6a91df6](https://github.com/pikachu364/S-MU2000/commit/6a91df6059cb11ad2d8eac4b31f8c5e73203b611)。この開発ブランチにはコミット自体をマージせず、現在の実装構造に合わせて必要なフィルター変更だけを反映した。
