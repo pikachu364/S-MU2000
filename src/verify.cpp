@@ -2903,7 +2903,7 @@ static void check_rcp3_tick_order()
 
     rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
         repeated_pitch_ok && zero_duration_ok && different_pitch_ok && loop_budget_rejected;
-    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・異音程の独立終了 %s・深いループの予算超過拒否 %s\\n",
+    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・異音程の独立終了 %s・深いループの予算超過拒否 %s\n",
         same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
         tempo_same_tick_ok ? "合" : "NG", repeated_pitch_ok ? "合" : "NG",
         zero_duration_ok ? "合" : "NG", different_pitch_ok ? "合" : "NG",
