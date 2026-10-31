@@ -2564,7 +2564,8 @@ static void check_rcp3_parser()
     bytes[0x20c] = 120;
     bytes[0x20d] = 0;
     const size_t track_start = bytes.size();
-    const u32 track_length = 4 + static_cast<u32>(rcp3::track_header_size) +
+    // track_header_size already includes the 4-byte encoded_length field.
+    const u32 track_length = static_cast<u32>(rcp3::track_header_size) +
         static_cast<u32>(rcp3::event_size);
     bytes.resize(track_start + track_length, 0);
     auto put32 = [&bytes](size_t at, u32 v) {
@@ -2577,7 +2578,7 @@ static void check_rcp3_parser()
     bytes[track_start + 4] = 1; // track ID
     bytes[track_start + 10] = 'T';
     bytes[track_start + 11] = '1';
-    const size_t event_at = track_start + 4 + rcp3::track_header_size;
+    const size_t event_at = track_start + rcp3::track_header_size;
     bytes[event_at] = 0xfe; // Track End
 
     std::string err;
