@@ -2717,39 +2717,39 @@ static int check_g36_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
-		std::fprintf(stderr, "G36 sample: cannot open: %s\n", path);
+		std::fprintf(stderr, "G36 sample: cannot open: %s\\n", path);
 		return 1;
 	}
 	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
 	                      std::istreambuf_iterator<char>());
 	if (bytes.empty()) {
-		std::fprintf(stderr, "G36 sample: empty file: %s\n", path);
+		std::fprintf(stderr, "G36 sample: empty file: %s\\n", path);
 		return 1;
 	}
 	std::string err;
 	rcp3::header_info header;
 	if (!rcp3::parse_header(bytes.data(), bytes.size(), header, err)) {
-		std::fprintf(stderr, "G36 sample: header failed: %s: %s\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: header failed: %s: %s\\n", path, err.c_str());
 		return 1;
 	}
 	std::vector<rcp3::track> tracks;
 	if (!rcp3::parse_tracks(bytes.data(), bytes.size(), header, tracks, err)) {
-		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
 		return 1;
 	}
 	ui::player player;
 	int index = -1;
 	if (!player.add_from_memory(bytes.data(), bytes.size(), path, err, &index)) {
-		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\\n", path, err.c_str());
 		return 1;
 	}
 	const std::vector<ui::player::entry> entries = player.list();
 	if (index < 0 || static_cast<size_t>(index) >= entries.size()) {
-		std::fprintf(stderr, "G36 sample: player returned an invalid entry index: %s\n", path);
+		std::fprintf(stderr, "G36 sample: player returned an invalid entry index: %s\\n", path);
 		return 1;
 	}
 	const ui::player::entry &entry = entries[static_cast<size_t>(index)];
-	size_t note_on = 0, note_off = 0, other_events = 0;
+	size_t note_on = 0, note_off = 0, zero_velocity_note_on = 0, other_events = 0;
 	for (const smf::event &event : entry.evs) {
 		if (event.bytes.empty()) {
 			++other_events;
@@ -2758,21 +2758,43 @@ static int check_g36_sample_file(const char *path)
 		const u8 status = event.bytes[0] & 0xf0;
 		if (status == 0x90 && event.bytes.size() >= 3 && event.bytes[2] != 0)
 			++note_on;
-		else if (status == 0x80 ||
-		         (status == 0x90 && event.bytes.size() >= 3 && event.bytes[2] == 0))
+		else if (status == 0x80)
 			++note_off;
+		else if (status == 0x90 && event.bytes.size() >= 3 && event.bytes[2] == 0)
+			++zero_velocity_note_on;
 		else
 			++other_events;
 	}
-	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; title=\"%s\"; midi_events=%zu; note_on=%zu; note_off=%zu; other=%zu; length=%.3f sec\n",
+	// Distinguish source note records from MIDI's velocity-zero Note On encoding.
+	// Such records are valid MIDI note-off semantics, not missing generated Note Offs.
+	size_t source_notes = 0, source_zero_velocity = 0, source_zero_duration = 0;
+	size_t sequence_padding = 0, tracks_with_padding = 0;
+	for (const rcp3::track &track : tracks) {
+		for (const rcp3::sequence_event &event : track.sequence) {
+			if (event.code < 0x80) {
+				++source_notes;
+				if (event.p2 == 0) ++source_zero_velocity;
+				if (event.p1 == 0) ++source_zero_duration;
+			}
+		}
+		const size_t sequence_capacity = track.header.encoded_length - rcp3::track_header_size;
+		const size_t sequence_used = track.sequence.size() * rcp3::event_size;
+		if (sequence_capacity > sequence_used) {
+			sequence_padding += sequence_capacity - sequence_used;
+			++tracks_with_padding;
+		}
+	}
+	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; title=\"%s\"; midi_events=%zu; note_on=%zu; note_off=%zu; zero_velocity_note_on=%zu; other=%zu; length=%.3f sec\\n",
 	            path, bytes.size(), tracks.size(), entry.title.c_str(), entry.evs.size(),
-	            note_on, note_off, other_events, entry.length);
-	if (note_on == 0 || note_off == 0) {
-		std::fprintf(stderr, "G36 sample: warning: no complete note pair was produced: %s\n", path);
+	            note_on, note_off, zero_velocity_note_on, other_events, entry.length);
+	std::printf("G36 detail: source_note_records=%zu; source_zero_velocity=%zu; source_zero_duration=%zu; track_padding_bytes=%zu; tracks_with_padding=%zu\\n",
+	            source_notes, source_zero_velocity, source_zero_duration,
+	            sequence_padding, tracks_with_padding);
+	if (note_on == 0 && note_off == 0 && zero_velocity_note_on == 0) {
+		std::fprintf(stderr, "G36 sample: warning: no note events were produced: %s\\n", path);
 	}
 	return 0;
 }
-
 static int check_smf_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
