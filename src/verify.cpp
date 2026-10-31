@@ -2820,6 +2820,46 @@ static void check_rcp3_tick_order()
     const bool tempo_same_tick_ok = tempo_loaded && tempo_note_on_at_change &&
         tempo_note_off_after_change;
 
+    // Repeating an active pitch extends its existing note; it must not emit
+    // another Note On. The duration is measured from the repeated record.
+    const std::vector<record> repeated_pitch_track = {
+        {60, 90, 12, 24}, {60, 80, 0, 24}, {0xfe, 0, 0, 0}
+    };
+    events.clear();
+    const bool repeated_pitch_loaded = load(make_g36({repeated_pitch_track}), events, meta, err);
+    int repeated_note_ons = 0, repeated_note_offs = 0;
+    bool repeated_note_off_time_ok = false;
+    for (const smf::event &event : events) {
+        if (event.bytes.size() == 3 && event.bytes[0] == 0x90 && event.bytes[1] == 60)
+            ++repeated_note_ons;
+        if (event.bytes == std::vector<u8>({0x80, 60, 0})) {
+            ++repeated_note_offs;
+            repeated_note_off_time_ok = event.time > 0.374999 && event.time < 0.375001;
+        }
+    }
+    const bool repeated_pitch_ok = repeated_pitch_loaded &&
+        repeated_note_ons == 1 && repeated_note_offs == 1 && repeated_note_off_time_ok;
+
+    // A zero-duration record for an active pitch shortens that note to the
+    // current tick and does not create a new Note On.
+    const std::vector<record> zero_duration_track = {
+        {60, 90, 12, 24}, {60, 0, 0, 0}, {0xfe, 0, 0, 0}
+    };
+    events.clear();
+    const bool zero_duration_loaded = load(make_g36({zero_duration_track}), events, meta, err);
+    int zero_note_ons = 0, zero_note_offs = 0;
+    bool zero_note_off_time_ok = false;
+    for (const smf::event &event : events) {
+        if (event.bytes.size() == 3 && event.bytes[0] == 0x90 && event.bytes[1] == 60)
+            ++zero_note_ons;
+        if (event.bytes == std::vector<u8>({0x80, 60, 0})) {
+            ++zero_note_offs;
+            zero_note_off_time_ok = event.time > 0.124999 && event.time < 0.125001;
+        }
+    }
+    const bool zero_duration_ok = zero_duration_loaded &&
+        zero_note_ons == 1 && zero_note_offs == 1 && zero_note_off_time_ok;
+
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
     for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 126, 0});
@@ -2832,10 +2872,11 @@ static void check_rcp3_tick_order()
         events.empty() && err.find("step budget") != std::string::npos;
 
     rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
-        loop_budget_rejected;
-    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・深いループの予算超過拒否 %s\n",
+        repeated_pitch_ok && zero_duration_ok && loop_budget_rejected;
+    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・深いループの予算超過拒否 %s\n",
         same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
-        tempo_same_tick_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
+        tempo_same_tick_ok ? "合" : "NG", repeated_pitch_ok ? "合" : "NG",
+        zero_duration_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
     if (!rcp3_tick_order_test_ok && !err.empty())
         std::printf("RCP3 Tick order API error: %s\n", err.c_str());
 }
