@@ -2807,7 +2807,7 @@ static void check_rcp3_tick_order()
 
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
-    for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 0, 126});
+    for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 126, 0});
     nested_loops.push_back({60, 90, 0, 1});
     for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf8, 0, 0, 0});
     nested_loops.push_back({0xfe, 0, 0, 0});
