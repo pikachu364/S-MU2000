@@ -2862,7 +2862,7 @@ static void check_rcp3_tick_order()
 
     // Different pitches overlap independently; each Note Off keeps its own time.
     const std::vector<record> different_pitch_track = {
-        {60, 90, 0, 48}, {64, 80, 12, 12}, {0xfe, 0, 0, 0}
+        {60, 90, 12, 48}, {64, 80, 0, 12}, {0xfe, 0, 0, 0}
     };
     events.clear();
     const bool different_pitch_loaded = load(make_g36({different_pitch_track}), events, meta, err);
