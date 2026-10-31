@@ -3,6 +3,7 @@
 #include "player.h"
 #include "bend_thinner.h"
 #include "../rcp.h"
+#include "../rcp3.h"
 
 #include <algorithm>
 #include <chrono>
@@ -54,6 +55,68 @@ bool load_events_from_memory(const u8 *data, size_t size,
     err.clear();
     if (size >= 4 && std::memcmp(data, "MThd", 4) == 0)
         return smf::load_from_memory(data, size, events, err, meta);
+
+    // RCP3.0/G36 is not SMF. Parse it before falling back to the SMF reader.
+    std::string rcp3_error;
+    if (rcp3::inspect_header(data, size, rcp3_error)) {
+        rcp3::header_info h;
+        if (!rcp3::parse_header(data, size, h, err))
+            return false;
+        if (h.ticks_per_quarter == 0 || h.tempo_bpm == 0) {
+            err = "RCP3.0 の TPQ または初期テンポが 0 です";
+            return false;
+        }
+        std::vector<rcp3::track> tracks;
+        if (!rcp3::parse_tracks(data, size, h, tracks, err))
+            return false;
+
+        if (meta) {
+            *meta = smf::song_meta{};
+            meta->title = smf::title_text(h.title);
+            meta->ppq = h.ticks_per_quarter;
+            meta->tempo.push_back({0.0, 0, double(h.tempo_bpm)});
+        }
+        const double seconds_per_tick = 60.0 /
+            (double(h.tempo_bpm) * double(h.ticks_per_quarter));
+        for (const rcp3::track &t : tracks) {
+            if (t.header.mute)
+                continue;
+            const int channel_field = t.header.midi_channel;
+            const int channel = channel_field & 0x0f;
+            const int port = (channel_field >> 4) & 0x0f;
+            const int transpose = static_cast<int>(static_cast<int8_t>(t.header.key)) +
+                                  static_cast<int>(static_cast<int8_t>(h.play_bias));
+            const double track_start = double(static_cast<int8_t>(t.header.tick_offset));
+            double tick = track_start;
+            for (const rcp3::sequence_event &e : t.sequence) {
+                tick += e.p0;
+                if (e.code < 0x80) {
+                    const int note = int(e.code) + transpose;
+                    const double on_tick = std::max(0.0, tick);
+                    const double off_tick = std::max(on_tick, tick + e.p1);
+                    if (e.p1 != 0 && note >= 0 && note <= 127 && e.p2 <= 127) {
+                        events.push_back({on_tick * seconds_per_tick,
+                            {u8(0x90 | channel), u8(note), u8(e.p2)}, u8(port)});
+                        events.push_back({off_tick * seconds_per_tick,
+                            {u8(0x80 | channel), u8(note), 0}, u8(port)});
+                    }
+                } else if (e.code == 0xfe) {
+                    break;
+                } else {
+                    // Do not silently reinterpret unimplemented RCP3 commands as MIDI.
+                    // Note events are supported first; command semantics will be added separately.
+                }
+            }
+        }
+        if (events.empty()) {
+            err = "RCP3.0 に再生可能な音符イベントがありません";
+            return false;
+        }
+        std::stable_sort(events.begin(), events.end(), [](const smf::event &a, const smf::event &b) {
+            return a.time < b.time;
+        });
+        return true;
+    }
 
     rcp::header_info info;
     std::string inspect_error;
