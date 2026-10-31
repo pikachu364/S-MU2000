@@ -272,8 +272,11 @@ bool load_events_from_memory(const u8 *data, size_t size,
         };
         for (smf::event &event : events) event.time = tick_to_seconds(event.time);
         if (meta) {
-            for (const g36_tempo_point &point : tempo_map)
-                meta->tempo.push_back({point.seconds, point.tick, point.bpm});
+            for (const g36_tempo_point &point : tempo_map) {
+                // G36 tick positions are integral (record delays are integers);
+                // song_meta stores the tick coordinate as u64.
+                meta->tempo.push_back({point.seconds, static_cast<u64>(point.tick), point.bpm});
+            }
         }
         std::stable_sort(events.begin(), events.end(), [](const smf::event &a, const smf::event &b) {
             return a.time < b.time;
