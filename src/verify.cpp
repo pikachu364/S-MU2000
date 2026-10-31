@@ -2860,6 +2860,36 @@ static void check_rcp3_tick_order()
     const bool zero_duration_ok = zero_duration_loaded &&
         zero_note_ons == 1 && zero_note_offs == 1 && zero_note_off_time_ok;
 
+    // Different pitches overlap independently; each Note Off keeps its own time.
+    const std::vector<record> different_pitch_track = {
+        {60, 90, 0, 48}, {64, 80, 12, 12}, {0xfe, 0, 0, 0}
+    };
+    events.clear();
+    const bool different_pitch_loaded = load(make_g36({different_pitch_track}), events, meta, err);
+    bool pitch60_on_ok = false, pitch60_off_ok = false;
+    bool pitch64_on_ok = false, pitch64_off_ok = false;
+    int different_pitch_note_ons = 0, different_pitch_note_offs = 0;
+    for (const smf::event &event : events) {
+        if (event.bytes.size() != 3) continue;
+        const u8 status = event.bytes[0] & 0xf0;
+        const u8 pitch = event.bytes[1];
+        if (status == 0x90 && (pitch == 60 || pitch == 64))
+            ++different_pitch_note_ons;
+        if (status == 0x80 && (pitch == 60 || pitch == 64))
+            ++different_pitch_note_offs;
+        if (event.bytes == std::vector<u8>({0x90, 60, 90}))
+            pitch60_on_ok = event.time > -0.000001 && event.time < 0.000001;
+        if (event.bytes == std::vector<u8>({0x80, 60, 0}))
+            pitch60_off_ok = event.time > 0.499999 && event.time < 0.500001;
+        if (event.bytes == std::vector<u8>({0x90, 64, 80}))
+            pitch64_on_ok = event.time > 0.124999 && event.time < 0.125001;
+        if (event.bytes == std::vector<u8>({0x80, 64, 0}))
+            pitch64_off_ok = event.time > 0.249999 && event.time < 0.250001;
+    }
+    const bool different_pitch_ok = different_pitch_loaded &&
+        different_pitch_note_ons == 2 && different_pitch_note_offs == 2 &&
+        pitch60_on_ok && pitch60_off_ok && pitch64_on_ok && pitch64_off_ok;
+
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
     for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 126, 0});
@@ -2872,11 +2902,12 @@ static void check_rcp3_tick_order()
         events.empty() && err.find("step budget") != std::string::npos;
 
     rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
-        repeated_pitch_ok && zero_duration_ok && loop_budget_rejected;
-    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・深いループの予算超過拒否 %s\n",
+        repeated_pitch_ok && zero_duration_ok && different_pitch_ok && loop_budget_rejected;
+    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・異音程の独立終了 %s・深いループの予算超過拒否 %s\\n",
         same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
         tempo_same_tick_ok ? "合" : "NG", repeated_pitch_ok ? "合" : "NG",
-        zero_duration_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
+        zero_duration_ok ? "合" : "NG", different_pitch_ok ? "合" : "NG",
+        loop_budget_rejected ? "合" : "NG");
     if (!rcp3_tick_order_test_ok && !err.empty())
         std::printf("RCP3 Tick order API error: %s\n", err.c_str());
 }
