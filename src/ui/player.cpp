@@ -70,14 +70,14 @@ bool load_events_from_memory(const u8 *data, size_t size,
         if (!rcp3::parse_tracks(data, size, h, tracks, err))
             return false;
 
+        struct g36_tempo_change { double tick; double bpm; };
+        std::vector<g36_tempo_change> tempo_changes;
+        tempo_changes.push_back({0.0, double(h.tempo_bpm)});
         if (meta) {
             *meta = smf::song_meta{};
             meta->title = smf::title_text(h.title);
             meta->ppq = h.ticks_per_quarter;
-            meta->tempo.push_back({0.0, 0, double(h.tempo_bpm)});
         }
-        const double seconds_per_tick = 60.0 /
-            (double(h.tempo_bpm) * double(h.ticks_per_quarter));
         for (const rcp3::track &t : tracks) {
             if (t.header.mute || t.header.midi_channel == 0xff)
                 continue;
@@ -109,7 +109,7 @@ bool load_events_from_memory(const u8 *data, size_t size,
                 const rcp3::sequence_event &e = t.sequence[event_index];
                 // G36 p0 is the delay from this event to the next one.
                 // Commands F0..FF explicitly ignore p0.
-                const double event_time = std::max(0.0, tick) * seconds_per_tick;
+                const double event_time = std::max(0.0, tick);
                 auto emit = [&](std::initializer_list<u8> bytes) {
                     if (!channel_muted)
                         events.push_back({event_time, std::vector<u8>(bytes), u8(port)});
@@ -120,7 +120,7 @@ bool load_events_from_memory(const u8 *data, size_t size,
                     if (e.p1 != 0 && note >= 0 && note <= 127 && e.p2 <= 127 && !channel_muted) {
                         events.push_back({event_time,
                             {u8(0x90 | channel), u8(note), u8(e.p2)}, u8(port)});
-                        events.push_back({off_tick * seconds_per_tick,
+                        events.push_back({off_tick,
                             {u8(0x80 | channel), u8(note), 0}, u8(port)});
                     }
                 } else {
@@ -139,6 +139,17 @@ bool load_events_from_memory(const u8 *data, size_t size,
                             channel_muted = false;
                         }
                         break;
+                    case 0xe7: { // Tempo Modifier
+                        if (e.p1 == 0) {
+                            err = "RCP3.0 E7 のテンポ倍率 p1 が 0 です";
+                            return false;
+                        }
+                        // Reference formula: 60,000,000 * 64 / (base BPM * p1).
+                        // p2 != 0 is a gradual change; interpolation remains unsupported.
+                        const double bpm = double(h.tempo_bpm) * 64.0 / double(e.p1);
+                        tempo_changes.push_back({std::max(0.0, tick), bpm});
+                        break;
+                    }
                     case 0xea: emit({u8(0xd0 | channel), u8(e.p1 & 0x7f)}); break;
                     case 0xeb:
                         emit({u8(0xb0 | channel), u8(e.p1 & 0x7f), u8(e.p2 & 0x7f)});
@@ -227,6 +238,42 @@ bool load_events_from_memory(const u8 *data, size_t size,
         if (events.empty()) {
             err = "RCP3.0 に再生可能な音符イベントがありません";
             return false;
+        }
+        std::stable_sort(tempo_changes.begin(), tempo_changes.end(),
+            [](const g36_tempo_change &a, const g36_tempo_change &b) { return a.tick < b.tick; });
+        struct g36_tempo_point { double tick; double seconds; double bpm; };
+        std::vector<g36_tempo_point> tempo_map;
+        tempo_map.push_back({0.0, 0.0, double(h.tempo_bpm)});
+        double last_tick = 0.0, elapsed = 0.0, current_bpm = double(h.tempo_bpm);
+        for (const g36_tempo_change &change : tempo_changes) {
+            if (change.tick <= 0.0) {
+                current_bpm = change.bpm;
+                tempo_map.back() = {0.0, 0.0, current_bpm};
+                continue;
+            }
+            elapsed += (change.tick - last_tick) * 60.0 /
+                (current_bpm * double(h.ticks_per_quarter));
+            last_tick = change.tick;
+            current_bpm = change.bpm;
+            if (tempo_map.back().tick == change.tick)
+                tempo_map.back() = {change.tick, elapsed, current_bpm};
+            else
+                tempo_map.push_back({change.tick, elapsed, current_bpm});
+        }
+        auto tick_to_seconds = [&](double target_tick) {
+            if (target_tick <= 0.0) return 0.0;
+            auto it = std::upper_bound(tempo_map.begin(), tempo_map.end(), target_tick,
+                [](double value, const g36_tempo_point &point) { return value < point.tick; });
+            if (it == tempo_map.begin())
+                return target_tick * 60.0 / (double(h.tempo_bpm) * double(h.ticks_per_quarter));
+            --it;
+            return it->seconds + (target_tick - it->tick) * 60.0 /
+                (it->bpm * double(h.ticks_per_quarter));
+        };
+        for (smf::event &event : events) event.time = tick_to_seconds(event.time);
+        if (meta) {
+            for (const g36_tempo_point &point : tempo_map)
+                meta->tempo.push_back({point.seconds, point.tick, point.bpm});
         }
         std::stable_sort(events.begin(), events.end(), [](const smf::event &a, const smf::event &b) {
             return a.time < b.time;
