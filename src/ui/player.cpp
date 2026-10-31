@@ -92,10 +92,8 @@ bool load_events_from_memory(const u8 *data, size_t size,
             double tick = track_start;
             bool channel_muted = false;
             for (const rcp3::sequence_event &e : t.sequence) {
-                // G36 p0 is the delay to the next event. Commands F0..FF
-                // explicitly ignore p0; note and ordinary commands consume it.
-                if (e.code < 0xf0)
-                    tick += e.p0;
+                // G36 p0 is the delay from this event to the next one.
+                // Commands F0..FF explicitly ignore p0.
                 const double event_time = std::max(0.0, tick) * seconds_per_tick;
                 auto emit = [&](std::initializer_list<u8> bytes) {
                     if (!channel_muted)
@@ -148,6 +146,8 @@ bool load_events_from_memory(const u8 *data, size_t size,
                     if (e.code == 0xfe)
                         break;
                 }
+                if (e.code < 0xf0)
+                    tick += e.p0;
             }
         }
         if (events.empty()) {
