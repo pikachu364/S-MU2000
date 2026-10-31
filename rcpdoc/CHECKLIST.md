@@ -191,3 +191,18 @@ private sample-validation artifact（Actions run 40885695400 / artifact 12902283
 6. 実再生を行った場合は、ソフト・音源・経路・結果。
 
 未実施の段階を完了扱いにしない。新しい調査結果は該当する項目へ統合し、古い状態や重複した日付付き追記を残さない。経過の保存が必要な場合だけLOG.mdへ記録する。
+
+
+## 9. RCP3.0 / G36 の追加検証（2026-10-31）
+
+| 項目 | コード / 診断 | 合成テスト・CI | 実データ / 実機 | 残課題 |
+|---|---|---|---|---|
+| G36構造解析・MIDI変換 | 実装確認済み | Actions #699 合格（ユーザー報告） | private 4サンプルすべてOK | 他サンプル・全形式への一般化は未確認 |
+| G36サンプルのトラック境界 | artifactで4件ともpadding 0 | private sample-check成功 | `track_padding_bytes=0`、`tracks_with_padding=0` | 余剰バイトのある別ファイルは未確認 |
+| 同Tickイベント順 | G36専用synthetic regression追加 | Actions #701 合格（ユーザー報告） | 実曲の音楽的正確性は未確認 | loop/repeat展開後、複数コマンド相互作用を追加検証 |
+| Tick 0 / 複数トラック | 安定順序のsynthetic test | Actions #701 合格（ユーザー報告） | 実曲での正しさは未確認 | トラック同時刻イベントの仕様・参照出力照合 |
+| E7テンポ変更と同Tickノート | テンポ切替点と変更後Note Off時刻を検査 | Actions #701 合格（ユーザー報告） | 音楽的テンポ精度は未確認 | p2による段階的テンポ補間は未実装 |
+| G36 source note数とMIDI出力数の差 | source inventoryとtrack別ノート/loopコマンド診断あり | private sample-check成功 | 4サンプルで診断を確認 | mute、invalid route、zero duration/velocity、loop traversal別の処分数を明確化 |
+| Windows G36再生 | GUI player経路あり | CIと別に扱う | ユーザー報告で再生可能、音の正確性は未確認 | 音・テンポ・ループ・音色の参照比較 |
+
+**G36の確認結果:** private artifact run [41201167390 / artifact 13042078242](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/41201167390/artifacts/13042078242)。85SO018A=10,818 events / 83.908秒、EVA3_22D=2,243 / 84.763秒、SAKURA=5,731 / 86.180秒、TAKARAJI=13,530 / 303.051秒。これらは parser/player conversion diagnostics であり、音楽的な正確性の判定ではない。
