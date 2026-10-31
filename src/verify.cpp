@@ -2599,7 +2599,7 @@ static void check_rcp3_parser()
     std::string err;
     rcp3::header_info header;
     const bool header_ok = rcp3::parse_header(bytes.data(), bytes.size(), header, err) &&
-        header.track_count == 1 && header.ticks_per_quarter == 48 &&
+        header.track_count == 2 && header.ticks_per_quarter == 48 &&
         header.tempo_bpm == 120;
     rcp3::track_header th;
     const bool track_header_ok = rcp3::parse_track_header(bytes.data() + track_start,
