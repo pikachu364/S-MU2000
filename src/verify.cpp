@@ -2805,10 +2805,22 @@ static void check_rcp3_tick_order()
     const bool tempo_same_tick_ok = tempo_loaded && tempo_note_on_at_change &&
         tempo_note_off_after_change;
 
-    rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok;
-    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s\n",
+    // Deep nested finite loops must fail closed instead of accepting truncated output.
+    std::vector<record> nested_loops;
+    for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 0, 126});
+    nested_loops.push_back({60, 90, 0, 1});
+    for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf8, 0, 0, 0});
+    nested_loops.push_back({0xfe, 0, 0, 0});
+    events.clear();
+    err.clear();
+    const bool loop_budget_rejected = !load(make_g36({nested_loops}), events, meta, err) &&
+        events.empty() && err.find("step budget") != std::string::npos;
+
+    rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
+        loop_budget_rejected;
+    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・深いループの予算超過拒否 %s\n",
         same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
-        tempo_same_tick_ok ? "合" : "NG");
+        tempo_same_tick_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
     if (!rcp3_tick_order_test_ok && !err.empty())
         std::printf("RCP3 Tick order API error: %s\n", err.c_str());
 }
