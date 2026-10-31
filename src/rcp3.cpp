@@ -49,7 +49,7 @@ bool parse_track_header(const u8 *data, size_t size, track_header &out, std::str
     out.track_id = data[4]; out.rhythm_mode = data[5]; out.midi_channel = data[6];
     out.key = data[7]; out.tick_offset = data[8]; out.mute = data[9];
     out.name = fixed_string(data + 10, 0x24);
-    if (out.encoded_length < 4 + track_header_size || out.encoded_length > size) {
+    if (out.encoded_length < track_header_size || out.encoded_length > size) {
         err = "RCP3.0 track length is outside the available data"; out = {}; return false;
     }
     return true;
