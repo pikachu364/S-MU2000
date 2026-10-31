@@ -19,6 +19,7 @@ static bool rcp3_player_test_ok = true;
 #include "ui/font_check.h"
 #include <algorithm>
 #include <cstdio>
+#include <cctype>
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -2701,33 +2702,33 @@ static int check_g36_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
-		std::fprintf(stderr, "G36 sample: cannot open: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: cannot open: %s\n", path);
 		return 1;
 	}
 	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
 	                      std::istreambuf_iterator<char>());
 	if (bytes.empty()) {
-		std::fprintf(stderr, "G36 sample: empty file: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: empty file: %s\n", path);
 		return 1;
 	}
 	std::string err;
 	rcp3::header_info header;
 	if (!rcp3::parse_header(bytes.data(), bytes.size(), header, err)) {
-		std::fprintf(stderr, "G36 sample: header failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: header failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	std::vector<rcp3::track> tracks;
 	if (!rcp3::parse_tracks(bytes.data(), bytes.size(), header, tracks, err)) {
-		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	ui::player player;
 	int index = -1;
 	if (!player.add_from_memory(bytes.data(), bytes.size(), path, err, &index)) {
-		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
-	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; player_index=%d\\n",
+	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; player_index=%d\n",
 	            path, bytes.size(), tracks.size(), index);
 	return 0;
 }
@@ -2736,23 +2737,23 @@ static int check_smf_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
-		std::fprintf(stderr, "SMF sample: cannot open: %s\\n", path);
+		std::fprintf(stderr, "SMF sample: cannot open: %s\n", path);
 		return 1;
 	}
 	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
 	                      std::istreambuf_iterator<char>());
 	if (bytes.size() < 4 || std::memcmp(bytes.data(), "MThd", 4) != 0) {
-		std::fprintf(stderr, "SMF sample: MThd signature missing: %s\\n", path);
+		std::fprintf(stderr, "SMF sample: MThd signature missing: %s\n", path);
 		return 1;
 	}
 	std::vector<smf::event> events;
 	smf::song_meta meta;
 	std::string err;
 	if (!smf::load_from_memory(bytes.data(), bytes.size(), events, err, &meta)) {
-		std::fprintf(stderr, "SMF sample: parse failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "SMF sample: parse failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
-	std::printf("SMF sample: %s (%zu bytes) OK; events=%zu\\n",
+	std::printf("SMF sample: %s (%zu bytes) OK; events=%zu\n",
 	            path, bytes.size(), events.size());
 	return 0;
 }
@@ -2766,7 +2767,7 @@ static int check_sample_file_by_extension(const char *path)
 		return check_g36_sample_file(path);
 	if (ext == ".mid" || ext == ".midi")
 		return check_smf_sample_file(path);
-	std::fprintf(stderr, "sample: unsupported extension: %s\\n", path);
+	std::fprintf(stderr, "sample: unsupported extension: %s\n", path);
 	return 1;
 }
 
