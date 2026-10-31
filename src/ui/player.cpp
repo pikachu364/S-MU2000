@@ -104,8 +104,9 @@ bool load_events_from_memory(const u8 *data, size_t size,
             bool following_fc_chain = false;
             // A malformed file must not be able to create unbounded expansion.
             size_t steps_left = t.sequence.size() * 128 + 1;
-            for (size_t event_index = 0;
-                 event_index < t.sequence.size() && steps_left-- > 0; ) {
+            size_t event_index = 0;
+            bool track_end_seen = false;
+            for (; event_index < t.sequence.size() && steps_left > 0; --steps_left) {
                 const rcp3::sequence_event &e = t.sequence[event_index];
                 // G36 p0 is the delay from this event to the next one.
                 // Commands F0..FF explicitly ignore p0.
@@ -227,12 +228,19 @@ bool load_events_from_memory(const u8 *data, size_t size,
                         // stateful handling; never guess their meaning.
                         break;
                     }
-                    if (e.code == 0xfe)
+                    if (e.code == 0xfe) {
+                        track_end_seen = true;
                         break;
+                    }
                 }
                 if (e.code < 0xf0)
                     tick += e.p0;
                 ++event_index;
+            }
+            if (!track_end_seen) {
+                events.clear();
+                err = "RCP3.0 loop expansion exceeded its per-track step budget";
+                return false;
             }
         }
         if (events.empty()) {
