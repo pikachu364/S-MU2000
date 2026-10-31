@@ -97,6 +97,11 @@ bool load_events_from_memory(const u8 *data, size_t size,
                 unsigned int limit = 0;
             };
             std::vector<loop_frame> loop_stack;
+            // FC/FD measure-repeat state. G36 command IDs are record numbers:
+            // 0x30 is the first sequence record, then one ID per 6-byte record.
+            size_t measure_count = 1; // measure 0 starts at the first sequence record
+            size_t repeat_return = t.sequence.size();
+            bool following_fc_chain = false;
             // A malformed file must not be able to create unbounded expansion.
             size_t steps_left = t.sequence.size() * 128 + 1;
             for (size_t event_index = 0;
@@ -147,6 +152,47 @@ bool load_events_from_memory(const u8 *data, size_t size,
                         emit({u8(0xe0 | channel), u8(bend & 0x7f), u8((bend >> 7) & 0x7f)});
                         break;
                     }
+                    case 0xfc: { // Repeat a previous measure (G36 record ID in p1)
+                        if (following_fc_chain && repeat_return < t.sequence.size()) {
+                            // A chain FC -> FC -> ... is one redirection; retain
+                            // the original continuation until a non-FC/FD record.
+                        } else if (repeat_return < t.sequence.size()) {
+                            // FC encountered while replaying a measure returns to
+                            // the command following the original FC.
+                            event_index = repeat_return;
+                            repeat_return = t.sequence.size();
+                            following_fc_chain = false;
+                            continue;
+                        }
+                        if (e.p0 >= measure_count || e.p1 < 0x0030) {
+                            err = "RCP3.0 FC references an unavailable measure or invalid command ID";
+                            return false;
+                        }
+                        {
+                            const size_t target = size_t(e.p1 - 0x0030);
+                            if (target >= t.sequence.size() ||
+                                t.sequence[target].code == 0xfe ||
+                                target == event_index) {
+                                err = "RCP3.0 FC target is outside the sequence or points to Track End";
+                                return false;
+                            }
+                            if (repeat_return == t.sequence.size())
+                                repeat_return = event_index + 1;
+                            event_index = target;
+                            following_fc_chain = (t.sequence[target].code == 0xfc);
+                            continue;
+                        }
+                    }
+                    case 0xfd: // Measure End
+                        if (repeat_return < t.sequence.size()) {
+                            event_index = repeat_return;
+                            repeat_return = t.sequence.size();
+                            following_fc_chain = false;
+                            ++measure_count;
+                            continue;
+                        }
+                        ++measure_count;
+                        break;
                     case 0xf8: // Loop End: p0 is the total number of passes
                         if (!loop_stack.empty()) {
                             loop_frame &frame = loop_stack.back();
@@ -166,8 +212,8 @@ bool load_events_from_memory(const u8 *data, size_t size,
                         break;
                     case 0xfe: break;
                     default:
-                        // SysEx, measure repeats and vendor-specific commands
-                        // require dedicated stateful handling; never guess their meaning.
+                        // SysEx and vendor-specific commands require dedicated
+                        // stateful handling; never guess their meaning.
                         break;
                     }
                     if (e.code == 0xfe)
