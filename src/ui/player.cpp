@@ -79,7 +79,7 @@ bool load_events_from_memory(const u8 *data, size_t size,
 
     if (meta) {
         *meta = smf::song_meta{};
-        meta->title = document.header.title;
+        meta->title = smf::title_text(document.header.title);
         meta->ppq = document.header.ticks_per_quarter;
         if (document.header.tempo_bpm == 0) {
             err = "RCP2 初期テンポが 0 です";
