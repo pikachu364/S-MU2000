@@ -7,6 +7,7 @@ static bool rcp_loop_budget_test_ok = true;
 static bool rcp_e6_note_off_route_test_ok = true;
 static bool rcp3_parser_test_ok = true;
 static bool rcp3_player_test_ok = true;
+static bool rcp3_tick_order_test_ok = true;
 static bool sample_extension_test_ok = true;
 //
 // 移植が成立しているかの最小確認
@@ -2685,6 +2686,133 @@ static void check_rcp3_player()
         std::printf("RCP3 player API error: %s\n", err.c_str());
 }
 
+// G36 Tick ordering regression. These checks intentionally exercise only the G36
+// player path; RCP2 and Standard MIDI File ordering tests remain independent.
+static void check_rcp3_tick_order()
+{
+    struct record { u8 code; u8 p2; u16 p0; u16 p1; };
+    auto make_g36 = [](const std::vector<std::vector<record>> &sequences) {
+        std::vector<u8> bytes(rcp3::fixed_header_size, 0);
+        const char signature[] = "COME ON MUSIC RECOMPOSER RCP3.0";
+        std::copy(signature, signature + sizeof(signature), bytes.begin());
+        bytes[0x208] = static_cast<u8>(sequences.size());
+        bytes[0x20a] = 48; // TPQ
+        bytes[0x20c] = 120; // initial BPM
+        for (size_t ti = 0; ti < sequences.size(); ++ti) {
+            const size_t start = bytes.size();
+            const u32 length = static_cast<u32>(rcp3::track_header_size +
+                sequences[ti].size() * rcp3::event_size);
+            bytes.resize(start + length, 0);
+            auto put16 = [&bytes](size_t at, u16 value) {
+                bytes[at] = static_cast<u8>(value);
+                bytes[at + 1] = static_cast<u8>(value >> 8);
+            };
+            bytes[start] = static_cast<u8>(length);
+            bytes[start + 1] = static_cast<u8>(length >> 8);
+            bytes[start + 2] = static_cast<u8>(length >> 16);
+            bytes[start + 3] = static_cast<u8>(length >> 24);
+            bytes[start + 4] = static_cast<u8>(ti + 1);
+            bytes[start + 6] = 0; // port A, MIDI channel 1
+            size_t at = start + rcp3::track_header_size;
+            for (const record &e : sequences[ti]) {
+                bytes[at] = e.code;
+                bytes[at + 1] = e.p2;
+                put16(at + 2, e.p0);
+                put16(at + 4, e.p1);
+                at += rcp3::event_size;
+            }
+        }
+        return bytes;
+    };
+    auto load = [](const std::vector<u8> &bytes, std::vector<smf::event> &events,
+                   smf::song_meta &meta, std::string &err) {
+        ui::player player;
+        int index = -1;
+        if (!player.add_from_memory(bytes.data(), bytes.size(), "tick-order.g36", err, &index))
+            return false;
+        const auto entries = player.list();
+        if (index < 0 || static_cast<size_t>(index) >= entries.size())
+            return false;
+        events = entries[static_cast<size_t>(index)].evs;
+        // Re-read through the same public player API with metadata is not exposed;
+        // tempo assertions are made from the event timestamps below.
+        (void)meta;
+        return true;
+    };
+
+    std::vector<smf::event> events;
+    smf::song_meta meta;
+    std::string err;
+    const std::vector<record> one_track = {
+        {60, 90, 24, 24},       // Note On at tick 0, Note Off at tick 24
+        {0xeb, 100, 0, 7},      // CC7 at tick 24
+        {0xe2, 5, 0, 10},       // Bank MSB then Program Change at tick 24
+        {61, 80, 0, 12},        // next Note On at tick 24
+        {0xfe, 0, 0, 0}
+    };
+    const bool loaded = load(make_g36({one_track}), events, meta, err);
+    std::vector<std::vector<u8>> at_tick_24;
+    bool tick24_times_ok = true;
+    for (const smf::event &event : events) {
+        if (event.time > 0.249999 && event.time < 0.250001) {
+            at_tick_24.push_back(event.bytes);
+        }
+        if (event.bytes == std::vector<u8>({0x80, 60, 0}))
+            tick24_times_ok = tick24_times_ok &&
+                event.time > 0.249999 && event.time < 0.250001;
+    }
+    const std::vector<std::vector<u8>> expected_tick24 = {
+        {0x80, 60, 0}, {0xb0, 7, 100}, {0xb0, 0, 5},
+        {0xc0, 10}, {0x90, 61, 80}
+    };
+    const bool same_tick_ok = loaded && tick24_times_ok && at_tick_24 == expected_tick24;
+
+    // At tick zero, track traversal order is retained by stable sorting.
+    events.clear();
+    const std::vector<record> track_a = {
+        {0xeb, 70, 0, 7}, {62, 90, 0, 12}, {0xfe, 0, 0, 0}
+    };
+    const std::vector<record> track_b = {
+        {0xeb, 80, 0, 10}, {0xfe, 0, 0, 0}
+    };
+    const bool multi_loaded = load(make_g36({track_a, track_b}), events, meta, err);
+    std::vector<std::vector<u8>> at_tick_zero;
+    for (const smf::event &event : events)
+        if (event.time >= -0.000001 && event.time <= 0.000001)
+            at_tick_zero.push_back(event.bytes);
+    const std::vector<std::vector<u8>> expected_tick_zero = {
+        {0xb0, 7, 70}, {0x90, 62, 90}, {0xb0, 10, 80}
+    };
+    const bool multi_track_ok = multi_loaded && at_tick_zero == expected_tick_zero;
+
+    // E7 at the same Tick as the following note changes the time after that Tick,
+    // not the timestamp of the event at the tempo-change position.
+    const std::vector<record> tempo_track = {
+        {60, 90, 24, 24},
+        {0xe7, 0, 0, 128}, // 120 * 64 / 128 = 60 BPM at tick 24
+        {64, 90, 0, 24},
+        {0xfe, 0, 0, 0}
+    };
+    events.clear();
+    const bool tempo_loaded = load(make_g36({tempo_track}), events, meta, err);
+    bool tempo_note_on_at_change = false, tempo_note_off_after_change = false;
+    for (const smf::event &event : events) {
+        if (event.bytes == std::vector<u8>({0x90, 64, 90}))
+            tempo_note_on_at_change = event.time > 0.249999 && event.time < 0.250001;
+        if (event.bytes == std::vector<u8>({0x80, 64, 0}))
+            tempo_note_off_after_change = event.time > 0.749999 && event.time < 0.750001;
+    }
+    const bool tempo_same_tick_ok = tempo_loaded && tempo_note_on_at_change &&
+        tempo_note_off_after_change;
+
+    rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok;
+    std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s\n",
+        same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
+        tempo_same_tick_ok ? "合" : "NG");
+    if (!rcp3_tick_order_test_ok && !err.empty())
+        std::printf("RCP3 Tick order API error: %s\n", err.c_str());
+}
+
 // Extension-aware real-file diagnostics. The extension selects the parser family;
 // the parser still validates the actual file signature and structure.
 static std::string sample_extension(const char *path)
@@ -2939,6 +3067,7 @@ int main(int argc, char **argv)
 	check_rcp2_player_event_pipeline();
 	check_rcp3_parser();
 	check_rcp3_player();
+	check_rcp3_tick_order();
 	check_sample_extension_classification();
 	check_font_parses();
 
@@ -2955,5 +3084,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok && sample_extension_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok && rcp3_tick_order_test_ok && sample_extension_test_ok) ? 0 : 1;
 }
