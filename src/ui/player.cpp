@@ -79,32 +79,74 @@ bool load_events_from_memory(const u8 *data, size_t size,
         const double seconds_per_tick = 60.0 /
             (double(h.tempo_bpm) * double(h.ticks_per_quarter));
         for (const rcp3::track &t : tracks) {
-            if (t.header.mute)
+            if (t.header.mute || t.header.midi_channel == 0xff)
                 continue;
-            const int channel_field = t.header.midi_channel;
-            const int channel = channel_field & 0x0f;
-            const int port = (channel_field >> 4) & 0x0f;
-            const int transpose = static_cast<int>(static_cast<int8_t>(t.header.key)) +
-                                  static_cast<int>(static_cast<int8_t>(h.play_bias));
+            int channel_field = t.header.midi_channel;
+            int channel = channel_field & 0x0f;
+            int port = (channel_field >> 4) & 0x0f;
+            const bool rhythm_track = (t.header.key & 0x80) != 0;
+            const int transpose = rhythm_track ? 0 :
+                static_cast<int>(static_cast<int8_t>(t.header.key)) +
+                static_cast<int>(static_cast<int8_t>(h.play_bias));
             const double track_start = double(static_cast<int8_t>(t.header.tick_offset));
             double tick = track_start;
+            bool channel_muted = false;
             for (const rcp3::sequence_event &e : t.sequence) {
-                tick += e.p0;
+                // G36 p0 is the delay to the next event. Commands F0..FF
+                // explicitly ignore p0; note and ordinary commands consume it.
+                if (e.code < 0xf0)
+                    tick += e.p0;
+                const double event_time = std::max(0.0, tick) * seconds_per_tick;
+                auto emit = [&](std::initializer_list<u8> bytes) {
+                    if (!channel_muted)
+                        events.push_back({event_time, std::vector<u8>(bytes), u8(port)});
+                };
                 if (e.code < 0x80) {
                     const int note = int(e.code) + transpose;
-                    const double on_tick = std::max(0.0, tick);
-                    const double off_tick = std::max(on_tick, tick + e.p1);
-                    if (e.p1 != 0 && note >= 0 && note <= 127 && e.p2 <= 127) {
-                        events.push_back({on_tick * seconds_per_tick,
+                    const double off_tick = std::max(std::max(0.0, tick), tick + e.p1);
+                    if (e.p1 != 0 && note >= 0 && note <= 127 && e.p2 <= 127 && !channel_muted) {
+                        events.push_back({event_time,
                             {u8(0x90 | channel), u8(note), u8(e.p2)}, u8(port)});
                         events.push_back({off_tick * seconds_per_tick,
                             {u8(0x80 | channel), u8(note), 0}, u8(port)});
                     }
-                } else if (e.code == 0xfe) {
-                    break;
                 } else {
-                    // Do not silently reinterpret unimplemented RCP3 commands as MIDI.
-                    // Note events are supported first; command semantics will be added separately.
+                    switch (e.code) {
+                    case 0xe2: // Bank MSB (p2), Program Change (p1)
+                        emit({u8(0xb0 | channel), 0x00, u8(e.p2 & 0x7f)});
+                        emit({u8(0xc0 | channel), u8(e.p1 & 0x7f)});
+                        break;
+                    case 0xe6: // MIDI channel: 0=mute, 1..16=port A, 17..32=port B
+                        if (e.p1 == 0) {
+                            channel_muted = true;
+                        } else if (e.p1 <= 32) {
+                            const int mapped = int(e.p1) - 1;
+                            port = mapped / 16;
+                            channel = mapped % 16;
+                            channel_muted = false;
+                        }
+                        break;
+                    case 0xea: emit({u8(0xd0 | channel), u8(e.p1 & 0x7f)}); break;
+                    case 0xeb:
+                        emit({u8(0xb0 | channel), u8(e.p1 & 0x7f), u8(e.p2 & 0x7f)});
+                        break;
+                    case 0xec: emit({u8(0xc0 | channel), u8(e.p1 & 0x7f)}); break;
+                    case 0xed:
+                        emit({u8(0xa0 | channel), u8(e.p1 & 0x7f), u8(e.p2 & 0x7f)});
+                        break;
+                    case 0xee: {
+                        const int bend = (int(e.p2 & 0x7f) << 7) | int(e.p1 & 0x7f);
+                        emit({u8(0xe0 | channel), u8(bend & 0x7f), u8((bend >> 7) & 0x7f)});
+                        break;
+                    }
+                    case 0xfe: break;
+                    default:
+                        // SysEx, loops, measure repeats and vendor-specific commands
+                        // require dedicated stateful handling; never guess their meaning.
+                        break;
+                    }
+                    if (e.code == 0xfe)
+                        break;
                 }
             }
         }
