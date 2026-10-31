@@ -106,6 +106,12 @@ bool load_events_from_memory(const u8 *data, size_t size,
             size_t steps_left = t.sequence.size() * 128 + 1;
             size_t event_index = 0;
             bool track_end_seen = false;
+            struct active_note {
+                int note;
+                size_t off_event;
+                double end_tick;
+            };
+            std::vector<active_note> active_notes;
             for (; event_index < t.sequence.size() && steps_left > 0; --steps_left) {
                 const rcp3::sequence_event &e = t.sequence[event_index];
                 // G36 p0 is the delay from this event to the next one.
@@ -118,11 +124,27 @@ bool load_events_from_memory(const u8 *data, size_t size,
                 if (e.code < 0x80) {
                     const int note = int(e.code) + transpose;
                     const double off_tick = std::max(std::max(0.0, tick), tick + e.p1);
-                    if (e.p1 != 0 && note >= 0 && note <= 127 && e.p2 <= 127 && !channel_muted) {
-                        events.push_back({event_time,
-                            {u8(0x90 | channel), u8(note), u8(e.p2)}, u8(port)});
-                        events.push_back({off_tick,
-                            {u8(0x80 | channel), u8(note), 0}, u8(port)});
+                    if (note >= 0 && note <= 127 && e.p2 <= 127 && !channel_muted) {
+                        // G36 reuses an already-running pitch instead of emitting
+                        // another Note On. Its duration is replaced by this record's
+                        // duration; a zero duration therefore ends the old note here.
+                        auto active = std::find_if(active_notes.begin(), active_notes.end(),
+                            [note, tick](const active_note &n) {
+                                return n.note == note && n.end_tick > tick;
+                            });
+                        if (active != active_notes.end()) {
+                            events[active->off_event].time = off_tick;
+                            active->end_tick = off_tick;
+                            if (e.p1 == 0)
+                                active_notes.erase(active);
+                        } else if (e.p1 != 0) {
+                            events.push_back({event_time,
+                                {u8(0x90 | channel), u8(note), u8(e.p2)}, u8(port)});
+                            const size_t off_event = events.size();
+                            events.push_back({off_tick,
+                                {u8(0x80 | channel), u8(note), 0}, u8(port)});
+                            active_notes.push_back({note, off_event, off_tick});
+                        }
                     }
                 } else {
                     switch (e.code) {
