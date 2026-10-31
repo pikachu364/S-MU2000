@@ -804,3 +804,14 @@
 - Windows実機: ユーザー確認済み（#664合格報告）。ただし#664が今回の開発ブランチ上の新コミットに対するCIかは、実行SHAを確認していないため断定しない。
 - Linux: コード変更のみ。実機・CI未確認。
 - 実際のRCP/R36再生の全互換性を保証する変更ではなく、ファイル選択フィルターの変更。
+
+
+## 2026-10-31 — Actions #699 / #701 合格後: G36サンプルとTick順序テスト
+
+- ユーザー報告: 公開リポジトリのActions #699と#701は合格。
+- private sample-check run [41201167390 / artifact 13042078242](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/41201167390/artifacts/13042078242) を取得し、`g36-sample-check.txt` を確認。4サンプルすべて解析・MIDI変換成功。
+- `85SO018A.G36`: 36 tracks, 10,818 MIDI events, 83.908 sec。`EVA3_22D.G36`: 18 tracks, 2,243 events, 84.763 sec。`SAKURA.G36`: 36 tracks, 5,731 events, 86.180 sec。`TAKARAJI.G36`: 36 tracks, 13,530 events, 303.051 sec。
+- 全4サンプルで `track_padding_bytes=0`、`tracks_with_padding=0`。source note inventory、velocity 0 / duration 0、トラックごとのF8/F9/FC/FD件数もartifactに記録された。
+- G36専用Tick順序テストを追加し、同TickのNote Off→CC→Bank Select→Program Change→Note On、Tick 0の複数トラック安定順、E7テンポ変更と同Tickのノート時刻を検証。`tests/verify.txt` の期待出力も更新した。RCP2/SMFの既存経路や再生意味論は変更していない。
+- Actions #701 合格により、追加した合成回帰テストを含むCI成功を確認（ユーザー報告）。
+- **制約:** サンプルの構造解析・変換成功とTick順序合成テストの合格は、音楽的な正確性や全G36ファイル互換性を保証しない。Windows実機では再生可能だが、音の正確性は未確認。次はloop/repeat展開後の同Tick順とsource note数・出力イベント数の差を調べる。
