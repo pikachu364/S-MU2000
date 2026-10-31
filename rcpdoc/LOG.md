@@ -781,3 +781,26 @@
 - **仮説であり未確定:** Glosaの自動機種判別、RCP内の機種情報解釈、または音源選択経路の差を調査する価値がある。現時点でGlosaのバグと断定しない。
 - **次の確認:** sample-04のRCPヘッダー／機種指定フィールド、Glosaの判別ロジック、各プレイヤーが表示する機種情報の意味を切り分ける。
 - **作業範囲:** ユーザー報告の記録。ソース変更・再生・ビルドは行っていない。
+
+
+## 2026-10-31 — GUIプレイヤーのRCP/R36ファイル選択フィルターを開発ブランチへ反映
+
+**ユーザー報告:** Actions #664 合格。Windows実機で「ファイルを足す」からRCP/R36を選択できることを確認。Linux実機は利用環境がないため未確認。
+
+**元コミットの確認**
+- [57ed97d](https://github.com/pikachu364/S-MU2000/commit/57ed97d57d08c9a469824380c6f2f1e983e818dc): LinuxのMIDIファイルフィルターに rcp;r36 を追加し、既存の m3u;m3u8 を維持。
+- [6a91df6](https://github.com/pikachu364/S-MU2000/commit/6a91df6059cb11ad2d8eac4b31f8c5e73203b611): Windowsのフィルターに m3u;m3u8 を復元しつつ rcp;r36 を維持。
+
+**開発ブランチ feature/rcp2-parser-skeleton への反映**
+- ブランチ間は大きく分岐しており、比較結果は diverged だったため、2コミットをそのままマージ／cherry-pickせず、対象フィルターだけを現在の実装へ移植した。
+- Windows src/ui/pc_window.cpp: *.mid;*.midi;*.smf;*.m3u;*.m3u8;*.rcp;*.r36。
+- Linux src/ui/app_linux.h: mid;midi;smf;rcp;r36;m3u;m3u8。このブランチでは pc_window_linux.cpp がファイル選択を担当していないため、実際の ask_midi_file_path() 経路を更新。
+- Windows commit: db364e0ee819c4f8e395ae881ace0260a63422d9。
+- Linux commit: e78b1176142753e6a6b860c9efac1e737114af2c。
+- 既存のMIDIとプレイリスト拡張子を削除せず保持した。コード反映後の再取得検証・CI確認は次工程で行う。
+- macOSのこの開発ブランチでの同等経路・フィルターは今回の2コミット移植対象外。既存状態を別途確認する。
+
+**検証状態**
+- Windows実機: ユーザー確認済み（#664合格報告）。ただし#664が今回の開発ブランチ上の新コミットに対するCIかは、実行SHAを確認していないため断定しない。
+- Linux: コード変更のみ。実機・CI未確認。
+- 実際のRCP/R36再生の全互換性を保証する変更ではなく、ファイル選択フィルターの変更。
