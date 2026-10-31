@@ -91,7 +91,17 @@ bool load_events_from_memory(const u8 *data, size_t size,
             const double track_start = double(static_cast<int8_t>(t.header.tick_offset));
             double tick = track_start;
             bool channel_muted = false;
-            for (const rcp3::sequence_event &e : t.sequence) {
+            struct loop_frame {
+                size_t begin = 0;
+                unsigned int completed = 0;
+                unsigned int limit = 0;
+            };
+            std::vector<loop_frame> loop_stack;
+            // A malformed file must not be able to create unbounded expansion.
+            size_t steps_left = t.sequence.size() * 128 + 1;
+            for (size_t event_index = 0;
+                 event_index < t.sequence.size() && steps_left-- > 0; ) {
+                const rcp3::sequence_event &e = t.sequence[event_index];
                 // G36 p0 is the delay from this event to the next one.
                 // Commands F0..FF explicitly ignore p0.
                 const double event_time = std::max(0.0, tick) * seconds_per_tick;
@@ -137,9 +147,26 @@ bool load_events_from_memory(const u8 *data, size_t size,
                         emit({u8(0xe0 | channel), u8(bend & 0x7f), u8((bend >> 7) & 0x7f)});
                         break;
                     }
+                    case 0xf8: // Loop End: p0 is the total number of passes
+                        if (!loop_stack.empty()) {
+                            loop_frame &frame = loop_stack.back();
+                            ++frame.completed;
+                            if (frame.limit != 0 && frame.completed < frame.limit) {
+                                event_index = frame.begin;
+                                continue;
+                            }
+                            loop_stack.pop_back();
+                        }
+                        break;
+                    case 0xf9: // Loop Start
+                        if (loop_stack.size() < 8) {
+                            loop_stack.push_back({event_index + 1, 0,
+                                (e.p0 > 0 && e.p0 < 0x7f) ? unsigned(e.p0) : 0u});
+                        }
+                        break;
                     case 0xfe: break;
                     default:
-                        // SysEx, loops, measure repeats and vendor-specific commands
+                        // SysEx, measure repeats and vendor-specific commands
                         // require dedicated stateful handling; never guess their meaning.
                         break;
                     }
@@ -148,6 +175,7 @@ bool load_events_from_memory(const u8 *data, size_t size,
                 }
                 if (e.code < 0xf0)
                     tick += e.p0;
+                ++event_index;
             }
         }
         if (events.empty()) {
