@@ -670,3 +670,19 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. 開発ブランチ上の新しいコミットに対するCIを確認する。
 3. macOSの現ブランチにおけるプレイヤー「ファイルを足す」経路と拡張子フィルターを調査する。
 4. RCP2説明書の作成は、コード・テスト・実機確認の根拠を区別して進める。
+
+
+## 2026-10-31 — G36サンプル診断とTick順序テスト（Actions #699 / #701 合格）
+
+**確認済み**
+- ユーザー報告: Actions #699 と #701 は合格。
+- private sample-check artifact [run 41201167390 / artifact 13042078242](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/41201167390/artifacts/13042078242) を取得し、`g36-sample-check.txt` の内容を確認。85SO018A.G36、EVA3_22D.G36、SAKURA.G36、TAKARAJI.G36の4件すべて解析・MIDI変換成功。
+- MIDI event数 / 長さ: 85SO018A=10,818 / 83.908秒、EVA3_22D=2,243 / 84.763秒、SAKURA=5,731 / 86.180秒、TAKARAJI=13,530 / 303.051秒。
+- 4サンプル全て `track_padding_bytes=0`、`tracks_with_padding=0`。artifactにはsource note数、velocity 0 / duration 0、トラック別ノート・F8/F9/FC/FD数も出力されている。
+- G36専用合成テストは、同TickのNote Off→CC→Bank Select→Program Change→Note On、Tick 0での複数トラック安定順、E7テンポ変更と同Tickのノート時刻を検証する。RCP2/SMFの処理経路は変更していない。
+
+**次の作業**
+1. G36のloop/repeat展開後に発生する同Tickイベント順序を、合成fixtureで追加検証する。F8/F9とFC/FDの組合せは単独テストと区別する。
+2. source note records と生成MIDIイベント数の差を、トラック単位の診断を使って整理する。mute / channel invalid / E6 route / duration=0 / velocity=0 / loop traversalを別々に計数できるようにし、根拠なしに再生意味論を変更しない。
+3. E7のp2による段階的テンポ変化は未実装。現行テストはテンポ切替点とイベント時刻の基本確認であり、補間曲線の正確性を証明しない。
+4. Windows実機ではG36が再生可能とのユーザー報告があるが、音の正確性は未確認。CIと構造診断を実機・音楽的互換性の証明として扱わない。
