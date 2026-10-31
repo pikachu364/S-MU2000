@@ -2717,35 +2717,35 @@ static int check_g36_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file) {
-		std::fprintf(stderr, "G36 sample: cannot open: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: cannot open: %s\n", path);
 		return 1;
 	}
 	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
 	                      std::istreambuf_iterator<char>());
 	if (bytes.empty()) {
-		std::fprintf(stderr, "G36 sample: empty file: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: empty file: %s\n", path);
 		return 1;
 	}
 	std::string err;
 	rcp3::header_info header;
 	if (!rcp3::parse_header(bytes.data(), bytes.size(), header, err)) {
-		std::fprintf(stderr, "G36 sample: header failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: header failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	std::vector<rcp3::track> tracks;
 	if (!rcp3::parse_tracks(bytes.data(), bytes.size(), header, tracks, err)) {
-		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	ui::player player;
 	int index = -1;
 	if (!player.add_from_memory(bytes.data(), bytes.size(), path, err, &index)) {
-		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\\n", path, err.c_str());
+		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
 	const std::vector<ui::player::entry> entries = player.list();
 	if (index < 0 || static_cast<size_t>(index) >= entries.size()) {
-		std::fprintf(stderr, "G36 sample: player returned an invalid entry index: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: player returned an invalid entry index: %s\n", path);
 		return 1;
 	}
 	const ui::player::entry &entry = entries[static_cast<size_t>(index)];
@@ -2765,8 +2765,6 @@ static int check_g36_sample_file(const char *path)
 		else
 			++other_events;
 	}
-	// Distinguish source note records from MIDI's velocity-zero Note On encoding.
-	// Such records are valid MIDI note-off semantics, not missing generated Note Offs.
 	size_t source_notes = 0, source_zero_velocity = 0, source_zero_duration = 0;
 	size_t sequence_padding = 0, tracks_with_padding = 0;
 	for (const rcp3::track &track : tracks) {
@@ -2777,21 +2775,53 @@ static int check_g36_sample_file(const char *path)
 				if (event.p1 == 0) ++source_zero_duration;
 			}
 		}
-		const size_t sequence_capacity = track.header.encoded_length - rcp3::track_header_size;
+		const size_t sequence_capacity =
+			track.header.encoded_length >= rcp3::track_header_size
+				? track.header.encoded_length - rcp3::track_header_size : 0;
 		const size_t sequence_used = track.sequence.size() * rcp3::event_size;
 		if (sequence_capacity > sequence_used) {
 			sequence_padding += sequence_capacity - sequence_used;
 			++tracks_with_padding;
 		}
 	}
-	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; title=\"%s\"; midi_events=%zu; note_on=%zu; note_off=%zu; zero_velocity_note_on=%zu; other=%zu; length=%.3f sec\\n",
+	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; title=\"%s\"; midi_events=%zu; note_on=%zu; note_off=%zu; zero_velocity_note_on=%zu; other=%zu; length=%.3f sec\n",
 	            path, bytes.size(), tracks.size(), entry.title.c_str(), entry.evs.size(),
 	            note_on, note_off, zero_velocity_note_on, other_events, entry.length);
-	std::printf("G36 detail: source_note_records=%zu; source_zero_velocity=%zu; source_zero_duration=%zu; track_padding_bytes=%zu; tracks_with_padding=%zu\\n",
+	std::printf("G36 detail: source_note_records=%zu; source_zero_velocity=%zu; source_zero_duration=%zu; track_padding_bytes=%zu; tracks_with_padding=%zu\n",
 	            source_notes, source_zero_velocity, source_zero_duration,
 	            sequence_padding, tracks_with_padding);
+	// Per-track source statistics identify where excluded/zero-valued notes live.
+	// These are structural counts; loop/repeat execution counts are reported separately in a future player trace.
+	for (size_t ti = 0; ti < tracks.size(); ++ti) {
+		const rcp3::track &track = tracks[ti];
+		size_t notes = 0, zero_velocity = 0, zero_duration = 0;
+		size_t zero_both = 0, e6_commands = 0, f8_commands = 0;
+		size_t f9_commands = 0, fc_commands = 0, fd_commands = 0;
+		for (const rcp3::sequence_event &event : track.sequence) {
+			if (event.code < 0x80) {
+				++notes;
+				if (event.p2 == 0) ++zero_velocity;
+				if (event.p1 == 0) ++zero_duration;
+				if (event.p2 == 0 && event.p1 == 0) ++zero_both;
+			} else {
+				switch (event.code) {
+				case 0xe6: ++e6_commands; break;
+				case 0xf8: ++f8_commands; break;
+				case 0xf9: ++f9_commands; break;
+				case 0xfc: ++fc_commands; break;
+				case 0xfd: ++fd_commands; break;
+				default: break;
+				}
+			}
+		}
+		std::printf("G36 track[%zu]: id=%u name=\"%s\" muted=%u midi_channel=0x%02X notes=%zu velocity0=%zu duration0=%zu both0=%zu E6=%zu F8=%zu F9=%zu FC=%zu FD=%zu\n",
+		            ti, unsigned(track.header.track_id), track.header.name.c_str(),
+		            unsigned(track.header.mute), unsigned(track.header.midi_channel),
+		            notes, zero_velocity, zero_duration, zero_both,
+		            e6_commands, f8_commands, f9_commands, fc_commands, fd_commands);
+	}
 	if (note_on == 0 && note_off == 0 && zero_velocity_note_on == 0) {
-		std::fprintf(stderr, "G36 sample: warning: no note events were produced: %s\\n", path);
+		std::fprintf(stderr, "G36 sample: warning: no note events were produced: %s\n", path);
 	}
 	return 0;
 }
