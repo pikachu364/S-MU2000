@@ -7,6 +7,7 @@ static bool rcp_loop_budget_test_ok = true;
 static bool rcp_e6_note_off_route_test_ok = true;
 static bool rcp3_parser_test_ok = true;
 static bool rcp3_player_test_ok = true;
+static bool sample_extension_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -2274,6 +2275,7 @@ static void check_rcp2_player_event_pipeline()
 
 // Read real RCP2 files on demand without placing private song data in the repository.
 // Usage: verify --rcp2-sample|--rcp2-event-dump|--rcp2-raw-record-dump <file.rcp> [another.rcp ...]
+// Generic extension-aware diagnostics: verify --sample <file.rcp|file.r36|file.g36|file.mid|file.midi> [...]
 static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false,
                                   bool dump_raw_records = false)
 {
@@ -2698,6 +2700,19 @@ static std::string sample_extension(const char *path)
 	return ext;
 }
 
+static void check_sample_extension_classification()
+{
+	const bool rcp = sample_extension("song.RCP") == ".rcp";
+	const bool r36 = sample_extension("song.r36") == ".r36";
+	const bool g36 = sample_extension("song.G36") == ".g36";
+	const bool mid = sample_extension("song.mid") == ".mid";
+	const bool midi = sample_extension("folder.with.dot/song.MIDI") == ".midi";
+	const bool no_extension = sample_extension("folder.with.dot/song").empty();
+	sample_extension_test_ok = rcp && r36 && g36 && mid && midi && no_extension;
+	std::printf("サンプル拡張子分類: RCP/R36/G36/MID/MIDI・大文字小文字・拡張子なし %s\\n",
+	            sample_extension_test_ok ? "合" : "NG");
+}
+
 static int check_g36_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
@@ -2847,6 +2862,7 @@ int main(int argc, char **argv)
 	check_rcp2_player_event_pipeline();
 	check_rcp3_parser();
 	check_rcp3_player();
+	check_sample_extension_classification();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
@@ -2862,5 +2878,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok && sample_extension_test_ok) ? 0 : 1;
 }
