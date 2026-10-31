@@ -2743,8 +2743,33 @@ static int check_g36_sample_file(const char *path)
 		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\n", path, err.c_str());
 		return 1;
 	}
-	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; player_index=%d\n",
-	            path, bytes.size(), tracks.size(), index);
+	const std::vector<ui::player::entry> entries = player.list();
+	if (index < 0 || static_cast<size_t>(index) >= entries.size()) {
+		std::fprintf(stderr, "G36 sample: player returned an invalid entry index: %s\n", path);
+		return 1;
+	}
+	const ui::player::entry &entry = entries[static_cast<size_t>(index)];
+	size_t note_on = 0, note_off = 0, other_events = 0;
+	for (const smf::event &event : entry.evs) {
+		if (event.bytes.empty()) {
+			++other_events;
+			continue;
+		}
+		const u8 status = event.bytes[0] & 0xf0;
+		if (status == 0x90 && event.bytes.size() >= 3 && event.bytes[2] != 0)
+			++note_on;
+		else if (status == 0x80 ||
+		         (status == 0x90 && event.bytes.size() >= 3 && event.bytes[2] == 0))
+			++note_off;
+		else
+			++other_events;
+	}
+	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; title=\"%s\"; midi_events=%zu; note_on=%zu; note_off=%zu; other=%zu; length=%.3f sec\n",
+	            path, bytes.size(), tracks.size(), entry.title.c_str(), entry.evs.size(),
+	            note_on, note_off, other_events, entry.length);
+	if (note_on == 0 || note_off == 0) {
+		std::fprintf(stderr, "G36 sample: warning: no complete note pair was produced: %s\n", path);
+	}
 	return 0;
 }
 
