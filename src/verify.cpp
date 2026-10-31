@@ -2608,7 +2608,7 @@ static void check_rcp3_parser()
 
     const bool ok = header_ok && track_header_ok && tracks_ok &&
         signature_reject_ok && missing_end_reject_ok && partial_reject_ok;
-    std::printf("RCP3.0/G36 構造解析: ヘッダー/トラック/FE終端 %s・署名不一致拒否 %s・終端なし拒否 %s・6バイト途中切れ拒否 %s\\n",
+    std::printf("RCP3.0/G36 構造解析: ヘッダー/トラック/FE終端 %s・署名不一致拒否 %s・終端なし拒否 %s・6バイト途中切れ拒否 %s\n",
         header_ok && track_header_ok && tracks_ok ? "合" : "NG",
         signature_reject_ok ? "合" : "NG",
         missing_end_reject_ok ? "合" : "NG",
