@@ -317,7 +317,7 @@ SRCS := \
 	src/card_fs.cpp \
 	src/m2a.cpp \
 	src/rcp.cpp \
-	src/rcp3.cpp \\
+	src/rcp3.cpp \
 	src/mame/sound/swp30.cpp \
 	src/mame/sound/swp30_jit.cpp \
 	src/mame/video/hd44780.cpp \
