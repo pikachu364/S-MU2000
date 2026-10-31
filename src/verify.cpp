@@ -2709,7 +2709,7 @@ static void check_sample_extension_classification()
 	const bool midi = sample_extension("folder.with.dot/song.MIDI") == ".midi";
 	const bool no_extension = sample_extension("folder.with.dot/song").empty();
 	sample_extension_test_ok = rcp && r36 && g36 && mid && midi && no_extension;
-	std::printf("サンプル拡張子分類: RCP/R36/G36/MID/MIDI・大文字小文字・拡張子なし %s\\n",
+	std::printf("サンプル拡張子分類: RCP/R36/G36/MID/MIDI・大文字小文字・拡張子なし %s\n",
 	            sample_extension_test_ok ? "合" : "NG");
 }
 
