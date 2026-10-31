@@ -2664,22 +2664,22 @@ static void check_rcp3_player()
     if (accepted && entries.size() == 1) {
         for (const smf::event &event : entries[0].evs) {
             if (event.bytes == std::vector<u8>({0x90, 60, 90}) && event.port == 0 &&
-                std::abs(event.time) < 0.000001)
+                event.time >= -0.000001 && event.time <= 0.000001)
                 note_on = true;
             if (event.bytes == std::vector<u8>({0x80, 60, 0}) && event.port == 0 &&
-                std::abs(event.time - 0.25) < 0.000001)
+                event.time >= 0.249999 && event.time <= 0.250001)
                 note_off = true;
         }
         times_ok = note_on && note_off;
     }
     rcp3_player_test_ok = accepted && err.empty() && index == 0 &&
         entries.size() == 1 && entries[0].name == "synthetic.g36" && times_ok;
-    std::printf("RCP3/G36 プレイヤー経路（.g36→解析→MIDI）: 読み込み %s・Note On/Off %s・tick→秒 %s\\n",
+    std::printf("RCP3/G36 プレイヤー経路（.g36→解析→MIDI）: 読み込み %s・Note On/Off %s・tick→秒 %s\n",
         accepted && err.empty() ? "合" : "NG",
         note_on && note_off ? "合" : "NG",
         times_ok ? "合" : "NG");
     if (!rcp3_player_test_ok)
-        std::printf("RCP3 player API error: %s\\n", err.c_str());
+        std::printf("RCP3 player API error: %s\n", err.c_str());
 }
 
 int main(int argc, char **argv)
