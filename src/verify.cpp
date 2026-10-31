@@ -2682,8 +2682,102 @@ static void check_rcp3_player()
         std::printf("RCP3 player API error: %s\n", err.c_str());
 }
 
+// Extension-aware real-file diagnostics. The extension selects the parser family;
+// the parser still validates the actual file signature and structure.
+static std::string sample_extension(const char *path)
+{
+	std::string name = path ? path : "";
+	const size_t slash = name.find_last_of("/\\\\");
+	const size_t dot = name.find_last_of('.');
+	if (dot == std::string::npos || (slash != std::string::npos && dot < slash))
+		return {};
+	std::string ext = name.substr(dot);
+	std::transform(ext.begin(), ext.end(), ext.begin(),
+	               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	return ext;
+}
+
+static int check_g36_sample_file(const char *path)
+{
+	std::ifstream file(path, std::ios::binary);
+	if (!file) {
+		std::fprintf(stderr, "G36 sample: cannot open: %s\\n", path);
+		return 1;
+	}
+	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
+	                      std::istreambuf_iterator<char>());
+	if (bytes.empty()) {
+		std::fprintf(stderr, "G36 sample: empty file: %s\\n", path);
+		return 1;
+	}
+	std::string err;
+	rcp3::header_info header;
+	if (!rcp3::parse_header(bytes.data(), bytes.size(), header, err)) {
+		std::fprintf(stderr, "G36 sample: header failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	std::vector<rcp3::track> tracks;
+	if (!rcp3::parse_tracks(bytes.data(), bytes.size(), header, tracks, err)) {
+		std::fprintf(stderr, "G36 sample: parse_tracks failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	ui::player player;
+	int index = -1;
+	if (!player.add_from_memory(bytes.data(), bytes.size(), path, err, &index)) {
+		std::fprintf(stderr, "G36 sample: player conversion failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	std::printf("G36 sample: %s (%zu bytes) OK; parsed_tracks=%zu; player_index=%d\\n",
+	            path, bytes.size(), tracks.size(), index);
+	return 0;
+}
+
+static int check_smf_sample_file(const char *path)
+{
+	std::ifstream file(path, std::ios::binary);
+	if (!file) {
+		std::fprintf(stderr, "SMF sample: cannot open: %s\\n", path);
+		return 1;
+	}
+	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
+	                      std::istreambuf_iterator<char>());
+	if (bytes.size() < 4 || std::memcmp(bytes.data(), "MThd", 4) != 0) {
+		std::fprintf(stderr, "SMF sample: MThd signature missing: %s\\n", path);
+		return 1;
+	}
+	std::vector<smf::event> events;
+	smf::song_meta meta;
+	std::string err;
+	if (!smf::load_from_memory(bytes.data(), bytes.size(), events, err, &meta)) {
+		std::fprintf(stderr, "SMF sample: parse failed: %s: %s\\n", path, err.c_str());
+		return 1;
+	}
+	std::printf("SMF sample: %s (%zu bytes) OK; events=%zu\\n",
+	            path, bytes.size(), events.size());
+	return 0;
+}
+
+static int check_sample_file_by_extension(const char *path)
+{
+	const std::string ext = sample_extension(path);
+	if (ext == ".rcp" || ext == ".r36")
+		return check_rcp2_sample_file(path);
+	if (ext == ".g36")
+		return check_g36_sample_file(path);
+	if (ext == ".mid" || ext == ".midi")
+		return check_smf_sample_file(path);
+	std::fprintf(stderr, "sample: unsupported extension: %s\\n", path);
+	return 1;
+}
+
 int main(int argc, char **argv)
 {
+	if (argc >= 3 && std::strcmp(argv[1], "--sample") == 0) {
+		int failures = 0;
+		for (int i = 2; i < argc; ++i)
+			failures += check_sample_file_by_extension(argv[i]);
+		return failures == 0 ? 0 : 1;
+	}
 	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
 	                  std::strcmp(argv[1], "--rcp2-event-dump") == 0 ||
 	                  std::strcmp(argv[1], "--rcp2-raw-record-dump") == 0)) {
