@@ -2563,7 +2563,7 @@ static void check_rcp3_parser()
     std::vector<u8> bytes(rcp3::fixed_header_size, 0);
     const char signature[] = "COME ON MUSIC RECOMPOSER RCP3.0";
     std::copy(signature, signature + sizeof(signature), bytes.begin());
-    bytes[0x208] = 1; // one track
+    bytes[0x208] = 2; // two tracks, deliberately sharing the same track ID
     bytes[0x20a] = 0x30; // TPQ = 48
     bytes[0x20b] = 0;
     bytes[0x20c] = 120;
@@ -2586,6 +2586,16 @@ static void check_rcp3_parser()
     const size_t event_at = track_start + rcp3::track_header_size;
     bytes[event_at] = 0xfe; // Track End
 
+    // A second, distinct track with the same ID must remain a separate record.
+    const size_t second_track_start = bytes.size();
+    bytes.resize(second_track_start + track_length, 0);
+    put32(second_track_start, track_length);
+    bytes[second_track_start + 4] = 1; // duplicate track ID
+    bytes[second_track_start + 6] = 1; // different MIDI channel
+    bytes[second_track_start + 10] = 'T';
+    bytes[second_track_start + 11] = '2';
+    bytes[second_track_start + rcp3::track_header_size] = 0xfe;
+
     std::string err;
     rcp3::header_info header;
     const bool header_ok = rcp3::parse_header(bytes.data(), bytes.size(), header, err) &&
@@ -2597,8 +2607,12 @@ static void check_rcp3_parser()
         th.encoded_length == track_length && th.track_id == 1 && th.name == "T1";
     std::vector<rcp3::track> tracks;
     const bool tracks_ok = rcp3::parse_tracks(bytes.data(), bytes.size(), header, tracks, err) &&
-        tracks.size() == 1 && tracks[0].sequence.size() == 1 &&
-        tracks[0].sequence[0].code == 0xfe;
+        tracks.size() == 2 &&
+        tracks[0].header.track_id == 1 && tracks[1].header.track_id == 1 &&
+        tracks[0].header.name == "T1" && tracks[1].header.name == "T2" &&
+        tracks[0].header.midi_channel == 0 && tracks[1].header.midi_channel == 1 &&
+        tracks[0].sequence.size() == 1 && tracks[1].sequence.size() == 1 &&
+        tracks[0].sequence[0].code == 0xfe && tracks[1].sequence[0].code == 0xfe;
     std::vector<u8> bad = bytes;
     bad[0] = 'X';
     const bool signature_reject_ok = !rcp3::inspect_header(bad.data(), bad.size(), err) &&
@@ -2614,8 +2628,9 @@ static void check_rcp3_parser()
 
     const bool ok = header_ok && track_header_ok && tracks_ok &&
         signature_reject_ok && missing_end_reject_ok && partial_reject_ok;
-    std::printf("RCP3.0/G36 構造解析: ヘッダー/トラック/FE終端 %s・署名不一致拒否 %s・終端なし拒否 %s・6バイト途中切れ拒否 %s\n",
+    std::printf("RCP3.0/G36 構造解析: ヘッダー/トラック/FE終端 %s・重複IDトラック独立保持 %s・署名不一致拒否 %s・終端なし拒否 %s・6バイト途中切れ拒否 %s\n",
         header_ok && track_header_ok && tracks_ok ? "合" : "NG",
+        tracks_ok ? "合" : "NG",
         signature_reject_ok ? "合" : "NG",
         missing_end_reject_ok ? "合" : "NG",
         partial_reject_ok ? "合" : "NG");
