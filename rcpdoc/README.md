@@ -90,3 +90,14 @@ sample-04の最大100ms窓にはDT1が26件あり、そのうちmodel ID 0x56の
 - ユーザー報告: Windows実機でRCP/R36が選択できることを確認。Actions #664 合格。
 - Linuxはユーザーが実機環境を持たないため実機未確認。今回の開発ブランチ向け変更後のCI結果も未報告。コード反映と動作確認を混同しない。
 - 元の別ブランチでの変更: [Linux 57ed97d](https://github.com/pikachu364/S-MU2000/commit/57ed97d57d08c9a469824380c6f2f1e983e818dc)、[Windowsの既存プレイリスト拡張子復元 6a91df6](https://github.com/pikachu364/S-MU2000/commit/6a91df6059cb11ad2d8eac4b31f8c5e73203b611)。この開発ブランチにはコミット自体をマージせず、現在の実装構造に合わせて必要なフィルター変更だけを反映した。
+
+
+## G36対応の追加状況（2026-10-31 更新）
+
+- ユーザー報告: 公開リポジトリの Actions #699 と #701 は合格。
+- RCP3.0/G36（.g36）の構造解析・MIDIイベント変換・GUIプレイヤー経路を追加済み。Windows実機でユーザーが再生可能であることを確認したが、音楽的な正確性は未確定。
+- G36 private sample-check run [41201167390](https://github.com/pikachu364/S-MU2000-private-data/actions/runs/41201167390/artifacts/13042078242) のartifactを確認。4サンプルすべて解析・変換成功、全サンプルで track_padding_bytes=0 / tracks_with_padding=0。
+- サンプル診断結果: 85SO018A.G36=10,818 MIDI events / 83.908秒、EVA3_22D.G36=2,243 / 84.763秒、SAKURA.G36=5,731 / 86.180秒、TAKARAJI.G36=13,530 / 303.051秒。
+- `src/verify.cpp` にG36専用Tick順序テストを追加。Note Off→CC→Bank Select→Program Change→Note On、Tick 0での複数トラック安定順、E7テンポ変更と同Tickイベントを検査する。RCP2/SMF経路は変更していない。
+- これは構造解析・変換と合成回帰テストの成功記録であり、4サンプルの音楽的正確性や全G36ファイルの互換性を保証しない。G36ループ/小節リピートの複雑な組合せ、velocity=0 / duration=0の意味、テンポ補間などは引き続き検証対象。
+- 次はG36のTick順序テストの結果と実サンプル診断を踏まえ、ループ・リピート展開後の同Tick順、Note On/Off生成の差分を根拠付きで調べる。
