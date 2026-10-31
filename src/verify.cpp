@@ -6,6 +6,7 @@ static bool rcp_player_api_test_ok = true;
 static bool rcp_loop_budget_test_ok = true;
 static bool rcp_e6_note_off_route_test_ok = true;
 static bool rcp3_parser_test_ok = true;
+static bool rcp3_player_test_ok = true;
 //
 // 移植が成立しているかの最小確認
 #include "mame/sound/swp30.h"
@@ -2618,6 +2619,69 @@ static void check_rcp3_parser()
     rcp3_parser_test_ok = ok;
 }
 
+
+ // G36 playback regression: the .g36 path must use the RCP3 player conversion,
+ // while the existing SMF checks above remain independent and unchanged.
+static void check_rcp3_player()
+{
+    std::vector<u8> bytes(rcp3::fixed_header_size, 0);
+    const char signature[] = "COME ON MUSIC RECOMPOSER RCP3.0";
+    std::copy(signature, signature + sizeof(signature), bytes.begin());
+    bytes[0x208] = 1;       // one track
+    bytes[0x20a] = 48;      // TPQ
+    bytes[0x20c] = 120;     // initial BPM
+
+    const size_t track_start = bytes.size();
+    const u32 track_length = static_cast<u32>(rcp3::track_header_size +
+        2 * rcp3::event_size);
+    bytes.resize(track_start + track_length, 0);
+    auto put32 = [&bytes](size_t at, u32 value) {
+        bytes[at] = static_cast<u8>(value);
+        bytes[at + 1] = static_cast<u8>(value >> 8);
+        bytes[at + 2] = static_cast<u8>(value >> 16);
+        bytes[at + 3] = static_cast<u8>(value >> 24);
+    };
+    auto put16 = [&bytes](size_t at, u16 value) {
+        bytes[at] = static_cast<u8>(value);
+        bytes[at + 1] = static_cast<u8>(value >> 8);
+    };
+    put32(track_start, track_length);
+    bytes[track_start + 6] = 0; // port A, MIDI channel 1
+    const size_t sequence = track_start + rcp3::track_header_size;
+    bytes[sequence] = 60;       // note number
+    bytes[sequence + 1] = 90;   // velocity
+    put16(sequence + 2, 0);     // delay to next event
+    put16(sequence + 4, 24);    // note duration
+    bytes[sequence + rcp3::event_size] = 0xfe; // Track End
+
+    ui::player player;
+    std::string err = "stale error";
+    int index = -1;
+    const bool accepted = player.add_from_memory(bytes.data(), bytes.size(),
+        "synthetic.g36", err, &index);
+    const auto entries = player.list();
+    bool note_on = false, note_off = false, times_ok = false;
+    if (accepted && entries.size() == 1) {
+        for (const smf::event &event : entries[0].evs) {
+            if (event.bytes == std::vector<u8>({0x90, 60, 90}) && event.port == 0 &&
+                std::abs(event.time) < 0.000001)
+                note_on = true;
+            if (event.bytes == std::vector<u8>({0x80, 60, 0}) && event.port == 0 &&
+                std::abs(event.time - 0.25) < 0.000001)
+                note_off = true;
+        }
+        times_ok = note_on && note_off;
+    }
+    rcp3_player_test_ok = accepted && err.empty() && index == 0 &&
+        entries.size() == 1 && entries[0].name == "synthetic.g36" && times_ok;
+    std::printf("RCP3/G36 プレイヤー経路（.g36→解析→MIDI）: 読み込み %s・Note On/Off %s・tick→秒 %s\\n",
+        accepted && err.empty() ? "合" : "NG",
+        note_on && note_off ? "合" : "NG",
+        times_ok ? "合" : "NG");
+    if (!rcp3_player_test_ok)
+        std::printf("RCP3 player API error: %s\\n", err.c_str());
+}
+
 int main(int argc, char **argv)
 {
 	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
@@ -2687,6 +2751,7 @@ int main(int argc, char **argv)
 	check_rcp2_e6_note_off_route();
 	check_rcp2_player_event_pipeline();
 	check_rcp3_parser();
+	check_rcp3_player();
 	check_font_parses();
 
 	// Roland の液晶のデータ（F0 41 10 45 12）だけを抜き、GS リセット（F0 41 10 42 12）と XG（F0 43）は通す
@@ -2702,5 +2767,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok) ? 0 : 1;
 }
