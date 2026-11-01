@@ -77,3 +77,39 @@ SAKURAではDrums channel 9に差分が集中し、loop pairがない。zero-vel
 
 - [ValleyBell MidiConverters — rcp2mid.c](https://github.com/ValleyBell/MidiConverters/blob/master/rcp2mid.c)
 - private sampleは `pikachu364/S-MU2000-private-data` 内で調査。raw dataは公開リポジトリへ複製しない。
+
+
+## 6. 2026-11-01追記 — ValleyBell実MIDI照合と前回説明の訂正
+
+### 実ファイルで確認した事実
+
+- private source の SAKURA.G36 Track 9（Drums / MIDI channel 9）には、pitch 36 / velocity 0 / duration > 0のsource recordが206件ある。
+- ValleyBell版 SAKURA.mid は完全な32,395 bytesのファイルとして取得・解析でき、SMF track数は37。
+- MIDIの11番目のtrackでchannel 9 / pitch 36を集計すると706イベント。その内訳はNote On velocity > 0 が148件、Note On velocity = 0 が558件、Note Off statusのイベントは0件。ValleyBell出力ではNote Off相当がNote On velocity 0として記録されている。
+- MIDI上の例としてtick 8880にpitch 36 velocity 92、tick 8881に同pitch velocity 0がある。後続にも同様のイベント列が存在する。
+
+### 重要な訂正
+
+- 直前の会話で提示した「全1,058レコードのシミュレーションで抑制はrecord 992の1件だけ」「残り459件が出力」という結果は、G36の小節リピート（0xFC）・ループ（0xF8/0xF9）および実際のMIDI出力時刻を正しく再現した検証ではない。したがって、この数値とrecord 992だけが抑制されるという説明は撤回する。
+- その後の実MIDI解析で確認した706件は、206件のsource velocity=0 recordと単純に一対一対応しない。558件のvelocity=0 MIDIイベントには、通常ノートの自動Note Off相当も含まれる。
+- 以前の「ValleyBellとrcm2smfのpitch 36イベント差410件 = 205 source records × 2」という算術的一致だけでは、どのsource recordが出力・統合されたかは証明できない。
+- rcm2smf版MIDIは以前の取得が完全ファイルであると確認できていないため、296件という過去集計も今回の再解析では独立に再確認していない。
+
+### 参照実装で確認した処理
+
+- ValleyBell rcp2mid.cは各ノートレコードの前にCheckRunningNotes()を呼び、同じpitchのrunning noteが残っていればremLen = MTS->curDly + cmdDuratとして既存ノートを更新し、新しいNote Onを抑止する。
+- CheckRunningNotes()はdelay + 1と残り時間を比較し、期限到達時にNote Off相当を出力してdelayを調整する。
+- G36 track処理は0xFCの小節リピート、0xF8/0xF9のループ、0xFDの小節終端を処理する。これらを無視した単純なrecord順シミュレーションは実出力の再現にならない。
+
+### 結論と制約
+
+- ValleyBellのrunning-note統合がSAKURAの差分に関係する可能性はあるが、record 991–994のどれがどのMIDIイベントに対応するかは未確定。
+- 706件の実MIDI集計は確認済みだが、source record単位の対応付け、rcm2smfとの差分原因、S-MU2000側の修正要否は未確定。
+- 今回はprivateデータの静的解析と公開参照ソースの確認のみ。S-MU2000ソース変更、ビルド、CI、実機再生は行っていない。
+
+### 次の検証
+
+1. ValleyBellのG36 track interpreterを、0xFC / 0xF8 / 0xF9 / 0xFDとrunning-note状態を含めて正確に再現するか、実行可能な参照コンバーターを用いてsource recordとMIDI出力をトレースする。
+2. 完全なrcm2smf版SAKURA.midを取得し、同じtrack/channel/pitch条件でNote On正速度・Note On velocity 0・Note Offを別々に集計する。
+3. その後、pitch 36/37/40/45をrecord単位で照合し、差分がloop traversal、running-note統合、または別の変換規則のどれに起因するかを判定する。
+4. 根拠が揃うまでS-MU2000のノート変換ロジックは変更しない。
