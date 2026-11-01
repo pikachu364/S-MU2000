@@ -839,3 +839,12 @@
 - 過去に示したpitch 36の410イベント差と205×2の一致は算術上の一致であり、source record単位の対応を証明しない。rcm2smf版の完全ファイルも未再確認。
 - **次:** ValleyBellの制御フローを含む正確なrecord-to-MIDI trace、完全なrcm2smf版MIDIのstatus別比較、pitch 36/37/40/45の全件照合。
 - **作業範囲:** privateデータと公開参照実装の静的解析のみ。S-MU2000ソース変更、ビルド、CI、実機再生なし。
+
+
+## 2026-11-01 — SAKURA pitch 36のrunning-noteモデル更新
+
+- ValleyBell rcp2mid.cのrunning-note処理とdelay消費を追うモデルを精緻化。G36 Track 9 / channel 9 / pitch 36ではsource record #993が新規Note On抑止対象となる遷移を得た。
+- モデル上のpitch 36はNote On 353件（正velocity 148、zero velocity 205）と自動終了353件、合計706件。ValleyBell版MIDIの実測706件と一致。
+- 全channel 9のモデル合計1,840イベントも既存のMIDI実測と一致。
+- ただし実行ファイルによるトレースではなく、ソースに基づくモデル。件数一致は整合性確認であり、全record/tick対応の証明ではない。
+- pitch 37/40/45の実MIDI照合と完全なrcm2smf版MIDIの取得は未完了。S-MU2000ソース変更、ビルド、CI、実機再生なし。
