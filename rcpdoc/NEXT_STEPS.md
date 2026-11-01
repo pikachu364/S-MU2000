@@ -727,3 +727,23 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 4. 参照コンバーター間の差とG36仕様上の意味を区別し、S-MU2000側の修正要否を判定する。
 
 **変更禁止:** record単位の対応が確認できるまでノート処理・duration処理・loop展開処理を変更しない。
+
+
+## 2026-11-01 追記 — SAKURA running-note追跡の更新
+
+**新たに得た結果（モデル）**
+
+- ValleyBellのrunning-note処理とdelay消費を追ったrecord-levelモデルでは、G36 Track 9 / channel 9 / pitch 36のsource record #993が新規Note On抑止対象となる。
+- pitch 36はモデル上Note On 353件（velocity > 0: 148、velocity 0: 205）と自動終了353件、合計706件。ValleyBell版MIDIの実測706件と一致する。
+- 全channel 9でもモデルの合計1,840イベントが既存MIDI実測と一致する。
+
+**留保**
+
+この結果はValleyBell実行ファイルの実行トレースではなく、ソースコードに基づく状態遷移モデル。件数一致だけでrecordごとのMIDI時刻・全イベント対応まで証明したとは扱わない。rcm2smf版MIDIの完全取得も未完了。
+
+**次の作業**
+
+1. 同モデルを独立したスクリプトまたは実際のValleyBell実行で検証し、record #993の抑止とdelay=119の導出を再確認する。
+2. 完全なrcm2smf版SAKURA.midを取得し、track/channel/pitch別にNote On正速度・Note On velocity 0・Note Offを集計する。
+3. pitch 37/40/45のモデル結果をValleyBell実MIDIと照合する。
+4. source recordとMIDI tickを全件対応付けるまでは、S-MU2000のノート変換・duration・loop処理を変更しない。
