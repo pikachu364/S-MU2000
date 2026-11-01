@@ -456,3 +456,17 @@
 **根拠:** private SAKURA.G36とValleyBell版SAKURA.midの静的解析。raw bytesはprivate repositoryに保持。
 
 **制約:** source record単位のMIDI対応、rcm2smfとの差分原因、S-MU2000側の修正要否は未確定。ビルド・CI・実機再生は行っていない。
+
+
+## F-036 — SAKURA G36 pitch 36のrunning-note追跡（制御遷移モデル）
+
+**状態:** ValleyBellソースのrunning-note処理に沿ったrecord-levelモデルで説明できた結果。ValleyBell実行ファイルを実行した結果ではない。
+
+- 対象はG36 Track 9（track ID 10）/ MIDI channel 9。pitch 36のsource recordsは356件。
+- モデル上、duration 0の2件はNote Onを出さず、残る354件のうち1件（source record #993）が同pitch running noteの継続処理により新規Note Onを抑止される。したがってNote Onは353件（velocity > 0 が148件、velocity 0 が205件）、自動Note Off相当も353件となり、合計706 MIDI events。
+- record #992はpitch 36 / velocity 92 / duration 450 / P0 delay 120。直前のpitch 44イベントの満了処理によりrecord #993到達時点の残delayは119。record #993（pitch 36 / velocity 0 / duration 1 / P0 delay 120）は既存pitch 36 running noteが残るため、remLen = 119 + 1 = 120として新規Note Onを抑止する、という遷移になる。
+- このモデルの706件（Note On velocity > 0: 148、Note On velocity 0: 558、Note Off status: 0）は、ValleyBell版SAKURA.midのTrack 11 / channel 9 / pitch 36の実測706件と一致する。
+- 同じモデルの全channel 9集計はNote On 920件（velocity > 0: 461、velocity 0: 459）と自動終了920件、合計1,840イベント。velocity 0の合計1,379件も既存のMIDI実測と一致する。
+- 同じtrackのpitch 37/40/45についてもモデル集計を得たが、実MIDIとの独立照合は未完了。pitch 37: 3 Note On + 3 endings、pitch 40: 354 + 354、pitch 45: 19 + 19。
+
+**重要な制約:** 実測MIDIとの件数一致はモデルの整合性を支持するが、実行トレースによる完全な証明ではない。rcm2smf版MIDIの完全ファイル比較、record-to-MIDI時刻の全件対応、S-MU2000側の修正要否は未確定。ソース変更・ビルド・CI・実機再生は行っていない。
