@@ -863,3 +863,14 @@
 - SAKURA.txtでG36 37,110 bytes / 36 tracksを確認。Track index 9 / ID 10 / `Drums` / channel 9はnote records 944、velocity0 476、duration0 23、both0 16、F8/F9/FC各0、FD 51。
 - 対象trackにF8/F9/FCがないという構造上の確認を補強。ただし診断出力はpitch別のMIDIイベントを含まず、pitch 37/40/45の実MIDI照合は未完了。
 - artifact内にrcm2smf版SAKURA.midも含まれないため、rcm2smf比較は継続課題。ソース変更・ビルド・実機再生なし。
+
+
+## 2026-11-01 — ユーザー添付rcm2smf版SAKURA.midの解析
+
+- 添付SAKURA.midを解析。22,878 bytes、SHA-256 4d64af89a1723beb3856c832a2764ebc762c484975681d86716763d07ec99f70、SMF Format 1、12 tracks、TPB 480。MTrk長とEOFが一致し、全トラック解析成功。
+- Track 11 Drums / channel 9はNote On 922件（positive 461、velocity-zero 461）、explicit Note Off status 0件。pitch 36はpositive 148 + velocity-zero 148 = 296件。
+- ValleyBell実測pitch 36は706件（positive 148、velocity-zero 558）。差410件は、ValleyBellモデル上のsource velocity-zero pitch36 records 205件と、その各自動終了イベント205件の合計410件に一致。
+- channel 9全体でもrcm2smf 922件に対しValleyBell 1,840件。差918件はsource velocity-zero records 459件×2と一致する。
+- 以上から、両コンバーターのsource velocity-zero record処理の違いが主要因である可能性が高い。ただしrcm2smf内部実装とsource record単位の対応は未確認。仕様差か不具合かの結論は保留。
+- 添付ファイルは以前想定していた31,013 bytesではなく22,878 bytes。添付物自体は構造的に完全だが、private repo上のファイルとの同一性は未確認。
+- ソース変更・ビルド・CI・実機再生なし。
