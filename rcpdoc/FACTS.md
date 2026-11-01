@@ -491,3 +491,10 @@
 - この一致は、rcm2smf版がsource velocity-zeroレコードをValleyBellと同様の独立Note Onとして出力していない可能性を強く示す。ただしrcm2smf実装のコード経路や各source recordとのtick単位の対応は未確認であり、現時点では仕様差／実装不具合のいずれかを断定しない。
 - 今回の添付ファイルは以前の取得時に想定していた31,013 bytesとは異なる22,878 bytes。今回添付物の完全性はSMF構造上確認できたが、private repo上の既存ファイルと同一物かは別途hash照合が必要。
 - S-MU2000ソース変更、ビルド、CI、実機再生は実施していない。
+
+
+## 訂正 — private repo保存物との同一性確認（2026-11-01）
+
+- 先行記載の「31,013 bytes」は誤り。GitHub fetch_fileが返したBase64文字列の文字数31,013を、ファイルbyte数と取り違えていた。
+- private repoのG36_DATA/SAKURA/rcm2smf/SAKURA.midのGit blob SHAはe2163caadb82f96a652a804f96516a115914f532。添付ファイルから計算したGit blob SHAも同一であり、両者は完全に同一ファイル。
+- 正しいファイルサイズは22,878 bytes。したがって添付物とprivate repo保存物の同一性は確認済みであり、再アップロードや再コンバートは不要。
