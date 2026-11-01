@@ -531,3 +531,18 @@ ValleyBellの処理は、G36のノートレコードを処理する前に同一p
 従って、両者の差は単純な「velocity 0をNote Offとして出すか無視するか」だけではない。同一pitchの既存ノートがある場合のtie/延長処理にも差が生じ得る。既存のイベント数差（pitch36: 410、channel9: 918）はこの実装差と整合するが、個別レコードごとのMIDI時刻・note state対応は別途照合が必要。
 
 現時点で確定したのは各コンバーターの実装動作とMIDI 1.0側のzero-velocity規則まで。原作RecomposerがG36 P2=0をどう演奏するかは未確認であり、どちらの実装が正しいかは未確定。
+
+
+## F-039 — TiMidity++のG36ノート処理を独立照合（2026-11-01）
+
+**状態:** Debian Sourcesで公開されているTiMidity++ 2.10.4の `timidity/rcp.c` を確認。原作Recomposerの仕様を直接証明するものではない。
+
+- G36/RCPのノートレコード処理は、`gate > 0` の場合に `ntr_note_on(ch, note, b, gate)` を呼ぶ。velocity引数 `b` が0かどうかによる呼び分けはない。
+- `ntr_note_on` は同一チャンネル・同一音程のrunning noteが存在する場合、既存ノートのgateを新しいgateに更新してreturnする。この分岐もvelocity値に依存しない。
+- 同一音程のrunning noteが存在しない場合は、`ME_NOTEON` にvelocity `b` をそのまま渡し、running noteとして登録する。したがってvelocity 0もNote Onイベント経路に入る。
+- gate満了時は `ME_NOTEOFF` を生成する。
+- この処理構造は、ValleyBellで確認した「同音程running noteの更新」と「P2値をvelocityとしてNote Onへ渡す」挙動に近い。rcm2smfの `vel > 0` 条件でノート開始処理を行う実装とは異なる。
+- TiMidity++は独立した第三者実装であり、ValleyBellと同方向の実装例がもう一つ確認できた。ただし両者が同じ元資料・慣習を参照した可能性は排除できず、原作Recomposerの実動作や正式仕様の証明にはならない。
+- 参照: [TiMidity++ 2.10.4 rcp.c](https://sources.debian.org/src/timidity/2.10.4-2.2/timidity/rcp.c) のノート処理（2014–2021行付近）およびNote Tracer（2670–2683行、2686行以降）。
+
+**結論:** 公開実装比較ではValleyBellとTiMidity++がP2=0を含むノートイベントを処理する一方、rcm2smfはvelocity 0のノート開始処理を行わない。ただしG36形式資料はP2=0の意味を明記しておらず、原作Recomposerの挙動も未確認。S-MU2000側の仕様判断は保留する。
