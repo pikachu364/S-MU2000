@@ -2681,7 +2681,7 @@ static void check_rcp3_player()
     bytes[sysex_record + 1] = 33; // p2
     put16(sysex_record + 2, 0);
     put16(sysex_record + 4, 22); // p1
-    bytes[sysex_record + 2 * rcp3::event_size] = 0xfe; // Track End
+    bytes[sysex_record + rcp3::event_size] = 0xfe; // Track End
 
     ui::player player;
     std::string err = "stale error";
