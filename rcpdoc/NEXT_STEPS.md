@@ -686,3 +686,22 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. source note records と生成MIDIイベント数の差を、トラック単位の診断を使って整理する。mute / channel invalid / E6 route / duration=0 / velocity=0 / loop traversalを別々に計数できるようにし、根拠なしに再生意味論を変更しない。
 3. E7のp2による段階的テンポ変化は未実装。現行テストはテンポ切替点とイベント時刻の基本確認であり、補間曲線の正確性を証明しない。
 4. Windows実機ではG36が再生可能とのユーザー報告があるが、音の正確性は未確認。CIと構造診断を実機・音楽的互換性の証明として扱わない。
+
+
+## 2026-11-01 — G36 zero-velocity note / SC-8850 SysEx調査
+
+**確認済み**
+- 85SO018AのG36ヘッダーにUser SysEx 8 slot中7 slotの定義がある。曲中0x98 SysExは16件。0x90–0x97のslot呼び出しは確認されていない。
+- 85SO018AはSC-8850制作というユーザー情報とタイトル欄の記載がある。直接SysExにGS系識別情報が含まれる。
+- 85SO018Aのzero-velocity/nonzero-duration source recordsは279件（loop内259 / loop外20）。ValleyBell 2-pass展開を前提にしたイベント差1076件の計算と一致する。
+- SAKURA pitch 36の差分例外について、record 991–994の同音程duration重複が有力候補。例外の厳密なrecord単位対応は未確定。
+
+**次の作業**
+1. ValleyBell running-note処理を詳細に追い、SAKURA record 991–994とMIDI出力の対応を確定する。record 992だけを例外と断定しない。
+2. SAKURAのpitch 36/37/40/45について、source record・同音程の有効期間・生成Note On/Offを照合する。
+3. 85SO018Aの16件の0x98 SysEx payloadを、Roland公式SC-8850資料のアドレス表・checksum規則と一件ずつ照合する。
+4. 0xEB CCを時系列で解析し、NRPN selectionとData Entryの組を抽出する。0xECとBank Selectも順序を含めて照合する。
+5. 0x98と後続0xF7継続レコードの関係をG36 parserの構造・意味解析にどう反映するか設計する。
+6. zero-velocity noteの一律削除・変換は行わない。参照コンバーター差と正式仕様を区別する。
+
+**変更禁止:** 上記のrecord単位対応とpayload意味分類が済むまではS-MU2000のソースを変更しない。SysEx checksumの自動補正や未確認byteの置換も行わない。
