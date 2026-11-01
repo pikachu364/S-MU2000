@@ -384,3 +384,20 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 2. 0xEBイベントを時系列に並べ、NRPN選択（CC99/98）とData Entry（CC6等）の組を抽出。
 3. 0xECイベントとBank Selectの順序・値を照合。
 4. User SysEx header slotsと曲中0x90–0x97呼び出しを別々に検査する。
+
+
+## H-G36-ZERO-VELOCITY-20261101-B — SAKURA pitch 36の差分にrunning-note統合が関与する可能性
+
+**状態:** 参照実装の挙動と実MIDIの集計を確認したが、record単位の因果は未確定。
+
+- ValleyBellは同pitchのrunning noteが残っている場合、既存noteの期限を更新し、新しいNote Onを抑止する。
+- SAKURAのTrack 9 / channel 9 / pitch 36にはvelocity 0 / duration > 0のsource recordが206件あり、record 991–994には同pitchのduration重複候補がある。
+- ValleyBell版MIDIのTrack 11 / channel 9 / pitch 36は706イベント（velocity > 0のNote On 148、velocity 0のNote On 558）。この実測だけではsource recordの出力・統合を特定できない。
+- **前回仮説の撤回:** record 992だけが抑止される、抑止1件で残り459件が出力される、という単純シミュレーションは小節リピート・ループ展開を正しく扱っていないため根拠として使わない。
+- 410イベント差と205×2の一致も、record単位の対応を証明しない。rcm2smf版の完全ファイル照合が必要。
+
+**次の検証**
+1. ValleyBellの0xFC / 0xF8 / 0xF9 / 0xFD制御フローとrunning-note状態を含めてsource recordをトレースする。
+2. 完全なrcm2smf版MIDIを取得し、イベントstatus別に再集計する。
+3. pitch 36/37/40/45をrecord単位で比較し、差分原因を特定する。
+4. 原因が確定するまでS-MU2000の変換処理を変更しない。
