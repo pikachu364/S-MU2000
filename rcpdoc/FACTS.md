@@ -440,3 +440,19 @@
 - ValleyBell実装の2-pass loop展開を前提にすると、259 × 2 passes × 2 MIDI events + 20 × 2 MIDI events = 1076 events。既存のValleyBellとrcm2smfのzero-velocity Note Onイベント数差と一致する。
 - これは参照コンバーター間の差を説明する結果であり、どちらの変換方針が正式仕様かを決めるものではない。
 - ループ外recordsとループ内recordsを区別し、source record数・loop traversal回数・生成MIDIイベント数を別々に扱う必要がある。
+
+
+## F-035 — SAKURA ValleyBell MIDIのpitch 36実測値とシミュレーション訂正
+
+**状態:** ValleyBell版MIDIの実ファイルを解析して確認。source recordとの対応は未確定。
+
+- ValleyBell版 SAKURA.mid は32,395 bytes、SMF track数37。
+- MIDI Track 11 / channel 9 / pitch 36は706イベント。内訳はNote On velocity > 0 が148件、Note On velocity 0 が558件、Note Off statusが0件。
+- ValleyBell出力ではNote Off相当がNote On velocity 0として記録される。
+- SAKURA G36 Track 9にはpitch 36 / velocity 0 / duration > 0のsource recordが206件あるが、MIDIの558件と単純な一対一対応はしない。velocity 0イベントには自動Note Off相当が含まれる。
+- **訂正:** 会話中に示した「record 992だけが抑制」「全体で抑制1件・459件出力」というシミュレーション結果は、0xFC / 0xF8 / 0xF9 / 0xFDの展開を正しく再現しておらず撤回する。
+- 以前のValleyBell / rcm2smf間の差410件と205×2の算術的一致は、record単位の対応を証明しない。rcm2smf版MIDIの完全ファイル再取得・再解析も未完了。
+
+**根拠:** private SAKURA.G36とValleyBell版SAKURA.midの静的解析。raw bytesはprivate repositoryに保持。
+
+**制約:** source record単位のMIDI対応、rcm2smfとの差分原因、S-MU2000側の修正要否は未確定。ビルド・CI・実機再生は行っていない。
