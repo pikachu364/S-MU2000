@@ -2651,7 +2651,7 @@ static void check_rcp3_player()
     bytes[0x20c] = 120;     // initial BPM
     // User SysEx slot 0: fixed bytes, channel, p1, p2, Roland checksum.
     const u8 user_sysex_template[] = {0x41, 0x10, 0x82, 0x80, 0x81, 0x83, 1, 2, 0x84, 0xf7};
-    std::copy(std::begin(user_sysex_template), std::end(user_sysex_template),
+    std::copy(user_sysex_template, user_sysex_template + sizeof(user_sysex_template),
         bytes.begin() + 0x0b18 + 0x18);
 
     const size_t track_start = bytes.size();
