@@ -177,3 +177,14 @@ ValleyBell/MidiConvertersのRCPFormat.txt「Sequence Data [G36]」では、各6-
 したがって、rcm2smfの「vel>0の場合だけNote Onを生成する」実装と、ValleyBellの「p2をそのままNote On velocityとして出力する」実装のどちらがG36仕様・原作Recomposerの動作に一致するかは、現時点で公開形式メモだけからは決められない。S-MU2000の実装方針を確定するには、原作Recomposerの動作、追加の一次資料、または信頼できる実機再生比較が必要。
 
 参照: https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt （Sequence Data [G36]）
+
+
+## 追記 — MIDI 1.0規則とG36 P2=0の解釈上の注意（2026-11-01）
+
+MIDI Association公式のMIDI 1.0資料では、Note On velocity 0はNote Offとして扱われる（https://midi.org/midi-1-0-detailed-specification および https://midi.org/summary-of-midi-1-0-messages）。これは変換後SMFのメッセージ解釈規則であり、G36元データのP2=0が「Note Off」を意味するという証拠ではない。G36形式資料はP2をvelocityと定義するが、0値の意味は規定していない。
+
+ValleyBellの処理は、G36のノートレコードを処理する前に同一pitchのrunning noteを確認する。同一pitchが既に鳴っていれば新しいNote Onを出さず、既存ノートの残り長を現在delay+新レコードdurationに更新してtie/延長として扱う。この分岐はvelocity値に依存しない。既存ノートがなければduration>0のときcmdP2をそのままNote On velocityとして出力し、velocity=0ならSMF上ではMIDI 1.0規則によりNote Off相当として解釈される。rcm2smfはvel>0の条件でノート開始を生成し、velocity=0レコードはノート開始／tie更新の分岐に入らない。
+
+従って、両者の差は単純な「velocity 0をNote Offとして出すか無視するか」だけではない。同一pitchの既存ノートがある場合のtie/延長処理にも差が生じ得る。既存のイベント数差（pitch36: 410、channel9: 918）はこの実装差と整合するが、個別レコードごとのMIDI時刻・note state対応は別途照合が必要。
+
+現時点で確定したのは各コンバーターの実装動作とMIDI 1.0側のzero-velocity規則まで。原作RecomposerがG36 P2=0をどう演奏するかは未確認であり、どちらの実装が正しいかは未確定。
