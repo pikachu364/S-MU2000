@@ -752,3 +752,10 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 ## 2026-11-01 追記 — CI #749
 
 ユーザー報告でCI #749合格を確認。CI結果は記録済みだが、SAKURAのMIDI差分調査とは独立。次はpitch 37/40/45のValleyBell実MIDI照合と、完全なrcm2smf版SAKURA.midのstatus別比較を優先する。
+
+## 2026-11-01 追記 — 最新SAKURA診断artifactを反映
+
+- 最新診断artifactではSAKURA G36 Track index 9 / ID 10 / channel 9がnote records 944、velocity0 476、duration0 23、both0 16、F8/F9/FC各0、FD 51と確認された。
+- このトラックにF8/F9/FCループ制御がない点は構造的に確認できた。一方、診断artifactにはMIDI本体やpitch別MIDI集計は含まれていない。
+- 次はpitch 37/40/45についてValleyBell版SMFの実イベントを直接集計し、source pitch record数と照合する。完全なrcm2smf版SMF取得も引き続き必要。
+- S-MU2000のソース修正判断は、実SMFとsource recordの対応を確認するまで保留。
