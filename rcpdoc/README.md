@@ -101,3 +101,10 @@ sample-04の最大100ms窓にはDT1が26件あり、そのうちmodel ID 0x56の
 - `src/verify.cpp` にG36専用Tick順序テストを追加。Note Off→CC→Bank Select→Program Change→Note On、Tick 0での複数トラック安定順、E7テンポ変更と同Tickイベントを検査する。RCP2/SMF経路は変更していない。
 - これは構造解析・変換と合成回帰テストの成功記録であり、4サンプルの音楽的正確性や全G36ファイルの互換性を保証しない。G36ループ/小節リピートの複雑な組合せ、velocity=0 / duration=0の意味、テンポ補間などは引き続き検証対象。
 - 次はG36のTick順序テストの結果と実サンプル診断を踏まえ、ループ・リピート展開後の同Tick順、Note On/Off生成の差分を根拠付きで調べる。
+
+## 追加状況（2026-11-01）— G36 zero-velocity note / SC-8850 SysEx調査
+
+- 85SO018Aはユーザー報告およびG36タイトル欄からSC-8850制作情報を確認。ヘッダーUser SysExは8スロット中7スロットに定義があるが、曲中のUser SysEx slot呼び出しは確認されていない。
+- 曲中の0x98 SysExコマンド16件、0xEB CC、0xEC Instrument/Program Change相当イベントを確認。GS系識別情報を含むSysExがあり、SC-8850関連のEFX/NRPN設定調査を継続する。個々のpayload用途の完全分類は未完了。
+- SAKURAのDrums channel 9 / pitch 36の例外は、record 991のduration中に同pitchのvelocity=0 records 992–994が続くrunning-note重複が候補。ただし、どのrecordがValleyBellで統合されるかは未確定。以前の「record 992だけが例外」とする説明は保留に修正。
+- ソース変更・ビルド・CI・実機再生は行っていない。詳細は [2026-11-01 G36 zero-velocity / SC-8850 SysEx調査レポート](reports/g36-zero-velocity-sysEx-analysis-2026-11-01.md)。
