@@ -776,3 +776,16 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - 先行記載の「31,013 bytes」は誤り。GitHub fetch_fileが返したBase64文字列の文字数31,013を、ファイルbyte数と取り違えていた。
 - private repoのG36_DATA/SAKURA/rcm2smf/SAKURA.midのGit blob SHAはe2163caadb82f96a652a804f96516a115914f532。添付ファイルから計算したGit blob SHAも同一であり、両者は完全に同一ファイル。
 - 正しいファイルサイズは22,878 bytes。したがって添付物とprivate repo保存物の同一性は確認済みであり、再アップロードや再コンバートは不要。
+
+
+## 追記 — rcm2smf実装コードでvelocity 0の扱いを確認（2026-11-01）
+
+公開リポジトリshingo45endo/rcm2smfのrcm_converter.jsを確認した。
+
+- RCP/G36のノートイベント処理は、channelが有効でgt>0かつvel>0の場合にだけNote Onを生成する。さらにvelocity値のmask後も0ならNote Onを生成しない。したがってsource velocity-zero note recordsは、独立したNote OnとしてSMFへ出力されない。
+- ノート長はnoteGtsで管理し、duration満了時にmakeNoteOffで終了イベントを生成する。つまり今回のrcm2smf版にあるvelocity-zero MIDI eventsは、元sourceのvelocity-zero recordsではなく、positive-velocity notesの自動終了イベント。
+- makeNoteOffはsettings.noteOff=trueならstatus 0x8n、falseならstatus 0x9n velocity 0を生成する。今回のSMFはstatus 0x99のvelocity-zero eventsで、status 0x89は0件なので、Note Off optionは無効（velocity-zero Note On形式）で出力されたと判断できる。
+- この実装上の挙動は、今回の実測（channel 9: positive 461 + generated velocity-zero endings 461、pitch 36: 148 + 148）と一致する。
+- ValleyBell版はsource cmdP2をvelocityとしてNote On出力へ渡し、velocity 0でもNote Onを抑止しないため、source velocity-zero recordsがSMFイベントとして増える。今回の差410 / 918はこの挙動差で説明できる。
+- これで差分の直接原因は実装コードレベルで確認できた。ただし、どちらがG36/RCP仕様として正しいか、S-MU2000がどちらに合わせるべきかは、公式仕様・実機挙動・サンプルの意味を確認して決める。現時点でrcm2smfを不具合と断定しない。
+- 参照: https://github.com/shingo45endo/rcm2smf/blob/master/rcm_converter.js （ノートイベント処理、noteGtsによる終了処理、makeNoteOff）
