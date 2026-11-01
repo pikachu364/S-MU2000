@@ -353,3 +353,34 @@ Gearmulator の SC-88 sub-MCU 実装では、Roland DT1 checksum 不一致時に
 - これはRCP3の専用識別・解析経路がまだ接続されていないことと整合するが、エラー表示だけでは parser 内部の分岐位置までは特定できない。
 - RCP3のヘッダー、トラック構造、イベントレコード、version 2との差分、互換性のある共通層は未確認。
 - 次はG36の原本と変換ログを private 環境で調べ、形式資料・参照実装と照合する。RCP2 parserへ推測でversion 3を通さない。
+
+
+## H-G36-ZERO-VELOCITY-20261101-A — SAKURA pitch 36の例外はrunning-note重複処理に関係する可能性
+
+**状態:** 有力候補。record単位の厳密な出力対応は未確定。
+
+- SAKURA Track 9 / channel 9 / pitch 36のrecord 991はduration 450。record 992–994は同pitchのvelocity=0 / duration=1で、record 991のduration満了前に続く。
+- ValleyBellには同pitchのrunning noteが有効な間に到着したnoteを既存noteへ統合・期限更新する処理がある。
+- この挙動がValleyBellとrcm2smfの差分に影響している可能性がある。
+
+**次の検証**
+1. ValleyBellのrunning-note配列・期限更新・flush条件をソース上で追う。
+2. record 991–994それぞれの処理後の状態とMIDI出力を再現する。
+3. pitch 36以外のpitch 37/40/45でも同じ規則が成立するか調べる。
+4. 例外1件の差を説明できるまでは「record 992が唯一の例外」と断定しない。
+
+
+## H-G36-SC8850-SYSEX-20261101-A — 85SO018AのSysEx/NRPNがSC-8850音源設定を構成する可能性
+
+**状態:** GS系SysEx・CCイベントを確認。機種固有用途は一部未確定。
+
+- G36タイトル欄とユーザー報告はSC-8850制作を示す。
+- ヘッダーUser SysEx定義にGS Master Volume、Key Shift、Pan、System Reset、Reverb/Chorus Macro、Master Tuneがある。
+- 曲中の0x98 SysEx 16件と0xEB CCイベント、0xEC Program Change相当イベントを確認。CC 98/99/100/101および6はNRPN/Data Entry系と整合する。
+- 曲中の直接SysExにGS系識別情報があるが、GS共通メッセージとSC-8850固有機能を区別する必要がある。
+
+**次の検証**
+1. 16件のSysEx payloadをRoland公式SC-8850アドレス表と一件ずつ照合。
+2. 0xEBイベントを時系列に並べ、NRPN選択（CC99/98）とData Entry（CC6等）の組を抽出。
+3. 0xECイベントとBank Selectの順序・値を照合。
+4. User SysEx header slotsと曲中0x90–0x97呼び出しを別々に検査する。
