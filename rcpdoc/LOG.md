@@ -827,3 +827,15 @@
 - **訂正:** 以前の説明でrecord 992だけを例外とし、993/994は独立出力されるとしたが、その区別を裏付ける検証は不足している。3 record全ての状態遷移を再確認する。
 - 85SO018Aの279 zero-velocity/nonzero-duration records（loop内259 / loop外20）について、ValleyBellの2-pass loopを前提にしたイベント差1076件の計算が既存集計と一致。
 - **作業範囲:** private G36の静的解析とValleyBell参照ソース調査、開発文書更新。S-MU2000ソース変更、ビルド、CI、実機再生は行っていない。
+
+
+## 2026-11-01 — SAKURA pitch 36のValleyBell実MIDI照合と前回シミュレーション訂正
+
+- privateのValleyBell版SAKURA.midを完全な32,395 bytesで取得し、SMFとして解析。track数は37。
+- Track 11 / channel 9 / pitch 36は706イベント。status別内訳はNote On velocity > 0が148、Note On velocity 0が558、Note Off statusが0。
+- G36 source側のTrack 9 / pitch 36 / velocity 0 / duration > 0は206 records。MIDI側のvelocity 0イベントには自動Note Off相当が含まれるため、source recordsと一対一には対応しない。
+- ValleyBell rcp2mid.cの実装を確認。同pitch running noteが残っていれば期限を更新し、新規Note Onを抑止する。CheckRunningNotesはdelay + 1とremaining lengthを比較して期限到達を処理する。
+- **重要な訂正:** 直前の単純シミュレーションは0xFC小節リピート、0xF8/0xF9ループ、0xFD小節終端を正しく再現していない。「record 992だけが抑止」「抑止1件・出力459件」という結果を撤回。
+- 過去に示したpitch 36の410イベント差と205×2の一致は算術上の一致であり、source record単位の対応を証明しない。rcm2smf版の完全ファイルも未再確認。
+- **次:** ValleyBellの制御フローを含む正確なrecord-to-MIDI trace、完全なrcm2smf版MIDIのstatus別比較、pitch 36/37/40/45の全件照合。
+- **作業範囲:** privateデータと公開参照実装の静的解析のみ。S-MU2000ソース変更、ビルド、CI、実機再生なし。
