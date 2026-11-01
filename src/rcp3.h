@@ -14,6 +14,10 @@ constexpr size_t fixed_header_size = 0x0c98;
 constexpr size_t track_header_size = 0x2e;
 constexpr size_t event_size = 6;
 
+struct user_sysex {
+    std::string name;
+    std::vector<u8> data;
+};
 struct header_info {
     std::string title;
     std::string comment;
@@ -24,6 +28,7 @@ struct header_info {
     u8 beat_denominator = 0;
     u8 key_signature = 0;
     u8 play_bias = 0;
+    std::array<user_sysex, 8> user_sysexes;
 };
 struct track_header {
     u32 encoded_length = 0; // includes this 4-byte field and 0x2e-byte header
