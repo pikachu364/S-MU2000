@@ -769,3 +769,10 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - 次はrcm2smfの実装／仕様を確認し、source velocity-zero recordsをどのように扱う設計なのかを特定する。必要に応じてG36の個別レコードとrcm2smf MIDI tickを照合する。
 - 以前想定していた31,013 bytesと今回添付22,878 bytesの差について、private repo上のファイルと添付物のhashを照合する。
 - 仕様差か不具合かを判断するまでS-MU2000ソース変更は行わない。
+
+
+## 訂正 — private repo保存物との同一性確認（2026-11-01）
+
+- 先行記載の「31,013 bytes」は誤り。GitHub fetch_fileが返したBase64文字列の文字数31,013を、ファイルbyte数と取り違えていた。
+- private repoのG36_DATA/SAKURA/rcm2smf/SAKURA.midのGit blob SHAはe2163caadb82f96a652a804f96516a115914f532。添付ファイルから計算したGit blob SHAも同一であり、両者は完全に同一ファイル。
+- 正しいファイルサイズは22,878 bytes。したがって添付物とprivate repo保存物の同一性は確認済みであり、再アップロードや再コンバートは不要。
