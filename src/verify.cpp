@@ -2890,6 +2890,28 @@ static void check_rcp3_tick_order()
         different_pitch_note_ons == 2 && different_pitch_note_offs == 2 &&
         pitch60_on_ok && pitch60_off_ok && pitch64_on_ok && pitch64_off_ok;
 
+    // A positive-duration zero-velocity record is preserved as in the reference converter.
+    const std::vector<record> zero_velocity_track = {
+        {67, 0, 0, 24}, {0xfe, 0, 0, 0}
+    };
+    events.clear();
+    const bool zero_velocity_loaded = load(make_g36({zero_velocity_track}), events, meta, err);
+    int zero_velocity_note_ons = 0, zero_velocity_note_offs = 0;
+    bool zero_velocity_note_on_time_ok = false, zero_velocity_note_off_time_ok = false;
+    for (const smf::event &event : events) {
+        if (event.bytes == std::vector<u8>({0x90, 67, 0})) {
+            ++zero_velocity_note_ons;
+            zero_velocity_note_on_time_ok = event.time > -0.000001 && event.time < 0.000001;
+        }
+        if (event.bytes == std::vector<u8>({0x80, 67, 0})) {
+            ++zero_velocity_note_offs;
+            zero_velocity_note_off_time_ok = event.time > 0.249999 && event.time < 0.250001;
+        }
+    }
+    const bool zero_velocity_ok = zero_velocity_loaded && zero_velocity_note_ons == 1 &&
+        zero_velocity_note_offs == 1 && zero_velocity_note_on_time_ok &&
+        zero_velocity_note_off_time_ok;
+
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
     for (int i = 0; i < 8; ++i) nested_loops.push_back({0xf9, 0, 126, 0});
@@ -2902,12 +2924,12 @@ static void check_rcp3_tick_order()
         events.empty() && err.find("step budget") != std::string::npos;
 
     rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
-        repeated_pitch_ok && zero_duration_ok && different_pitch_ok && loop_budget_rejected;
+        repeated_pitch_ok && zero_duration_ok && different_pitch_ok && zero_velocity_ok && loop_budget_rejected;
     std::printf("RCP3/G36 Tick 同時刻順序: Note Off→CC→Bank→Program→Note On %s・Tick 0/複数トラック安定順序 %s・E7同Tick後の時間 %s・同音程の延長 %s・長さ0で終了 %s・異音程の独立終了 %s・深いループの予算超過拒否 %s\n",
         same_tick_ok ? "合" : "NG", multi_track_ok ? "合" : "NG",
         tempo_same_tick_ok ? "合" : "NG", repeated_pitch_ok ? "合" : "NG",
         zero_duration_ok ? "合" : "NG", different_pitch_ok ? "合" : "NG",
-        loop_budget_rejected ? "合" : "NG");
+        zero_velocity_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
     if (!rcp3_tick_order_test_ok && !err.empty())
         std::printf("RCP3 Tick order API error: %s\n", err.c_str());
 }
