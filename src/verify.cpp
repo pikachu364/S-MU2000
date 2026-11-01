@@ -7,6 +7,7 @@ static bool rcp_loop_budget_test_ok = true;
 static bool rcp_e6_note_off_route_test_ok = true;
 static bool rcp3_parser_test_ok = true;
 static bool rcp3_player_test_ok = true;
+static bool rcp3_user_sysex_test_ok = true;
 static bool rcp3_tick_order_test_ok = true;
 static bool sample_extension_test_ok = true;
 //
