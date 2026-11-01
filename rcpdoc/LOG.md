@@ -815,3 +815,15 @@
 - G36専用Tick順序テストを追加し、同TickのNote Off→CC→Bank Select→Program Change→Note On、Tick 0の複数トラック安定順、E7テンポ変更と同Tickのノート時刻を検証。`tests/verify.txt` の期待出力も更新した。RCP2/SMFの既存経路や再生意味論は変更していない。
 - Actions #701 合格により、追加した合成回帰テストを含むCI成功を確認（ユーザー報告）。
 - **制約:** サンプルの構造解析・変換成功とTick順序合成テストの合格は、音楽的な正確性や全G36ファイル互換性を保証しない。Windows実機では再生可能だが、音の正確性は未確認。次はloop/repeat展開後の同Tick順とsource note数・出力イベント数の差を調べる。
+
+
+## 2026-11-01 — G36 zero-velocity note / SC-8850 SysEx調査
+
+- 85SO018AはSC-8850で制作されたというユーザー情報を確認。G36タイトル欄にもSC-8850の記載がある。
+- G36ヘッダー内User SysEx定義8 slotのうち7 slotに名称・テンプレートが存在することを確認。GS MASTER VOLUME / KEY-SHIFT / PAN / SYSTEM RESET / REVERB MACRO / CHORUS MACRO / MASTER TUNE = 442.0。
+- 曲中0x98 SysExコマンド16件、0xEB CC、0xEC Instrument/Program Change相当イベントを確認。0x90–0x97のUser SysEx slot呼び出しは対象曲では見つかっていない。
+- 直接SysExにGS系識別情報が含まれる。SC-8850制作情報とは整合するが、個別payloadの機種固有用途は未確定。
+- SAKURA Track 9 / channel 9 / pitch 36でsource record 991–994の同音程duration重複を確認。record 991はduration 450、992–994はvelocity 0 / duration 1で、いずれも元noteのduration満了前に続く。ValleyBellのrunning-note重複処理が差分に関係する可能性がある。
+- **訂正:** 以前の説明でrecord 992だけを例外とし、993/994は独立出力されるとしたが、その区別を裏付ける検証は不足している。3 record全ての状態遷移を再確認する。
+- 85SO018Aの279 zero-velocity/nonzero-duration records（loop内259 / loop外20）について、ValleyBellの2-pass loopを前提にしたイベント差1076件の計算が既存集計と一致。
+- **作業範囲:** private G36の静的解析とValleyBell参照ソース調査、開発文書更新。S-MU2000ソース変更、ビルド、CI、実機再生は行っていない。
