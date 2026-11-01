@@ -2649,10 +2649,14 @@ static void check_rcp3_player()
     bytes[0x208] = 1;       // one track
     bytes[0x20a] = 48;      // TPQ
     bytes[0x20c] = 120;     // initial BPM
+    // User SysEx slot 0: fixed bytes, channel, p1, p2, Roland checksum.
+    const u8 user_sysex_template[] = {0x41, 0x10, 0x82, 0x80, 0x81, 0x83, 1, 2, 0x84, 0xf7};
+    std::copy(std::begin(user_sysex_template), std::end(user_sysex_template),
+        bytes.begin() + 0x0b18 + 0x18);
 
     const size_t track_start = bytes.size();
     const u32 track_length = static_cast<u32>(rcp3::track_header_size +
-        2 * rcp3::event_size);
+        3 * rcp3::event_size);
     bytes.resize(track_start + track_length, 0);
     auto put32 = [&bytes](size_t at, u32 value) {
         bytes[at] = static_cast<u8>(value);
@@ -2671,7 +2675,12 @@ static void check_rcp3_player()
     bytes[sequence + 1] = 90;   // velocity
     put16(sequence + 2, 0);     // delay to next event
     put16(sequence + 4, 24);    // note duration
-    bytes[sequence + rcp3::event_size] = 0xfe; // Track End
+    const size_t sysex_record = sequence + rcp3::event_size;
+    bytes[sysex_record] = 0x90;  // User SysEx slot 0
+    bytes[sysex_record + 1] = 33; // p2
+    put16(sysex_record + 2, 0);
+    put16(sysex_record + 4, 22); // p1
+    bytes[sysex_record + 2 * rcp3::event_size] = 0xfe; // Track End
 
     ui::player player;
     std::string err = "stale error";
@@ -2679,9 +2688,15 @@ static void check_rcp3_player()
     const bool accepted = player.add_from_memory(bytes.data(), bytes.size(),
         "synthetic.g36", err, &index);
     const auto entries = player.list();
-    bool note_on = false, note_off = false, times_ok = false;
+    bool note_on = false, note_off = false, times_ok = false, user_sysex_ok = false;
+    const std::vector<u8> expected_user_sysex = {
+        0xf0, 0x41, 0x10, 0x00, 22, 33, 1, 2, 0x7d, 0xf7
+    };
     if (accepted && entries.size() == 1) {
         for (const smf::event &event : entries[0].evs) {
+            if (event.bytes == expected_user_sysex && event.port == 0 &&
+                event.time >= -0.000001 && event.time <= 0.000001)
+                user_sysex_ok = true;
             if (event.bytes == std::vector<u8>({0x90, 60, 90}) && event.port == 0 &&
                 event.time >= -0.000001 && event.time <= 0.000001)
                 note_on = true;
@@ -2691,12 +2706,16 @@ static void check_rcp3_player()
         }
         times_ok = note_on && note_off;
     }
+    rcp3_user_sysex_test_ok = accepted && err.empty() && user_sysex_ok;
     rcp3_player_test_ok = accepted && err.empty() && index == 0 &&
-        entries.size() == 1 && entries[0].name == "synthetic.g36" && times_ok;
+        entries.size() == 1 && entries[0].name == "synthetic.g36" && times_ok &&
+        rcp3_user_sysex_test_ok;
     std::printf("RCP3/G36 プレイヤー経路（.g36→解析→MIDI）: 読み込み %s・Note On/Off %s・tick→秒 %s\n",
         accepted && err.empty() ? "合" : "NG",
         note_on && note_off ? "合" : "NG",
         times_ok ? "合" : "NG");
+    std::printf("RCP3/G36 User SysEx（slot・p1/p2・channel・Roland checksum）: %s\n",
+        rcp3_user_sysex_test_ok ? "合" : "NG");
     if (!rcp3_player_test_ok)
         std::printf("RCP3 player API error: %s\n", err.c_str());
 }
@@ -3205,5 +3224,5 @@ int main(int argc, char **argv)
 		th.event(0, xg, sizeof(xg), 0.0, send);
 		std::printf("Roland の液晶のデータを抜く: 抜いた %zu・通した %d（GS リセットと XG）\n", th.dropped(), passed);
 	}
-	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok && rcp3_tick_order_test_ok && sample_extension_test_ok) ? 0 : 1;
+	return (rcp_mute_flags_test_ok && rcp_player_api_test_ok && rcp_loop_budget_test_ok && rcp_e6_note_off_route_test_ok && rcp3_parser_test_ok && rcp3_player_test_ok && rcp3_user_sysex_test_ok && rcp3_tick_order_test_ok && sample_extension_test_ok) ? 0 : 1;
 }
