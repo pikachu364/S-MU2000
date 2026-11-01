@@ -747,3 +747,8 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 2. 完全なrcm2smf版SAKURA.midを取得し、track/channel/pitch別にNote On正速度・Note On velocity 0・Note Offを集計する。
 3. pitch 37/40/45のモデル結果をValleyBell実MIDIと照合する。
 4. source recordとMIDI tickを全件対応付けるまでは、S-MU2000のノート変換・duration・loop処理を変更しない。
+
+
+## 2026-11-01 追記 — CI #749
+
+ユーザー報告でCI #749合格を確認。CI結果は記録済みだが、SAKURAのMIDI差分調査とは独立。次はpitch 37/40/45のValleyBell実MIDI照合と、完全なrcm2smf版SAKURA.midのstatus別比較を優先する。
