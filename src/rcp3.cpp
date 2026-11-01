@@ -46,7 +46,7 @@ bool parse_header(const u8 *data, size_t size, header_info &out, std::string &er
         const u8 *payload = data + slot + 0x18;
         size_t length = 0x18;
         while (length > 0 && payload[length - 1] == 0xf7) --length;
-        if (length < 0x18 && length > 0) ++length; // retain one terminating F7
+        if (length < 0x18) ++length; // retain one terminating F7
         out.user_sysexes[i].data.assign(payload, payload + length);
     }
     if (out.track_count == 0) out.track_count = 18; // legacy default used by the reference converter
