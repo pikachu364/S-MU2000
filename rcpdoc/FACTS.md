@@ -405,3 +405,38 @@
 - この結果は、報告された4曲・再生条件でエラー表示がなかったことを示す。別のRCP曲での発生までは否定しない。
 
 **制約:** 過去のエラーが発生した曲は未特定。
+
+## F-032 — 85SO018AのG36 User SysEx定義と曲中SysExコマンド
+
+**状態:** G36ファイルの静的解析。SC-8850の機能用途の完全分類は継続中。
+
+- 85SO018Aはユーザー報告でSC-8850制作。G36タイトル欄にもSC-8850の記載がある。
+- G36ヘッダー内のUser SysEx定義は8スロット。7スロットに名前・テンプレートデータがある。名称はGS MASTER VOLUME / KEY-SHIFT / PAN / SYSTEM RESET / REVERB MACRO / CHORUS MACRO / MASTER TUNE = 442.0。
+- 曲中の0x98 SysExコマンドを16件確認。ValleyBellのrcp2mid.cでは0x98後続の0xF7継続レコードからSysExデータを組み立て、制御値を置換する。
+- 0x90–0x97のUser SysEx slot呼び出しは対象曲では確認されていない。ヘッダー定義の存在は、曲中でslotを送信した証拠ではない。
+- 0xEBおよび0xECイベントも存在し、ValleyBellではそれぞれControl Change、Instrument/Program Change相当として処理される。
+- 直接SysExにはGS系識別情報が含まれる。これはSC-8850制作情報と整合するが、GS共通情報だけでSC-8850専用命令とは断定しない。
+- CC 98/99/100/101とCC 6はNRPN/Data Entry系の制御と整合する。個別パラメーター用途は時系列ペアと公式資料の照合を継続する。
+
+**制約:** SysEx全payloadの公式アドレス表による用途分類、各EFX parameterの意味、CC値の完全な対応付けは未完了。静的解析であり、実機送信・再生確認ではない。
+
+
+## F-033 — SAKURA pitch 36のrunning-note重複候補
+
+**状態:** source recordの重複候補を特定。例外1件の厳密な出力対応は未確定。
+
+- SAKURAのG36 Track 9はDrums / MIDI channel 9。pitch 36のsource note recordsは206件で、velocity=0 / duration>0 recordsも206件。
+- 既存MIDI集計ではValleyBellとrcm2smfのchannel 9 / pitch 36のzero-velocity Note On差は410イベントであり、205 records × 2イベントで説明され、1 record分の差が残っていた。
+- source record 991はpitch 36 / velocity 92 / delay 120 / duration 450。record 992–994は同pitch / velocity 0 / delay 120 / duration 1で連続し、record 991のdurationが満了する前に現れる。
+- ValleyBell rcp2mid.cには、同じpitchのrunning noteが有効な間に同pitchイベントが来た場合、既存noteの期限・状態を更新する処理がある。このrecord群は例外の有力候補。
+- **未確定:** 992だけが統合され、993/994は独立出力されるとは確認できていない。各recordのrunning-note状態遷移とMIDI出力を再対応付けする必要がある。
+
+**制約:** ValleyBellは参照実装であり、仕様上の唯一の正解ではない。S-MU2000の挙動不具合と断定しない。
+
+
+## F-034 — 85SO018Aのzero-velocity note差分と2-pass loop展開
+
+- 85SO018Aのzero-velocity / nonzero-duration source recordsは279件。ループ内259件、ループ外20件。
+- ValleyBell実装の2-pass loop展開を前提にすると、259 × 2 passes × 2 MIDI events + 20 × 2 MIDI events = 1076 events。既存のValleyBellとrcm2smfのzero-velocity Note Onイベント数差と一致する。
+- これは参照コンバーター間の差を説明する結果であり、どちらの変換方針が正式仕様かを決めるものではない。
+- ループ外recordsとループ内recordsを区別し、source record数・loop traversal回数・生成MIDIイベント数を別々に扱う必要がある。
