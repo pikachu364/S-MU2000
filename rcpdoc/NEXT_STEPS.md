@@ -759,3 +759,13 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 - このトラックにF8/F9/FCループ制御がない点は構造的に確認できた。一方、診断artifactにはMIDI本体やpitch別MIDI集計は含まれていない。
 - 次はpitch 37/40/45についてValleyBell版SMFの実イベントを直接集計し、source pitch record数と照合する。完全なrcm2smf版SMF取得も引き続き必要。
 - S-MU2000のソース修正判断は、実SMFとsource recordの対応を確認するまで保留。
+
+
+## 2026-11-01 追記 — rcm2smf版SAKURA.midの実体解析後
+
+- ユーザー添付のrcm2smf版SAKURA.midは22,878 bytes、SHA-256 4d64af89a1723beb3856c832a2764ebc762c484975681d86716763d07ec99f70。SMF Format 1 / 12 tracks / TPB 480で全トラックを正常解析。今回の添付物に構造破損は見つからない。
+- Track 11 / channel 9 / pitch 36はrcm2smf 296件（positive 148、velocity-zero 148）、ValleyBell 706件（positive 148、velocity-zero 558）。差410はValleyBellモデルで出力されるsource velocity-zero pitch36 records 205件と自動終了205件の合計に一致。
+- channel 9全体の差918件もsource velocity-zero records 459件×2に一致。source velocity-zeroレコードの出力方針の差が主因と考えられるが、rcm2smf実装のコード経路と仕様は未確認。
+- 次はrcm2smfの実装／仕様を確認し、source velocity-zero recordsをどのように扱う設計なのかを特定する。必要に応じてG36の個別レコードとrcm2smf MIDI tickを照合する。
+- 以前想定していた31,013 bytesと今回添付22,878 bytesの差について、private repo上のファイルと添付物のhashを照合する。
+- 仕様差か不具合かを判断するまでS-MU2000ソース変更は行わない。
