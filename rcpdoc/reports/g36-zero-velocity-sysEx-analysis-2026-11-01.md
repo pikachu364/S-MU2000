@@ -168,3 +168,12 @@ SAKURAではDrums channel 9に差分が集中し、loop pairがない。zero-vel
 - ValleyBell版はsource cmdP2をvelocityとしてNote On出力へ渡し、velocity 0でもNote Onを抑止しないため、source velocity-zero recordsがSMFイベントとして増える。今回の差410 / 918はこの挙動差で説明できる。
 - これで差分の直接原因は実装コードレベルで確認できた。ただし、どちらがG36/RCP仕様として正しいか、S-MU2000がどちらに合わせるべきかは、公式仕様・実機挙動・サンプルの意味を確認して決める。現時点でrcm2smfを不具合と断定しない。
 - 参照: https://github.com/shingo45endo/rcm2smf/blob/master/rcm_converter.js （ノートイベント処理、noteGtsによる終了処理、makeNoteOff）
+
+
+## 追記 — G36形式資料でvelocity 0の意味を確認（2026-11-01）
+
+ValleyBell/MidiConvertersのRCPFormat.txt「Sequence Data [G36]」では、各6-byteレコードのp1をnote duration、p2をnote velocityと定義している。一方、p2=0のレコードを無視するのか、Note Off相当とするのか、velocity 0のNote Onとして扱うのかは、この記述だけでは規定されていない。
+
+したがって、rcm2smfの「vel>0の場合だけNote Onを生成する」実装と、ValleyBellの「p2をそのままNote On velocityとして出力する」実装のどちらがG36仕様・原作Recomposerの動作に一致するかは、現時点で公開形式メモだけからは決められない。S-MU2000の実装方針を確定するには、原作Recomposerの動作、追加の一次資料、または信頼できる実機再生比較が必要。
+
+参照: https://github.com/ValleyBell/MidiConverters/blob/master/RCPFormat.txt （Sequence Data [G36]）
