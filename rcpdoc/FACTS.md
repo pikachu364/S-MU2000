@@ -470,3 +470,12 @@
 - 同じtrackのpitch 37/40/45についてもモデル集計を得たが、実MIDIとの独立照合は未完了。pitch 37: 3 Note On + 3 endings、pitch 40: 354 + 354、pitch 45: 19 + 19。
 
 **重要な制約:** 実測MIDIとの件数一致はモデルの整合性を支持するが、実行トレースによる完全な証明ではない。rcm2smf版MIDIの完全ファイル比較、record-to-MIDI時刻の全件対応、S-MU2000側の修正要否は未確定。ソース変更・ビルド・CI・実機再生は行っていない。
+
+
+## F-037 — SAKURA G36の最新per-track診断値（CI artifact）
+
+- ユーザー提供の診断ZIP内 `SAKURA.txt` は、private `SAKURA.G36`（37,110 bytes）を36 tracksとして正常解析した結果を示す。
+- Track array index 9 / track ID 10 / name `Drums` / MIDI channel `0x09` は、source note records 944件、velocity 0が476件、duration 0が23件、両方0が16件。制御コードはF8=0、F9=0、FC=0、FD=51。
+- したがって、このトラックにはF8/F9/FCのループ・リピート制御は含まれず、FDが51件存在する。これは既存のpitch 36追跡対象トラックの制御構造と整合する。
+- 診断ZIPにはMIDI本体は含まれない。pitch 37/40/45のMIDI実測値やrcm2smfとの比較はできない。
+- この診断はsourceレコードの構造集計であり、note pitch別のイベント数・実行時tick・running-note遷移を直接示すものではない。
