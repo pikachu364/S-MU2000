@@ -148,6 +148,44 @@ bool load_events_from_memory(const u8 *data, size_t size,
                     }
                 } else {
                     switch (e.code) {
+                    case 0x90: case 0x91: case 0x92: case 0x93:
+                    case 0x94: case 0x95: case 0x96: case 0x97: {
+                        // User SysEx templates are stored in eight fixed header slots.
+                        const rcp3::user_sysex &definition = h.user_sysexes[e.code & 0x07];
+                        if (!channel_muted && !definition.data.empty()) {
+                            std::vector<u8> payload;
+                            payload.reserve(definition.data.size() + 1);
+                            unsigned int checksum = 0;
+                            for (u8 token : definition.data) {
+                                if (token == 0xf7) {
+                                    payload.push_back(0xf7);
+                                    break;
+                                }
+                                switch (token) {
+                                case 0x80: payload.push_back(e.p1); break;
+                                case 0x81: payload.push_back(e.p2); break;
+                                case 0x82: payload.push_back(u8(channel)); break;
+                                case 0x83: checksum = 0; break;
+                                case 0x84: payload.push_back(u8((0x100 - checksum) & 0x7f)); break;
+                                default:
+                                    if (token & 0x80) {
+                                        // Unknown template controls are ignored, matching the reference converter.
+                                        break;
+                                    }
+                                    payload.push_back(token);
+                                    checksum += token;
+                                    break;
+                                }
+                            }
+                            if (!payload.empty() && payload.back() != 0xf7)
+                                payload.push_back(0xf7);
+                            if (payload.size() > 1) {
+                                payload.insert(payload.begin(), 0xf0);
+                                events.push_back({event_time, std::move(payload), u8(port)});
+                            }
+                        }
+                        break;
+                    }
                     case 0xe2: // Bank MSB (p2), Program Change (p1)
                         emit({u8(0xb0 | channel), 0x00, u8(e.p2 & 0x7f)});
                         emit({u8(0xc0 | channel), u8(e.p1 & 0x7f)});
