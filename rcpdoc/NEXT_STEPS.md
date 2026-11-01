@@ -705,3 +705,25 @@ Current source review confirms src/rcp.cpp already skips unknown high-bit SysEx 
 6. zero-velocity noteの一律削除・変換は行わない。参照コンバーター差と正式仕様を区別する。
 
 **変更禁止:** 上記のrecord単位対応とpayload意味分類が済むまではS-MU2000のソースを変更しない。SysEx checksumの自動補正や未確認byteの置換も行わない。
+
+
+## 2026-11-01 追記 — SAKURA pitch 36の実MIDI照合をやり直す
+
+**訂正事項**
+
+直前の単純シミュレーションで示した「record 992だけが抑制」「抑制1件・出力459件」は、G36の小節リピート・ループ制御を正しく再現していないため撤回。これを根拠に実装変更しない。
+
+**確認済みの実測**
+
+- ValleyBell版SAKURA.mid: 32,395 bytes、37 tracks。
+- Track 11 / channel 9 / pitch 36: 706 events（Note On velocity > 0: 148、Note On velocity 0: 558、Note Off status: 0）。
+- source側のpitch 36 velocity 0 / duration > 0 recordsは206件。MIDI上のvelocity 0イベントには自動Note Off相当が含まれるため、単純比較不可。
+
+**優先タスク**
+
+1. ValleyBellのG36 interpreterの0xFC repeat-measure、0xF8/0xF9 loop、0xFD measure-end、running-note期限更新を同じ制御フローで追跡する。
+2. 完全なrcm2smf版SAKURA.midを取得し、status別に再解析する。以前の296件という集計は完全ファイルを再確認するまで暫定扱い。
+3. SAKURAのpitch 36/37/40/45についてsource recordと生成MIDIイベントを対応付ける。
+4. 参照コンバーター間の差とG36仕様上の意味を区別し、S-MU2000側の修正要否を判定する。
+
+**変更禁止:** record単位の対応が確認できるまでノート処理・duration処理・loop展開処理を変更しない。
