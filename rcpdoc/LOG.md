@@ -855,3 +855,11 @@
 - ユーザー報告により、GitHub Actions CI #749の合格を確認。
 - このCI合格は対象コミットのCI結果として記録する。SAKURAのValleyBell / rcm2smfイベント差分やMIDI変換仕様を検証した結果とは区別する。
 - 本調査ではS-MU2000ソース変更なし。MIDI差分調査を継続。
+
+
+## 2026-11-01 — CI #749後のSAKURA診断artifact確認
+
+- ユーザー提供のworkflow artifact ZIP（run-41283837716-artifact-13074168809.zip）を展開。内容は85SO018A/EVA3_22D/SAKURA/TAKARAJIの診断テキストとdiagnostic-refresh.txtで、MIDIファイルは含まれていない。
+- SAKURA.txtでG36 37,110 bytes / 36 tracksを確認。Track index 9 / ID 10 / `Drums` / channel 9はnote records 944、velocity0 476、duration0 23、both0 16、F8/F9/FC各0、FD 51。
+- 対象trackにF8/F9/FCがないという構造上の確認を補強。ただし診断出力はpitch別のMIDIイベントを含まず、pitch 37/40/45の実MIDI照合は未完了。
+- artifact内にrcm2smf版SAKURA.midも含まれないため、rcm2smf比較は継続課題。ソース変更・ビルド・実機再生なし。
