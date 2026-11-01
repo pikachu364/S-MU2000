@@ -37,6 +37,18 @@ bool parse_header(const u8 *data, size_t size, header_info &out, std::string &er
     out.beat_denominator = data[0x20f];
     out.key_signature = data[0x210];
     out.play_bias = data[0x211];
+    // Eight 0x30-byte user SysEx definitions follow the 0x800-byte rhythm table.
+    // Each slot contains an 0x18-byte name followed by 0x18 bytes of template data.
+    constexpr size_t user_sysex_offset = 0x0b18;
+    for (size_t i = 0; i < out.user_sysexes.size(); ++i) {
+        const size_t slot = user_sysex_offset + i * 0x30;
+        out.user_sysexes[i].name = fixed_string(data + slot, 0x18);
+        const u8 *payload = data + slot + 0x18;
+        size_t length = 0x18;
+        while (length > 0 && payload[length - 1] == 0xf7) --length;
+        if (length < 0x18 && length > 0) ++length; // retain one terminating F7
+        out.user_sysexes[i].data.assign(payload, payload + length);
+    }
     if (out.track_count == 0) out.track_count = 18; // legacy default used by the reference converter
     if (out.track_count > 36) { err = "RCP3.0 track count exceeds the documented 36-track maximum"; out = {}; return false; }
     return true;
