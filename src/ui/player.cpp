@@ -161,21 +161,22 @@ bool load_events_from_memory(const u8 *data, size_t size,
                                     payload.push_back(0xf7);
                                     break;
                                 }
+                                u8 value = token;
                                 switch (token) {
-                                case 0x80: payload.push_back(e.p1); break;
-                                case 0x81: payload.push_back(e.p2); break;
-                                case 0x82: payload.push_back(u8(channel)); break;
-                                case 0x83: checksum = 0; break;
-                                case 0x84: payload.push_back(u8((0x100 - checksum) & 0x7f)); break;
+                                case 0x80: value = e.p1; break;
+                                case 0x81: value = e.p2; break;
+                                case 0x82: value = u8(channel); break;
+                                case 0x83: checksum = 0; continue;
+                                case 0x84: value = u8((0x100 - checksum) & 0x7f); break;
                                 default:
                                     if (token & 0x80) {
                                         // Unknown template controls are ignored, matching the reference converter.
-                                        break;
+                                        continue;
                                     }
-                                    payload.push_back(token);
-                                    checksum += token;
                                     break;
                                 }
+                                payload.push_back(value);
+                                checksum += value;
                             }
                             if (!payload.empty() && payload.back() != 0xf7)
                                 payload.push_back(0xf7);
