@@ -108,3 +108,11 @@ sample-04の最大100ms窓にはDT1が26件あり、そのうちmodel ID 0x56の
 - 曲中の0x98 SysExコマンド16件、0xEB CC、0xEC Instrument/Program Change相当イベントを確認。GS系識別情報を含むSysExがあり、SC-8850関連のEFX/NRPN設定調査を継続する。個々のpayload用途の完全分類は未完了。
 - SAKURAのDrums channel 9 / pitch 36の例外は、record 991のduration中に同pitchのvelocity=0 records 992–994が続くrunning-note重複が候補。ただし、どのrecordがValleyBellで統合されるかは未確定。以前の「record 992だけが例外」とする説明は保留に修正。
 - ソース変更・ビルド・CI・実機再生は行っていない。詳細は [2026-11-01 G36 zero-velocity / SC-8850 SysEx調査レポート](reports/g36-zero-velocity-sysEx-analysis-2026-11-01.md)。
+
+
+## 追記（2026-11-01）— SAKURA pitch 36 のMIDI実測訂正
+
+- ValleyBell版 SAKURA.mid の実ファイル解析では、37 tracks、Track 11 / channel 9 / pitch 36 は706イベント（Note On velocity > 0: 148、Note On velocity 0: 558、Note Off status: 0）。
+- 以前の単純シミュレーションで示した「record 992だけが抑制」「抑制1件・出力459件」は、G36のloop/repeat展開を再現しておらず撤回する。
+- source recordと実MIDIイベントの厳密な対応、rcm2smf版との差分原因は未確定。ソース変更は保留。
+- 詳細は [調査レポート](reports/g36-zero-velocity-sysEx-analysis-2026-11-01.md) の追記を参照。
