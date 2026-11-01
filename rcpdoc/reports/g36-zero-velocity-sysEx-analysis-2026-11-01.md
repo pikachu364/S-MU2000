@@ -129,3 +129,22 @@ SAKURAではDrums channel 9に差分が集中し、loop pairがない。zero-vel
 **この結果の位置づけ:** これはValleyBellのソースコードに基づく状態遷移モデルであり、ValleyBell実行ファイルを実行して得たrecord-by-record traceではない。MIDI件数との一致はモデルの整合性を支持するが、全イベントのtick対応やrcm2smfとの差分原因を確定しない。
 
 同じモデルでpitch 37/40/45の集計も得たが、ValleyBell実MIDIとの独立照合は未完了。完全なrcm2smf版SAKURA.midも未取得。したがってS-MU2000側の修正要否は未確定であり、ソース変更は行わない。
+
+
+## 追記 — rcm2smf版SAKURA.midの実体照合（2026-11-01）
+
+ユーザー添付のSAKURA.midを独立解析した。サイズ22,878 bytes、SHA-256 4d64af89a1723beb3856c832a2764ebc762c484975681d86716763d07ec99f70。SMF Format 1、12 tracks、TPB 480で、全MTrkチャンク長がファイル末尾と一致し、全イベントを解析できた。
+
+### 実測
+
+- Track 11 (Drums, MIDI channel 9) のNote On status 0x99: 922件（positive velocity 461、velocity 0が461）。explicit Note Off status 0x89は0件。
+- pitch 36: positive velocity Note On 148件、velocity-zero Note On 148件、合計296件。
+- 既存ValleyBell実測pitch 36: 706件（positive 148、velocity-zero 558）。差410件。
+- 既存ValleyBellモデルでは、source pitch36 velocity-zero records 206件のうちduration nonzeroは206件、同一pitch running-note抑止で出力されない1件を除く205件がNote Onとして出力される。各Note Onの自動終了を含めると205×2=410件。
+- channel 9全体でも、rcm2smf 922件に対しValleyBell 1,840件。差918件はValleyBellモデルのsource velocity-zero Note On 459件とその自動終了459件の合計に一致。
+
+### 解釈と制限
+
+数値の一致から、rcm2smfはsource velocity-zero recordsをValleyBellのような独立Note Onとして出力していない可能性が高い。今回の差分を単なるファイル破損や転送欠落で説明する必要はない。一方、rcm2smfのソースコード／仕様に基づく処理経路は未確認であり、velocity-zero recordを無視する仕様なのか、Note Off相当として扱う仕様なのか、または不具合なのかは未確定。
+
+今回添付物は以前の取得時に想定していた31,013 bytesではなく22,878 bytes。添付物自体はSMFとして完全に解析できたが、private repo上の保存ファイルと同一かはhash照合が必要。S-MU2000ソース変更、ビルド、CI、実機再生は未実施。
