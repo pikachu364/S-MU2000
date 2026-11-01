@@ -148,3 +148,10 @@ SAKURAではDrums channel 9に差分が集中し、loop pairがない。zero-vel
 数値の一致から、rcm2smfはsource velocity-zero recordsをValleyBellのような独立Note Onとして出力していない可能性が高い。今回の差分を単なるファイル破損や転送欠落で説明する必要はない。一方、rcm2smfのソースコード／仕様に基づく処理経路は未確認であり、velocity-zero recordを無視する仕様なのか、Note Off相当として扱う仕様なのか、または不具合なのかは未確定。
 
 今回添付物は以前の取得時に想定していた31,013 bytesではなく22,878 bytes。添付物自体はSMFとして完全に解析できたが、private repo上の保存ファイルと同一かはhash照合が必要。S-MU2000ソース変更、ビルド、CI、実機再生は未実施。
+
+
+## 訂正 — private repo保存物との同一性確認（2026-11-01）
+
+- 先行記載の「31,013 bytes」は誤り。GitHub fetch_fileが返したBase64文字列の文字数31,013を、ファイルbyte数と取り違えていた。
+- private repoのG36_DATA/SAKURA/rcm2smf/SAKURA.midのGit blob SHAはe2163caadb82f96a652a804f96516a115914f532。添付ファイルから計算したGit blob SHAも同一であり、両者は完全に同一ファイル。
+- 正しいファイルサイズは22,878 bytes。したがって添付物とprivate repo保存物の同一性は確認済みであり、再アップロードや再コンバートは不要。
