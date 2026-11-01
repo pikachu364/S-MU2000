@@ -113,3 +113,19 @@ SAKURAではDrums channel 9に差分が集中し、loop pairがない。zero-vel
 2. 完全なrcm2smf版SAKURA.midを取得し、同じtrack/channel/pitch条件でNote On正速度・Note On velocity 0・Note Offを別々に集計する。
 3. その後、pitch 36/37/40/45をrecord単位で照合し、差分がloop traversal、running-note統合、または別の変換規則のどれに起因するかを判定する。
 4. 根拠が揃うまでS-MU2000のノート変換ロジックは変更しない。
+
+
+## 追加検証 — pitch 36 running-noteモデル（2026-11-01）
+
+**結果:** ValleyBellソースのrunning-note処理とdelay消費に沿ってrecord-level状態遷移を追ったモデルでは、pitch 36の新規Note On抑止対象はsource record #993となった。
+
+- record #992: pitch 36 / velocity 92 / duration 450 / P0 delay 120。
+- record #993: pitch 36 / velocity 0 / duration 1 / P0 delay 120。
+- record #993直前にpitch 44の満了処理が1 tickを消費し、残delayは119。既存pitch 36 running noteが残るため、remLen = 119 + 1 = 120としてrecord #993の新規Note Onを抑止するモデルとなる。
+- pitch 36 source records 356件のうちduration 0は2件。モデル上Note Onは353件（正velocity 148、zero velocity 205）、自動Note Off相当は353件、合計706件。
+- ValleyBell版MIDI Track 11 / channel 9 / pitch 36の実測706件（正velocity Note On 148、zero velocity Note On 558、explicit Note Off 0）と一致。
+- 全channel 9についてもモデルのNote On 920件（正velocity 461、zero velocity 459）+自動終了920件=1,840件となり、既存実測と一致。
+
+**この結果の位置づけ:** これはValleyBellのソースコードに基づく状態遷移モデルであり、ValleyBell実行ファイルを実行して得たrecord-by-record traceではない。MIDI件数との一致はモデルの整合性を支持するが、全イベントのtick対応やrcm2smfとの差分原因を確定しない。
+
+同じモデルでpitch 37/40/45の集計も得たが、ValleyBell実MIDIとの独立照合は未完了。完全なrcm2smf版SAKURA.midも未取得。したがってS-MU2000側の修正要否は未確定であり、ソース変更は行わない。
