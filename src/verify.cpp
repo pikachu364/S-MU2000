@@ -2860,10 +2860,10 @@ static void check_rcp3_tick_order()
     const bool repeated_pitch_ok = repeated_pitch_loaded &&
         repeated_note_ons == 1 && repeated_note_offs == 1 && repeated_note_off_time_ok;
 
-    // A zero-duration record for an active pitch shortens that note to the
-    // current tick and does not create a new Note On.
+    // Recomposer 98 skips ordinary note management when P1 (duration) is zero.
+    // An already-active pitch therefore keeps its original Note Off time.
     const std::vector<record> zero_duration_track = {
-        {60, 90, 12, 24}, {60, 0, 0, 0}, {0xfe, 0, 0, 0}
+        {60, 90, 12, 24}, {60, 90, 0, 0}, {0xfe, 0, 0, 0}
     };
     events.clear();
     const bool zero_duration_loaded = load(make_g36({zero_duration_track}), events, meta, err);
@@ -2874,7 +2874,7 @@ static void check_rcp3_tick_order()
             ++zero_note_ons;
         if (event.bytes == std::vector<u8>({0x80, 60, 0})) {
             ++zero_note_offs;
-            zero_note_off_time_ok = event.time > 0.124999 && event.time < 0.125001;
+            zero_note_off_time_ok = event.time > 0.374999 && event.time < 0.375001;
         }
     }
     const bool zero_duration_ok = zero_duration_loaded &&
@@ -2910,27 +2910,20 @@ static void check_rcp3_tick_order()
         different_pitch_note_ons == 2 && different_pitch_note_offs == 2 &&
         pitch60_on_ok && pitch60_off_ok && pitch64_on_ok && pitch64_off_ok;
 
-    // A positive-duration zero-velocity record is preserved as in the reference converter.
+    // Recomposer 98 skips ordinary note management when P2 (velocity) is zero.
+    // The record must not create either a velocity-zero Note On or a Note Off.
     const std::vector<record> zero_velocity_track = {
         {67, 0, 0, 24}, {0xfe, 0, 0, 0}
     };
     events.clear();
     const bool zero_velocity_loaded = load(make_g36({zero_velocity_track}), events, meta, err);
-    int zero_velocity_note_ons = 0, zero_velocity_note_offs = 0;
-    bool zero_velocity_note_on_time_ok = false, zero_velocity_note_off_time_ok = false;
+    int zero_velocity_note_events = 0;
     for (const smf::event &event : events) {
-        if (event.bytes == std::vector<u8>({0x90, 67, 0})) {
-            ++zero_velocity_note_ons;
-            zero_velocity_note_on_time_ok = event.time > -0.000001 && event.time < 0.000001;
-        }
-        if (event.bytes == std::vector<u8>({0x80, 67, 0})) {
-            ++zero_velocity_note_offs;
-            zero_velocity_note_off_time_ok = event.time > 0.249999 && event.time < 0.250001;
-        }
+        if (event.bytes.size() == 3 && event.bytes[1] == 67 &&
+            ((event.bytes[0] & 0xf0) == 0x80 || (event.bytes[0] & 0xf0) == 0x90))
+            ++zero_velocity_note_events;
     }
-    const bool zero_velocity_ok = zero_velocity_loaded && zero_velocity_note_ons == 1 &&
-        zero_velocity_note_offs == 1 && zero_velocity_note_on_time_ok &&
-        zero_velocity_note_off_time_ok;
+    const bool zero_velocity_ok = zero_velocity_loaded && zero_velocity_note_events == 0;
 
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
