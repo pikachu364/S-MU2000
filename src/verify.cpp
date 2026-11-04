@@ -2913,7 +2913,7 @@ static void check_rcp3_tick_order()
     // Recomposer 98 skips ordinary note management when P2 (velocity) is zero.
     // The record must not create either a velocity-zero Note On or a Note Off.
     const std::vector<record> zero_velocity_track = {
-        {67, 0, 0, 24}, {0xfe, 0, 0, 0}
+        {60, 90, 0, 24}, {67, 0, 0, 24}, {0xfe, 0, 0, 0}
     };
     events.clear();
     const bool zero_velocity_loaded = load(make_g36({zero_velocity_track}), events, meta, err);
