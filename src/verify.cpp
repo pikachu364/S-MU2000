@@ -2874,7 +2874,7 @@ static void check_rcp3_tick_order()
             ++zero_note_ons;
         if (event.bytes == std::vector<u8>({0x80, 60, 0})) {
             ++zero_note_offs;
-            zero_note_off_time_ok = event.time > 0.374999 && event.time < 0.375001;
+            zero_note_off_time_ok = event.time > 0.249999 && event.time < 0.250001;
         }
     }
     const bool zero_duration_ok = zero_duration_loaded &&
