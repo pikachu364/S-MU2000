@@ -2860,7 +2860,7 @@ static void check_rcp3_tick_order()
     const bool repeated_pitch_ok = repeated_pitch_loaded &&
         repeated_note_ons == 1 && repeated_note_offs == 1 && repeated_note_off_time_ok;
 
-    // Recomposer 98 skips ordinary note management when P1 (duration) is zero.
+    // RCM3.0 skips ordinary note management when P1 (duration) is zero.
     // An already-active pitch therefore keeps its original Note Off time.
     const std::vector<record> zero_duration_track = {
         {60, 90, 12, 24}, {60, 90, 0, 0}, {0xfe, 0, 0, 0}
@@ -2910,7 +2910,7 @@ static void check_rcp3_tick_order()
         different_pitch_note_ons == 2 && different_pitch_note_offs == 2 &&
         pitch60_on_ok && pitch60_off_ok && pitch64_on_ok && pitch64_off_ok;
 
-    // Recomposer 98 skips ordinary note management when P2 (velocity) is zero.
+    // RCM3.0 skips ordinary note management when P2 (velocity) is zero.
     // The record must not create either a velocity-zero Note On or a Note Off.
     const std::vector<record> zero_velocity_track = {
         {60, 90, 0, 24}, {67, 0, 0, 24}, {0xfe, 0, 0, 0}
