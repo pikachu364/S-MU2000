@@ -124,7 +124,7 @@ bool load_events_from_memory(const u8 *data, size_t size,
                 if (e.code < 0x80) {
                     const int note = int(e.code) + transpose;
                     const double off_tick = std::max(std::max(0.0, tick), tick + e.p1);
-                    if (note >= 0 && note <= 127 && e.p2 <= 127 && !channel_muted) {
+                    if (note >= 0 && note <= 127 && e.p1 != 0 && e.p2 != 0 && e.p2 <= 127 && !channel_muted) {
                         // G36 reuses an already-running pitch instead of emitting
                         // another Note On. Its duration is replaced by this record's
                         // duration; a zero duration therefore ends the old note here.
