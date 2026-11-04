@@ -2924,6 +2924,11 @@ static void check_rcp3_tick_order()
             ++zero_velocity_note_events;
     }
     const bool zero_velocity_ok = zero_velocity_loaded && zero_velocity_note_events == 0;
+    if (!zero_velocity_ok) {
+        std::printf("G36 P2=0 diagnostic: loaded=%s, pitch67_note_events=%d, total_events=%zu, error=%s\\n",
+            zero_velocity_loaded ? "true" : "false", zero_velocity_note_events,
+            events.size(), err.c_str());
+    }
 
     // Deep nested finite loops must fail closed instead of accepting truncated output.
     std::vector<record> nested_loops;
@@ -2935,6 +2940,7 @@ static void check_rcp3_tick_order()
     err.clear();
     const bool loop_budget_rejected = !load(make_g36({nested_loops}), events, meta, err) &&
         events.empty() && err.find("step budget") != std::string::npos;
+    err.clear();
 
     rcp3_tick_order_test_ok = same_tick_ok && multi_track_ok && tempo_same_tick_ok &&
         repeated_pitch_ok && zero_duration_ok && different_pitch_ok && zero_velocity_ok && loop_budget_rejected;
@@ -2943,7 +2949,7 @@ static void check_rcp3_tick_order()
         tempo_same_tick_ok ? "合" : "NG", repeated_pitch_ok ? "合" : "NG",
         zero_duration_ok ? "合" : "NG", different_pitch_ok ? "合" : "NG",
         zero_velocity_ok ? "合" : "NG", loop_budget_rejected ? "合" : "NG");
-    if (!rcp3_tick_order_test_ok && !err.empty())
+    if (!loop_budget_rejected && !err.empty())
         std::printf("RCP3 Tick order API error: %s\n", err.c_str());
 }
 
