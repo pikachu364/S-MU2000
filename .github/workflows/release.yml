@@ -71,6 +71,14 @@ jobs:
           msystem: mingw64
           update: true
           install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-make mingw-w64-x86_64-python make
+      # build.yml と同じ: mingw-w64 r532 で DLL のリンクが落ちるので、直るまで r495 に戻す（#238）
+      - name: Pin mingw-w64 crt/headers/winpthreads to r495
+        run: |
+          base=https://repo.msys2.org/mingw/mingw64
+          pacman -U --noconfirm \
+            $base/mingw-w64-x86_64-crt-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-x86_64-headers-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-x86_64-winpthreads-14.0.0.r495.g63ebe6cdb-2-any.pkg.tar.zst
       - run: make -j$(nproc) all
       - run: make test
       - run: bash scripts/package-windows.sh build dist-windows

@@ -31,12 +31,14 @@
 	"menu_thru_b": "MIDI THRU B (sends out what B receives)",
 	"menu_open_list": "Open the list",
 	"menu_open_editor": "Open the editor",
+	"menu_plug_a_to_e": "Send MIDI IN A to port E (16-part board)",
 	"menu_native_fx": "Play effects in C++ (light; differs from hardware)",
 	"menu_native_engine": "Play without the firmware (fast; still differs)",
 	"menu_factory": "Factory reset...",
 	"menu_restart": "Restart the MU (power off and on)",
 	"menu_card_new": "Make a new SmartMedia image",
 	"menu_card_open": "Insert a SmartMedia image...",
+	"menu_card_folder": "Use a folder as the SmartMedia...",
 	"menu_card_eject": "Eject the SmartMedia",
 
 	// %s: the file in the slot
@@ -59,6 +61,8 @@
 	// serves every backend; the identical console twins in app.h share
 	// these fields rather than duplicating them.
 	"dlg_card_open": "Insert a SmartMedia image",
+	"dlg_card_folder": "Folder to use as the SmartMedia",
+	"dlg_card_folder_skipped": "These files were left off the card: their names do not fit the card's 8.3 rule (up to 8 letters, a dot and 3 more, no spaces).",
 	"dlg_card_save": "Where to save the new SmartMedia image",
 	"dlg_midi_open": "MIDI file to play",
 	"dlg_sysex_desc": "SysEx",

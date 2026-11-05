@@ -317,7 +317,8 @@ void mu2000::set_threaded(bool on)
 // 頼まれていて、台数が境を超えていなければ別スレッドにする。そうでなければ 1 本に戻す
 void mu2000::apply_threading()
 {
-	const bool on = m_want_threaded && g_live_instances.load(std::memory_order_relaxed) <= threaded_max();
+	const bool on = m_want_threaded && !m_slave_retry &&
+		g_live_instances.load(std::memory_order_relaxed) <= threaded_max();
 	if (on == m_slave_thread.joinable())
 		return;
 
@@ -332,6 +333,7 @@ void mu2000::apply_threading()
 	// 合図の数は前に回した分だけ進んでいるので、今の数から待ち始める（0 からだと着いた途端に 1 サンプル余計に回す）
 	const u64 seen = m_slave_go.load(std::memory_order_acquire);
 	m_slave_done.store(seen, std::memory_order_release);
+	m_slave_started.store(seen, std::memory_order_release);
 	m_slave_thread = std::thread([this, seen] { slave_loop(seen); });
 }
 
@@ -339,6 +341,14 @@ void mu2000::apply_threading()
 #ifndef SLAVE_SPINS
 #define SLAVE_SPINS 20000
 #endif
+
+// The audio thread must never spin indefinitely while waiting for the slave:
+// an RT-priority host may be restricted to the same CPU as the lower-priority
+// slave, preventing the slave from running until the audio thread blocks.
+// The bounded spin retains the cheap parallel hand-off on multiple CPUs.
+static constexpr int SLAVE_SYNC_SPINS = 8192;
+static constexpr u32 SLAVE_STARVE_LIMIT = 4;
+static constexpr u32 SLAVE_RETRY_SAMPLES = 44100; // 1 s at the native rate
 
 void mu2000::slave_loop(u64 seen)
 {
@@ -368,9 +378,14 @@ void mu2000::slave_loop(u64 seen)
 		if (m_slave_quit.load(std::memory_order_relaxed))
 			return;
 
+		m_slave_started.store(seen, std::memory_order_release);
 		m_slave_l = m_slave_r = 0;
 		m_swps.run_sample(m_slave_l, m_slave_r);
-		m_slave_done.store(seen, std::memory_order_release);
+		// seq_cst on both sides (here and the audio thread's wait below): either this load sees
+		// the waiter, or the waiter's own check sees the new value and does not sleep
+		m_slave_done.store(seen, std::memory_order_seq_cst);
+		if (m_master_waiting.load(std::memory_order_seq_cst))
+			m_slave_done.notify_one();
 	}
 }
 
@@ -3634,16 +3649,15 @@ void mu2000::vb16_gain(vb_chan &c)
 	const float vol = smu2000::vboard::level_of(c.vol) * smu2000::vboard::level_of(c.exp);
 	float pl = 1, pr = 1;
 	smu2000::vboard::pan_of(c.pan, pl, pr);
-	const float rev = smu2000::vboard::level_of(c.rev), cho = smu2000::vboard::level_of(c.cho);
+	using smu2000::vboard::send_of;
 	c.gain[0] = vol * pl;
 	c.gain[1] = vol * pr;
-	c.gain[2] = vol * pl * rev;
-	c.gain[3] = vol * pr * rev;
-	c.gain[4] = vol * pl * cho;
-	c.gain[5] = vol * pr * cho;
-	const float var = smu2000::vboard::level_of(c.var);
-	c.gain[6] = vol * pl * var;
-	c.gain[7] = vol * pr * var;
+	c.gain[2] = vol * pl * send_of(c.rev, c.pan, false);
+	c.gain[3] = vol * pr * send_of(c.rev, c.pan, true);
+	c.gain[4] = vol * pl * send_of(c.cho, c.pan, false);
+	c.gain[5] = vol * pr * send_of(c.cho, c.pan, true);
+	c.gain[6] = vol * pl * send_of(c.var, c.pan, false);
+	c.gain[7] = vol * pr * send_of(c.var, c.pan, true);
 }
 
 void mu2000::set_board_insert(int channel, int slot)
@@ -3970,13 +3984,14 @@ bool mu2000::vb1_mix(vb_slot &s, float bus[][2])
 		const float vol = smu2000::vboard::level_of(m_ram[pb + 0x0b]) * smu2000::vboard::level_of(m_ram[pb + xg::ram::PART_EXP]);
 		float pl = 1, pr = 1;
 		smu2000::vboard::pan_of(m_ram[pb + 0x0e], pl, pr);
-		const float cho = smu2000::vboard::level_of(m_ram[pb + 0x12]), rev = smu2000::vboard::level_of(m_ram[pb + 0x13]);
+		using smu2000::vboard::send_of;
+		const int pan = m_ram[pb + 0x0e], cho = m_ram[pb + 0x12], rev = m_ram[pb + 0x13];
 		s.gain[0] = vol * pl;
 		s.gain[1] = vol * pr;
-		s.gain[2] = vol * pl * rev;
-		s.gain[3] = vol * pr * rev;
-		s.gain[4] = vol * pl * cho;
-		s.gain[5] = vol * pr * cho;
+		s.gain[2] = vol * pl * send_of(rev, pan, false);
+		s.gain[3] = vol * pr * send_of(rev, pan, true);
+		s.gain[4] = vol * pl * send_of(cho, pan, false);
+		s.gain[5] = vol * pr * send_of(cho, pan, true);
 	}
 	float v;
 	if (user) {
@@ -4057,9 +4072,18 @@ void mu2000::run_sample(s32 &left, s32 &right)
 		}
 	}
 
-	// 台数が変わっていたら別スレッドの使い方を見直す（8192 サンプルごと）
-	if (m_want_threaded && !(++m_thread_check & 0x1fff))
-		apply_threading();
+	// Reevaluate the number of active instances every 8192 samples as before.
+	// After repeated unscheduled hand-offs, run sequentially for one second,
+	// then probe parallelism again. No platform-specific affinity API needed.
+	if (m_want_threaded) {
+		if (m_slave_retry) {
+			if (m_slave_thread.joinable())
+				apply_threading(); // retire the worker before starting this sample
+			if (--m_slave_retry == 0)
+				apply_threading();
+		} else if (!(++m_thread_check & 0x1fff))
+			apply_threading();
+	}
 
 	m_sample_count++;
 
@@ -4286,8 +4310,27 @@ void mu2000::run_sample(s32 &left, s32 &right)
 		m_slave_go.store(tag, std::memory_order_release);
 		m_slave_go.notify_one();   // 眠っていたら起こす。起きていれば素通り
 		m_swpm.run_sample(lm, rm);
-		while (m_slave_done.load(std::memory_order_acquire) != tag)
+		int spins = 0;
+		while (m_slave_done.load(std::memory_order_acquire) != tag &&
+		       ++spins < SLAVE_SYNC_SPINS)
 			smu2000::cpu_pause();
+		if (m_slave_done.load(std::memory_order_acquire) != tag) {
+			// Sleeping releases the CPU even if the host's audio thread has
+			// higher priority. The worker notifies when its sample is ready.
+			// Only a *late start* (as opposed to slow DSP) counts as a
+			// scheduling stall and can trigger a temporary serial fallback.
+			const bool late = m_slave_started.load(std::memory_order_acquire) != tag;
+			m_master_waiting.store(true, std::memory_order_seq_cst);
+			for (u64 now; (now = m_slave_done.load(std::memory_order_seq_cst)) != tag;)
+				m_slave_done.wait(now, std::memory_order_acquire);
+			m_master_waiting.store(false, std::memory_order_relaxed);
+			if (late && ++m_slave_late_starts >= SLAVE_STARVE_LIMIT) {
+				m_slave_retry = SLAVE_RETRY_SAMPLES;
+				m_slave_late_starts = 0;
+			} else if (!late)
+				m_slave_late_starts = 0;
+		} else
+			m_slave_late_starts = 0;
 		ls = m_slave_l;
 		rs = m_slave_r;
 	} else {
@@ -4378,7 +4421,7 @@ namespace {
 
 // 保存の形。中身の並びを変えたら上げる
 constexpr u32 STATE_MAGIC   = 0x554d3253;   // "S2MU"
-constexpr u32 STATE_VERSION = 15;  // 15: MEG の書き換わった命令（6.238） / 14: MEG の静まった区画（6.237） / 13: d80000（LCD のコントラスト） / 2: MIDI の入口が A/B の 2 口になった / 3: SWP30 のピッチ EG / 4: サンプリングの録音の位置 / 5: SmartMedia の命令の途中 / 6: MEG の印と 2 つ目の idx / 7: USB の口（C・D）の受け取り途中 / 8: 2 つ目の A/D 変換器（AN4 = HOST SELECT） / 9: SWP30 の書き込みの待ち / 10: USB のコマンド（M37640 からの知らせ） / 11: 液晶の「native の持ち物」（6.188） / 12: 外字の「native の持ち物」（6.190）
+constexpr u32 STATE_VERSION = 16;  // 16: SWP30 の滑っている途中の切る高さ / 15: MEG の書き換わった命令（6.238） / 14: MEG の静まった区画（6.237） / 13: d80000（LCD のコントラスト） / 2: MIDI の入口が A/B の 2 口になった / 3: SWP30 のピッチ EG / 4: サンプリングの録音の位置 / 5: SmartMedia の命令の途中 / 6: MEG の印と 2 つ目の idx / 7: USB の口（C・D）の受け取り途中 / 8: 2 つ目の A/D 変換器（AN4 = HOST SELECT） / 9: SWP30 の書き込みの待ち / 10: USB のコマンド（M37640 からの知らせ） / 11: 液晶の「native の持ち物」（6.188） / 12: 外字の「native の持ち物」（6.190）
 constexpr u32 STATE_VERSION_OLDEST = 2;
 
 } // namespace

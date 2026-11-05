@@ -89,7 +89,7 @@ enum : int {
 	ID_OUTMU_NONE = 4000, ID_OUTMU_BASE = 4001,
 	ID_AIN_NONE = 4500, ID_AIN_BASE = 4501,
 	ID_CARD_NEW16 = 5000, ID_CARD_NEW32, ID_CARD_NEW64, ID_CARD_NEW128,
-	ID_CARD_OPEN = 5010, ID_CARD_EJECT = 5011,
+	ID_CARD_OPEN = 5010, ID_CARD_EJECT = 5011, ID_CARD_FOLDER = 5012,
 	ID_PLAY_FILE = 5100, ID_STOP_FILE = 5101, ID_PORTS34_FOLD = 5102, ID_PORTS34_DROP = 5103,
 	ID_THIN_BENDS = 5104,    // the player lightens heavy MIDI (issue #82)
 	ID_FACTORY = 5200,
@@ -117,7 +117,7 @@ static_assert([] {
 	                        ID_IN_NONE + 3 * ID_IN_STRIDE,
 	                        ID_OUT_NONE, ID_OUTB_NONE, ID_OUTMU_NONE,
 	                        ID_AIN_NONE, ID_CARD_NEW16, ID_CARD_NEW32, ID_CARD_NEW64,
-	                        ID_CARD_NEW128, ID_CARD_OPEN, ID_CARD_EJECT,
+	                        ID_CARD_NEW128, ID_CARD_OPEN, ID_CARD_EJECT, ID_CARD_FOLDER,
 	                        ID_PLAY_FILE, ID_STOP_FILE, ID_FACTORY, ID_RESTART, ID_NATIVE_FX,
 	                        ID_NATIVE_ENGINE, ID_SETTINGS,
 	                        ID_PORTS34_FOLD, ID_PORTS34_DROP, ID_THIN_BENDS, ID_PC_EDITOR, ID_OVERVIEW,
@@ -182,12 +182,16 @@ struct menu_state {
 enum : int {
 	ID_PLUG_CARD_NEW16 = 100, ID_PLUG_CARD_NEW32, ID_PLUG_CARD_NEW64, ID_PLUG_CARD_NEW128,
 	ID_PLUG_CARD_OPEN = 110, ID_PLUG_CARD_EJECT = 111,
-	ID_PLUG_LIST = 120, ID_PLUG_EDITOR = 121,
+	ID_PLUG_LIST = 120, ID_PLUG_EDITOR = 121, ID_PLUG_BOARDS = 122,
+	// The sound output and port E (issue #221). plug_view::menu_command handles these
+	ID_PLUG_OUT_DIGITAL = 130, ID_PLUG_OUT_ANALOG = 131, ID_PLUG_A_TO_E = 132,
 };
 
 struct plug_menu_state {
 	std::string card_path;   // the SmartMedia image in the slot (empty is none)
 	bool card_ready = false; // the engine is up enough to swap images
+	bool analog = false;     // the sound output: analogue (DC cut) or digital
+	bool a_to_e = false;     // MIDI IN A goes to port E (the 16-part board)
 };
 
 namespace menu_detail {
@@ -327,6 +331,7 @@ inline std::vector<menu_group> menu_card(const menu_state &s)
 
 	menu_group g;
 	g.items.push_back(text(UI_TEXT(menu_card_open, "Insert a SmartMedia image..."), ID_CARD_OPEN, false, true));
+	g.items.push_back(text(UI_TEXT(menu_card_folder, "Use a folder as the SmartMedia..."), ID_CARD_FOLDER, false, true));
 	char eject[512];
 	if (!s.card_path.empty())
 		std::snprintf(eject, sizeof(eject), UI_TEXT(menu_card_eject_fmt, "Eject the SmartMedia (%s)"),
@@ -429,14 +434,22 @@ inline std::vector<menu_group> menu_plug_card(const plug_menu_state &s)
 	return groups;
 }
 
-// A plug-in right click that missed the card slot: the PC editor windows
-inline std::vector<menu_group> menu_plug_panel()
+// A plug-in right click that missed the card slot: the PC editor windows,
+// the plug-in boards, the sound output and port E (issue #221)
+inline std::vector<menu_group> menu_plug_panel(const plug_menu_state &s)
 {
 	using namespace menu_detail;
 	menu_group g;
 	g.items.push_back(text(UI_TEXT(menu_open_list, "Open the list"), ID_PLUG_LIST, false, true));
 	g.items.push_back(text(UI_TEXT(menu_open_editor, "Open the editor"), ID_PLUG_EDITOR, false, true));
-	return { g };
+	g.items.push_back(text(UI_TEXT(me_board_open, "Plug-in boards..."), ID_PLUG_BOARDS, false, true));
+	g.items.push_back(separator());
+	g.items.push_back(text(UI_TEXT(menu_plug_a_to_e, "Send MIDI IN A to port E (16-part board)"), ID_PLUG_A_TO_E, s.a_to_e, true));
+	menu_group out;
+	out.title = UI_TEXT(menu_out_title, "Sound output");
+	out.items.push_back(text(UI_TEXT(menu_out_digital, "Digital (S/PDIF; keeps DPCM DC)"), ID_PLUG_OUT_DIGITAL, !s.analog, true));
+	out.items.push_back(text(UI_TEXT(menu_out_analog, "Analog (LINE OUT/PHONES; cuts DC)"), ID_PLUG_OUT_ANALOG, s.analog, true));
+	return { g, out };
 }
 
 } // namespace ui
