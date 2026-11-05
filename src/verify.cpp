@@ -2276,7 +2276,7 @@ static void check_rcp2_player_event_pipeline()
 
 
 // Read real RCP2 files on demand without placing private song data in the repository.
-// Usage: verify --rcp2-sample|--rcp2-event-dump|--rcp2-raw-record-dump <file.rcp> [another.rcp ...]
+// Usage: verify --rcp2-sample|--rcp2-event-dump|--rcp2-raw-record-dump <file.rcp> [another.rcp ...]\n//         verify --rcp2-player-sample <file.rcp> [another.rcp ...]
 // Generic extension-aware diagnostics: verify --sample <file.rcp|file.r36|file.g36|file.mid|file.midi> [...]
 static int check_rcp2_sample_file(const char *path, bool dump_event_trace = false,
                                   bool dump_raw_records = false)
@@ -2981,6 +2981,48 @@ static void check_sample_extension_classification()
 	            sample_extension_test_ok ? "合" : "NG");
 }
 
+// Exercise the public UI-player API with real RCP2 files. This is deliberately
+// separate from the lower-level parser diagnostics above.
+static int check_rcp2_player_sample_file(const char *path)
+{
+	std::ifstream file(path, std::ios::binary);
+	if (!file) {
+		std::fprintf(stderr, "RCP2 player sample: cannot open: %s\\n", path);
+		return 1;
+	}
+	std::vector<u8> bytes((std::istreambuf_iterator<char>(file)),
+	                      std::istreambuf_iterator<char>());
+	if (bytes.empty()) {
+		std::fprintf(stderr, "RCP2 player sample: empty file: %s\\n", path);
+		return 1;
+	}
+	rcp::header_info info;
+	std::string err;
+	if (!rcp::inspect_header(bytes.data(), bytes.size(), info, err) ||
+	    info.type != rcp::format::rcp2) {
+		std::fprintf(stderr, "RCP2 player sample: not a valid RCP2 file: %s: %s\\n",
+		             path, err.c_str());
+		return 1;
+	}
+	ui::player player;
+	int index = -1;
+	if (!player.add_from_memory(bytes.data(), bytes.size(), path, err, &index)) {
+		std::fprintf(stderr, "RCP2 player sample: API conversion failed: %s: %s\\n",
+		             path, err.c_str());
+		return 1;
+	}
+	const std::vector<ui::player::entry> entries = player.list();
+	if (index < 0 || static_cast<size_t>(index) >= entries.size() ||
+	    entries[static_cast<size_t>(index)].evs.empty()) {
+		std::fprintf(stderr, "RCP2 player sample: API returned no playable events: %s\\n", path);
+		return 1;
+	}
+	const ui::player::entry &entry = entries[static_cast<size_t>(index)];
+	std::printf("RCP2 player sample: %s OK; player_api_events=%zu; ports=%d; length=%.3f sec\\n",
+	            path, entry.evs.size(), entry.ports, entry.length);
+	return 0;
+}
+
 static int check_g36_sample_file(const char *path)
 {
 	std::ifstream file(path, std::ios::binary);
@@ -3137,6 +3179,12 @@ int main(int argc, char **argv)
 		int failures = 0;
 		for (int i = 2; i < argc; ++i)
 			failures += check_sample_file_by_extension(argv[i]);
+		return failures == 0 ? 0 : 1;
+	}
+	if (argc >= 3 && std::strcmp(argv[1], "--rcp2-player-sample") == 0) {
+		int failures = 0;
+		for (int i = 2; i < argc; ++i)
+			failures += check_rcp2_player_sample_file(argv[i]);
 		return failures == 0 ? 0 : 1;
 	}
 	if (argc >= 3 && (std::strcmp(argv[1], "--rcp2-sample") == 0 ||
