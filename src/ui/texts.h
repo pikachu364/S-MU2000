@@ -101,12 +101,14 @@ struct ui_texts {
 	const char *menu_thru_b;
 	const char *menu_open_list;
 	const char *menu_open_editor;
+	const char *menu_plug_a_to_e;
 	const char *menu_native_fx;
 	const char *menu_native_engine;
 	const char *menu_factory;
 	const char *menu_restart;
 	const char *menu_card_new;
 	const char *menu_card_open;
+	const char *menu_card_folder;
 	const char *menu_card_eject;
 	const char *menu_card_eject_fmt;  // %s: the file in the slot
 	const char *menu_play_file;
@@ -146,6 +148,8 @@ struct ui_texts {
 	// serves every backend; the identical console twins in app.h share
 	// these fields rather than duplicating them.
 	const char *dlg_card_open;
+	const char *dlg_card_folder;
+	const char *dlg_card_folder_skipped;
 	const char *dlg_card_save;
 	const char *dlg_midi_open;
 	const char *dlg_sysex_desc;
@@ -704,6 +708,7 @@ struct ui_texts {
 	const char *bar_sampling;
 	const char *bar_player;
 	const char *bar_board;
+	const char *bar_keyboard;
 	const char *ply_idle;
 	const char *ply_prev;
 	const char *ply_play;
@@ -724,6 +729,23 @@ struct ui_texts {
 	const char *ply_clear;
 	const char *ply_path;
 	const char *ply_add_path;
+	const char *ply_list_empty;
+	// Keyboard window (keyboard_view.h, issue #212)
+	const char *kb_port;
+	const char *kb_port_tip;
+	const char *kb_channel;
+	const char *kb_fixed;
+	const char *kb_fixed_tip;
+	const char *kb_velocity_fmt;
+	const char *kb_octave_tip;
+	const char *kb_sustain;
+	const char *kb_all_off;
+	const char *kb_bend;
+	const char *kb_bend_tip;
+	const char *kb_mod;
+	const char *kb_mod_tip;
+	const char *kb_keys_tip;
+	const char *kb_knob_tip;
 	const char *dlg_wav_desc;
 	const char *smp_not_ready;
 	const char *smp_input;

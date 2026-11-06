@@ -53,7 +53,10 @@
 #include "ui/pc_window.h"
 #endif
 #include "ui/player.h"
+#include "card_folder.h"
 #include "ui/player_view.h"
+#include "ui/playlist.h"
+#include "ui/keyboard_view.h"
 #include "ui/tool_args.h"
 #include "ui/settings.h"
 #include "ui/settings_view.h"
@@ -134,6 +137,7 @@ public:
 	pc_window sampling{ std::make_unique<sampling_editor>() };
 	settings_state preferences_state;
 	settings_actions preferences_actions;
+	pc_window keyboard_win{ std::make_unique<keyboard_view>() };     // 鍵盤だけの窓（issue #212）
 	pc_window settings_win{ std::make_unique<settings_view>(preferences_state, preferences_actions) };
 	// MIDI プレイヤーの窓。gui だけが持つ（上の 6 つはプラグインにもある）
 	pc_window player_win{ std::make_unique<player_view>(play) };
@@ -166,6 +170,7 @@ public:
 	std::string ain_name;            // the recording device, by name
 	std::string ain_keep;
 	std::string card_path;           // the SmartMedia in the slot, by path
+	bool card_is_folder = false;     // card_path is a folder used as the card (src/card_folder.h)
 	bool keep_settings = false;      // --nomidi: leave the remembered alone
 
 	audio_out *out = nullptr;        // set once the audio device is open
@@ -205,6 +210,8 @@ public:
 			ImGuiContext *const panel_ctx = ImGui::GetCurrentContext();
 			player_win.frame(panel.xg(), panel.ram(), br);
 			board_win.frame(panel.xg(), panel.ram(), br);
+			keyboard_win.frame(panel.xg(), panel.ram(), br);
+			save_playlist();
 			sync_settings_state();
 			settings_win.frame(panel.xg(), panel.ram(), br);
 			// マスターの窓の「プラグインボード...」
@@ -509,6 +516,10 @@ public:
 			open_pc_window(board_win);
 			return;
 		}
+		if (kind == BAR_KEYBOARD) {
+			open_pc_window(keyboard_win);
+			return;
+		}
 		open_pc_window(*window_for_kind(kind, list, pc, fx, shapes, master, sampling));
 	}
 
@@ -516,6 +527,38 @@ public:
 
 	// Where the file lives differs per platform (registry side vs Library)
 	virtual std::string settings_path() const = 0;
+
+	// ---- the player's list (issue #211): playlist.m3u in the settings folder, read back at start and
+	// written whenever the list changes. --nomidi leaves it alone, like the other remembered things.
+	// Songs that cannot be read at start are skipped, so they drop out the next time the list is written
+	bool playlist_loaded = false;
+	unsigned playlist_saved_rev = 0;
+	void load_playlist()
+	{
+		if (keep_settings)
+			return;
+		const std::string path = playlist::default_path();
+		if (path.empty())
+			return;
+		for (const std::string &song : playlist::read(path)) {
+			std::string err;
+			play.add(song, err);
+		}
+		playlist_saved_rev = play.revision();
+		playlist_loaded = true;
+	}
+	void save_playlist()
+	{
+		if (!playlist_loaded || keep_settings)
+			return;
+		const unsigned rev = play.revision();
+		if (rev == playlist_saved_rev)
+			return;
+		playlist_saved_rev = rev;
+		const std::string path = playlist::default_path();
+		if (!path.empty())
+			playlist::write(path, play.paths());
+	}
 
 	void save_settings()
 	{
@@ -772,6 +815,20 @@ public:
 		if (blocks.empty())
 			return;
 		std::string err;
+		if (card_is_folder) {
+			// The firmware wrote to the card: put new and changed files into the folder (nothing is deleted there)
+			std::vector<u8> raw;
+			{
+				const std::lock_guard<std::mutex> hold(eng->card_lock);
+				raw = eng->mu.card().raw();
+			}
+			int written = 0;
+			if (!smu2000::cardfolder::sync(raw, card_path, written, err))
+				std::fprintf(stderr, "SmartMedia: %s\n", err.c_str());
+			else if (written)
+				std::printf(CLI_T("SmartMedia folder: wrote %d file(s) to %s\n", "SmartMedia のフォルダー: %d 個のファイルを %s に書いた\n"), written, card_path.c_str());
+			return;
+		}
 		if (!smu2000::smartmedia::write_blocks(card_path, blocks, err))
 			std::fprintf(stderr, "SmartMedia: %s\n", err.c_str());
 	}
@@ -847,7 +904,9 @@ public:
 			return false;
 		smu2000::smartmedia card;
 		std::string err;
-		if (!card.load(path, err)) {
+		std::vector<std::string> skipped;
+		const bool folder = smu2000::cardfolder::is_folder(path);
+		if (folder ? !smu2000::cardfolder::load(path, card, skipped, err) : !card.load(path, err)) {
 			std::fprintf(stderr, "SmartMedia: %s\n", err.c_str());
 			if (!quiet)
 				menu_error(err);
@@ -860,6 +919,15 @@ public:
 			eng->mu.card_swapped();   // firmware に抜けたのを見せる（前のカードの FAT を忘れさせる）
 		}
 		card_path = path;
+		card_is_folder = folder;
+		if (folder && !skipped.empty() && !quiet) {
+			std::string list;
+			for (size_t i = 0; i < skipped.size() && i < 12; i++)
+				list += "\n" + skipped[i];
+			if (skipped.size() > 12)
+				list += "\n...";
+			menu_note(std::string(UI_TEXT(dlg_card_folder_skipped, "These files were left off the card: their names do not fit the card's 8.3 rule (up to 8 letters, a dot and 3 more, no spaces).")) + list);
+		}
 		std::printf(CLI_T("SmartMedia inserted: %s (%uMB)\n", "SmartMedia を差した: %s（%uMB）\n"),
 		            path.c_str(), eng->mu.card().megabytes());
 		std::fflush(stdout);
@@ -888,6 +956,14 @@ public:
 		if (insert_card(path))
 			menu_note(UI_TEXT(dlg_fresh_card, "Inserted a new SmartMedia image.\n"
 			                                  "It is already formatted (as UTIL → CARD → Format leaves it), so it can be saved to right away."));
+	}
+
+	// A folder of the PC used as the card (src/card_folder.h, issue #218)
+	void do_card_folder()
+	{
+		const std::string path = ask_card_folder_path();
+		if (!path.empty() && insert_card(path))
+			save_settings();
 	}
 
 	void do_card_open()
@@ -1255,6 +1331,7 @@ public:
 		else if (id == ID_AUDIO_DEFAULT)                              choose_audio(-1);
 		else if (id >= ID_AUDIO_BASE && id < ID_AUDIO_BASE + 256)     choose_audio(id - ID_AUDIO_BASE);
 		else if (id == ID_CARD_OPEN)                                  do_card_open();
+		else if (id == ID_CARD_FOLDER)                                do_card_folder();
 		else if (id == ID_CARD_EJECT)                                 { eject_card(); save_settings(); }
 		else if (id >= ID_CARD_NEW16 && id <= ID_CARD_NEW128)         new_card(16u << (id - ID_CARD_NEW16));
 		else if (id == ID_PLAY_FILE)                                  do_midi_file();
@@ -1510,6 +1587,8 @@ public:
 			open_window_by_kind(BAR_PLAYER);
 		if (w.open_board && !w.lcd_only)
 			open_window_by_kind(BAR_BOARD);
+		if (w.open_keyboard && !w.lcd_only)
+			open_window_by_kind(BAR_KEYBOARD);
 	}
 
 	// Starts the audio device. False parks the engine on the failure and
@@ -1589,6 +1668,7 @@ public:
 			ImGuiContext *const panel_ctx = ImGui::GetCurrentContext();
 			player_win.shutdown(br);
 			board_win.shutdown(br);
+			keyboard_win.shutdown(br);
 			settings_win.shutdown(br);
 			ImGui::SetCurrentContext(panel_ctx);
 		}
@@ -1673,6 +1753,7 @@ public:
 	        const window_options &wo)
 	{
 		const remembered saved = initialize_audio_settings(a, oo);
+		load_playlist();
 		setup_for_window(a, wo, oo.factory);
 
 		// The remembered ports open on this thread, while the machine boots
@@ -1755,6 +1836,7 @@ public:
 	virtual void menu_note(const std::string &text) = 0;
 	// File dialogs ("" means cancelled)
 	virtual std::string ask_card_open_path() = 0;
+	virtual std::string ask_card_folder_path() = 0;   // a folder to use as the card (issue #218); "" when cancelled
 	virtual std::string ask_card_save_path() = 0;
 	virtual std::string ask_midi_file_path() = 0;
 	// Factory reset confirmation (false keeps everything)

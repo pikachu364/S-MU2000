@@ -99,6 +99,13 @@ jobs:
           msystem: mingw64
           update: false
           install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-make mingw-w64-x86_64-python make
+      - name: Pin mingw-w64 crt/headers/winpthreads to r495
+        run: |
+          base=https://repo.msys2.org/mingw/mingw64
+          pacman -U --noconfirm \
+            $base/mingw-w64-x86_64-crt-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-x86_64-headers-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-x86_64-winpthreads-14.0.0.r495.g63ebe6cdb-2-any.pkg.tar.zst
       - run: make check-audio-output
       - run: make check-audio-input
       - run: make check-fx
@@ -174,5 +181,12 @@ jobs:
         with:
           msystem: mingw32
           update: false
-          install: mingw-w64-i686-toolchain mingw-w64-i686-make mingw-w64-i686-python make
+          install: mingw-w64-i686-toolchain mingw-w64-i686-python make
+      - name: Pin mingw-w64 crt/headers/winpthreads to r495
+        run: |
+          base=https://repo.msys2.org/mingw/mingw32
+          pacman -U --noconfirm \
+            $base/mingw-w64-i686-crt-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-i686-headers-14.0.0.r495.g63ebe6cdb-1-any.pkg.tar.zst \
+            $base/mingw-w64-i686-winpthreads-14.0.0.r495.g63ebe6cdb-2-any.pkg.tar.zst
       - run: make -j$(nproc) all
