@@ -586,11 +586,13 @@ std::string open_midi_file_panel()
 	UTType *midi = [UTType typeWithFilenameExtension:@"midi"];
 	UTType *rcp  = [UTType typeWithFilenameExtension:@"rcp"];
 	UTType *r36  = [UTType typeWithFilenameExtension:@"r36"];
+	UTType *g36  = [UTType typeWithFilenameExtension:@"g36"];
 	NSMutableArray *types = [NSMutableArray array];
 	if (mid)  [types addObject:mid];
 	if (midi) [types addObject:midi];
 	if (rcp)  [types addObject:rcp];
 	if (r36)  [types addObject:r36];
+	if (g36)  [types addObject:g36];
 	if ([types count])
 		[panel setAllowedContentTypes:types];
 	[panel setAllowsOtherFileTypes:YES];
