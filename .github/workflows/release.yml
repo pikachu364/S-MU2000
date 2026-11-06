@@ -1,7 +1,7 @@
 # Rolling "continuous" binaries (see doc/release-builds.md).
 #
 # Publishes ONE prerelease on tag `continuous`, overwritten on a schedule
-# (every 10h) + manual dispatch. Per-push validation stays in build.yml;
+# (three times daily) + manual dispatch. Per-push validation stays in build.yml;
 # this workflow only publishes. AUv3 is excluded (needs baked ROMs).
 # Linux ships a tarball (bin/ + plugins/) plus a gui AppImage.
 #
@@ -23,7 +23,7 @@ name: continuous-release
 
 on:
   schedule:
-    - cron: "0 */10 * * *"
+    - cron: "0 0,6,12 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -198,7 +198,7 @@ jobs:
           Unofficial project, not affiliated with Yamaha.
 
           WARNING: unsigned, work-in-progress snapshot. It may be broken;
-          it is rebuilt from main about every 10 hours whether or not anyone
+          it is rebuilt from main three times a day whether or not anyone
           has looked at it. For something stable, wait for a versioned release.
 
           ROMs are NOT included and never will be. Extract them from your own
@@ -229,7 +229,7 @@ jobs:
           prerelease: true
           make_latest: true
           body: |
-            Rolling build from `main` (about every 10h, skipped when main hasn't moved).
+            Rolling build from `main` (scheduled three times a day, skipped when main hasn't moved).
 
             **Unsigned, work-in-progress snapshot — expect breakage.** macOS builds are
             not signed or notarized, so Gatekeeper will warn (see `README-release.txt`
