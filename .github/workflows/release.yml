@@ -1,15 +1,15 @@
 # Rolling "continuous" binaries (see doc/release-builds.md).
 #
-# Publishes ONE prerelease on tag `continuous`, overwritten on a schedule
-# (three times daily) + manual dispatch. Per-push validation stays in build.yml;
-# this workflow only publishes. AUv3 is excluded (needs baked ROMs).
+# Publishes ONE prerelease on tag `continuous`, overwritten once daily
+# + manual dispatch. Per-push validation stays in build.yml; this workflow
+# only publishes. AUv3 is excluded (needs baked ROMs).
 # Linux ships a tarball (bin/ + plugins/) plus a gui AppImage.
 #
 # Guards:
 # - `freshness` skips scheduled runs when main hasn't moved since the last
 #   continuous build (manual dispatches always build).
-# - every pkg job runs `make test` first; `publish` needs all three, so a
-#   broken main never overwrites the downloads.
+# - every pkg job runs `make test` first; `publish` needs all three, so
+#   a broken main never overwrites the downloads.
 # - `publish` force-moves the `continuous` tag to the built commit BEFORE
 #   uploading: softprops/action-gh-release replaces assets in place but does
 #   not move the tag itself (see src/github.ts: update path calls
@@ -23,7 +23,7 @@ name: continuous-release
 
 on:
   schedule:
-    - cron: "0 0,6,12 * * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -48,7 +48,7 @@ jobs:
             echo "manual dispatch: always build"
             exit 0
           fi
-          TAG_SHA="$(git ls-remote "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" refs/tags/continuous | grep -v '\^{}' | head -1 | awk '{print $1}')"
+          TAG_SHA="$(git ls-remote "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" refs/tags/continuous | grep -v '\\^{}' | head -1 | awk '{print $1}')"
           echo "continuous tag: ${TAG_SHA:-<none>}, this run: ${{ github.sha }}"
           if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" = "${{ github.sha }}" ]; then
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -77,7 +77,7 @@ jobs:
       # 配る物そのものが Windows に読み込めるか（build.yml と同じ検査。#241・#246）
       - name: Packaged plug-ins load
         run: |
-          python3 tools/check_pe_relocs.py dist-windows/plugins/S-MU2000.dll dist-windows/plugins/S-MU2000.clap \
+          python3 tools/check_pe_relocs.py dist-windows/plugins/S-MU2000.dll dist-windows/plugins/S-MU2000.clap \\
             dist-windows/plugins/S-MU2000.vst3/Contents/x86_64-win/S-MU2000.vst3 dist-windows/bin/gui.exe
           build/vst3probe.exe dist-windows/plugins/S-MU2000.vst3/Contents/x86_64-win/S-MU2000.vst3 --load
           build/clapprobe.exe dist-windows/plugins/S-MU2000.clap --load
@@ -128,9 +128,9 @@ jobs:
         run: |
           test -f ~/sdl3-release/lib/libSDL3.so -o -f ~/sdl3-release/lib/x86_64-linux-gnu/libSDL3.so && exit 0
           git clone --depth 1 --branch release-3.4.16 https://github.com/libsdl-org/SDL /tmp/SDL
-          cmake -S /tmp/SDL -B /tmp/SDL/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$HOME/sdl3-release \
-            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=OFF \
+          cmake -S /tmp/SDL -B /tmp/SDL/build -G Ninja -DCMAKE_BUILD_TYPE=Release \\
+            -DCMAKE_INSTALL_PREFIX=$HOME/sdl3-release \\
+            -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=OFF \\
             -DSDL_UNIX_CONSOLE_BUILD=ON
           cmake --build /tmp/SDL/build
           cmake --install /tmp/SDL/build
@@ -197,7 +197,7 @@ jobs:
           Unofficial project, not affiliated with Yamaha.
 
           WARNING: unsigned, work-in-progress snapshot. It may be broken;
-          it is rebuilt from main three times a day whether or not anyone
+          it is rebuilt from main once daily whether or not anyone
           has looked at it. For something stable, wait for a versioned release.
 
           ROMs are NOT included and never will be. Extract them from your own
@@ -217,7 +217,7 @@ jobs:
           (cd artifacts/dist-windows && zip -r ../../S-MU2000-windows-x64.zip .)
           (cd artifacts/dist-macos && zip -r -y ../../S-MU2000-macos-universal.zip .)
           (cd artifacts/dist-linux && tar czf ../../S-MU2000-linux-x64.tar.gz .)
-          find artifacts -name '*.AppImage' -exec mv -f {} ./S-MU2000-x86_64.AppImage \;
+          find artifacts -name '*.AppImage' -exec mv -f {} ./S-MU2000-x86_64.AppImage \\;
           chmod +x S-MU2000-x86_64.AppImage
           ls -la S-MU2000-*
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3 pinned
@@ -228,7 +228,7 @@ jobs:
           prerelease: true
           make_latest: true
           body: |
-            Rolling build from `main` (scheduled three times a day, skipped when main hasn't moved).
+            Rolling build from `main` (scheduled once daily, skipped when main hasn't moved).
 
             **Unsigned, work-in-progress snapshot — expect breakage.** macOS builds are
             not signed or notarized, so Gatekeeper will warn (see `README-release.txt`
