@@ -101,6 +101,10 @@ public:
 	virtual void detach() = 0;
 	virtual void set_size(int w, int h) = 0;
 
+	// Platform window scale relative to the host (Windows reports its parent DPI).
+	// Platforms without a separate host scale use the neutral 1.0 factor.
+	virtual double host_scale() const { return 1.0; }
+
 	// The SmartMedia menu, at a point inside the panel. A popup menu and a file
 	// dialog are native on both platforms, so the window builds them and calls
 	// back into the view's card_* methods to act on the choice
