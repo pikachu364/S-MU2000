@@ -37,12 +37,24 @@ three entries are SmartMedia.
 
 * `Create a new SmartMedia and insert it` → 16 MB / 32 MB / 64 MB / 128 MB. Choose where to save it and a card file (`.img`) is created and inserted. It comes formatted the same way `UTIL → CARD → Format` leaves a card, so it can be saved to right away. While a card is in, its edge shows in the panel's slot
 * `Insert SmartMedia...` inserts a card file made earlier
+* `Use a folder as the SmartMedia...` inserts a folder of the PC as the card (issue #218; below)
 * `Eject SmartMedia` writes back to the file, then ejects
 
 SAMPLING's SAVE / LOAD (ALL+SEQ and so on) and UTIL's CARD work. What the
 firmware writes is flushed to the file every two seconds, on eject and when
 the GUI closes (changed blocks only). The inserted card is remembered in
 gui.ini and inserted again at the next start.
+
+**A folder as the card** (issue #218, `src/card_folder.h`): instead of a card file, a folder of the PC is inserted.
+
+* On insertion the card is built from the files in the folder (subfolders too). Its size is the smallest (16 to 128 MB)
+  that holds the contents in half, so SAVE has room
+* Card file names are FAT 8.3 (up to 8 characters, a dot and 3 more, no spaces). Files whose names do not fit even in
+  capitals are left out, and listed when the folder is inserted. At most 256 entries at the top, 510 in each subfolder
+* When the unit writes to the card (SAVE and so on), every two seconds and on eject or close **only new and changed files**
+  are written into the folder; a name that differs only in case goes to the existing file. **Files deleted on the card are
+  not deleted from the folder** (so files on the PC are never lost); they appear again the next time it is inserted
+* The inserted folder is remembered in gui.ini (`smartmedia=`) and inserted again at the next start
 
 The file holds the raw layout of the SmartMedia's NAND (512-byte pages plus
 16 spare bytes). Move files in and out from the PC with `tools/smcard.py`:
@@ -133,8 +145,35 @@ all add to this list before playing, so whichever way a song starts it can be co
   10,000 bytes a second for the USB port and 3,125 for DIN) before playing on. Songs with a lot of SysEx take a
   moment; `catching up the settings...` is shown meanwhile
 * **Bar, beat and tempo** are counted from the song's time signatures (`FF 58`) and tempo changes (`FF 51`)
+* **The list is remembered** (issue #211): whenever it changes it is written to `playlist.m3u` in the settings folder
+  and read back at the next start. The format is M3U (UTF-8 text, one file per line; other players read it too).
+  Songs that cannot be read at start are skipped, so they also drop out of the file the next time the list changes.
+  With `--nomidi` it is neither read nor written. Adding a `.m3u` / `.m3u8` file adds the songs listed in it
+  (relative paths are read from the playlist's folder)
 
 The plugins (VST3 and so on) do not have this window; there the DAW plays the song.
+
+### The keyboard window
+
+Open it with `Keyboard` on the bar at the top of the window (or `--keyboard-window`): a window with only a keyboard
+(issue #212), for playing the way a keyboard plugged into the unit's front MIDI IN A was played.
+
+* **Port and channel**: the MIDI input (A to D) and channel (1 to 16) the keys play into. The default is port A,
+  channel 1. C and D exist on USB only (parts 33-64)
+* **Keys**: five octaves. Press to play, slide to move to the next key. Lower on the key is louder (as on the other
+  keyboards); with `Fixed velocity` every key plays at the set velocity. `<` `>` move by an octave (the name is the
+  lowest key; middle C = C3)
+* **Bend and modulation**: the two strips on the left. Bend springs back to the middle; modulation (controller 1)
+  stays where it is left. `Sustain` switches controller 64
+* **Two assignable controls** on the second row: pick a controller from the list (or type its number) and drag the
+  slider to send it. The defaults are the reverb send (CC91) and the chorus send (CC93)
+* **PC keyboard**: laid out like a piano. `Z X C V B N M` are white keys with `S D G H J` as the black keys
+  between them (the keyboard's second octave); `Q W E R T Y U I O P` are the white keys an octave higher with
+  `2 3 5 6 7 9 0` as the black keys. The letters are drawn on the keys they play. PageUp / PageDown move the octave.
+  Only letter and digit keys are used, so the places are the same on other layouts such as Japanese
+
+Closing the window, or changing the port or channel, releases the held notes and resets bend, modulation and
+sustain. The plugins do not have this window (the DAW's keyboard plays them).
 
 ## Choosing MIDI ports
 
@@ -218,11 +257,24 @@ as `output` (`digital` / `analog`) in `gui.ini`. The default is digital.
 
 | Output | Contents |
 |---|---|
-| Digital | the same as the unit's S/PDIF. The DC that some DPCM samples carry (A2 and A5 of Alto Sax Legato, for instance) comes out as it is. Recorded from the unit's S/PDIF and compared, even the DC level matches to 0.1 LSB (issue #3) |
+| Digital | the same signal as the unit's S/PDIF, at the level the S/PDIF has **when UTIL → SYS `DigiOutGain` is +12 dB** (below). The DC that some DPCM samples carry (A2 and A5 of Alto Sax Legato, for instance) comes out as it is. Recorded from the unit's S/PDIF and compared, even the DC level matches to 0.1 LSB (issue #3) |
 | Analog | meant as LINE OUT / PHONES: DC is removed after the DAC (before the VOLUME knob) with a first-order high-pass (`src/analog_out.h`). Right after a sound with DC is released, a slow swing appears as what was removed comes back |
 
 **The analog cut-off (3 Hz) is a placeholder.** The unit's analog output has
 not been recorded yet; once measured, set `analog_out::CUTOFF_HZ` to match.
+
+**Output level and `DigiOutGain` (checked 2026-10-14).** The unit's UTIL → SYS `DigiOutGain` (0 / +6 / +12 dB,
+default 0) is a gain on the S/PDIF output only. The firmware rewrites the constants of the last two steps of the
+effect DSP (MEG steps 0x92 and 0x95, which produce `m2e` and `m2f`) to 0x0800, 0x1000 or 0x2000, and that pair
+goes out on S/PDIF. The emulator's outputs (digital and analog) are taken from the DAC pair (`m30`, `m31`): the
+same signal one sample earlier, at the level the S/PDIF has **when `DigiOutGain` is +12 dB**. Recorded from the
+unit's S/PDIF at the default 0 dB, the unit is 12 dB quieter than the emulator; at +12 dB the levels match too
+(single organ and piano notes agree in RMS to four digits).
+
+The item can be set in the emulator as well, and the firmware writes the same constants, but the output is the
+DAC pair, so the sound does not change. The output could follow it by taking the S/PDIF pair instead, but at the
+default 0 dB everyone's sound would drop by 12 dB, so it does not. To compare levels with the unit's S/PDIF,
+record the unit at +12 dB, or add 12 dB before comparing.
 
 ### When a port does not respond, or MIDI floods
 
@@ -264,7 +316,9 @@ DIN's 31,250 bps to the unit's USB speed (10,000 bytes/s).
 
 With loopMIDI, **create one virtual cable per port** and assign each. In a
 DAW, the plug-in exposes **four MIDI input buses** (`MIDI In A (Part 1-16)`
-to `MIDI In D (Part 49-64)`), so choose the destination bus per track.
+to `MIDI In D (Part 49-64)`), so choose the destination bus per track. A
+fifth, `MIDI In E (Board)`, goes to port E, the 16-part plug-in board
+([doc/vst3.en.md](vst3.en.md)).
 
 The bottom line of the window shows the ports currently connected.
 
